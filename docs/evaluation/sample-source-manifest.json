@@ -1,0 +1,15 @@
+{
+  "snapshot_revision": null,
+  "reason": "Local sample has no .git directory",
+  "files": {
+    "Backend/evals/golden.jsonl": "0c525441c4052e9ae715e95341b8410c2608ab58162f1132b631658cb96d7257",
+    "Backend/evals/common.py": "5e43edf757cfd6151ce82d94d184822c0b0a2399f5a2c65537594cb3a12e5211",
+    "Backend/evals/check_dataset.py": "78541d31cf7f5998ab881fbcb9293dfdd97dd19955777a075c2f127aea100e01",
+    "Backend/evals/retrieval_eval.py": "3184853e1efafd50861e82d858c3602ec0bb77613ea277635a3e28a5313def60",
+    "Backend/evals/e2e_eval.py": "9a1796d9b2502411bbad58908619d6d8380c2e0aabed363022c717a4ce9c87c3",
+    "Backend/evals/README.md": "f4f3fa91a0f74bcdc5e70ed3edeed7edfce03c7424e1b058366f770aea29641e",
+    ".github/workflows/evals.yml": "cdaee6d760d48e65d6ee8f27dd49267df95c1c8578cd994c8077699f56ff98e7",
+    "Backend/data/langsmith_evaluation_dataset.csv": "4e110c8baa1441857e57b1f8c59a6180495dab89f64ad340a4126e6dc9ffd3f0",
+    "Backend/experimentation_phase/migrated_root/run_langsmith_evals.py": "b9f1d4b8beb04b1ad29d0d819dee835fc473f6f228f707488a627daee46cb22f"
+  }
+}
