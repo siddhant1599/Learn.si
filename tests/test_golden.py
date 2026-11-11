@@ -174,3 +174,15 @@ def test_release_rejects_self_approval(corpus):
     case.review.reviewer = case.annotator
     assert "independent_review_required" in {
         e["code"] for e in validate([case], *source, release=True)}
+
+
+def test_release_rejects_future_dated_approval(corpus):
+    from datetime import date, timedelta
+
+    case, *source = corpus
+    case.review.status = "approved"
+    case.review.independent = True
+    case.review.reviewer = "independent-reviewer"
+    case.review.reviewed_at = date.today() + timedelta(days=1)
+    assert "independent_review_required" in {
+        e["code"] for e in validate([case], *source, release=True)}

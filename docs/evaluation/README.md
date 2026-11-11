@@ -10,7 +10,7 @@ private Git-ignored storage. Current local development material is under
 uv run pytest tests/test_golden*.py -q
 uv run python -m evals.golden --private-dir /private/data --pdf /private/handbook.pdf --dataset development.jsonl
 uv run python -m evals.retrieval --private-dir /private/data --pdf /private/handbook.pdf --dataset development.jsonl --max-calls 8 --allow-draft
-uv run python -m evals.e2e --private-dir /private/data --pdf /private/handbook.pdf --max-requests 1 --allow-draft
+uv run python -m evals.e2e --private-dir /private/data --pdf /private/handbook.pdf --max-requests 1 --max-chat-calls 6 --max-embedding-calls 13 --max-web-calls 2 --allow-draft
 # Optional semantic judge: at most one additional provider call per reserved slot.
 uv run python -m evals.e2e --private-dir /private/data --pdf /private/handbook.pdf --max-requests 1 --max-judge-calls 1 --allow-draft
 # Four isolated synthetic retrieved-instruction tests, four chat calls maximum.
@@ -34,8 +34,41 @@ resistance or inspect all possible disclosures.
 E2E commands require the local API on port 8001 and its matching database in the
 process environment. Evaluator-owned conversations are deleted after each case.
 History is fixture-seeded; original app answers are not manufactured. Reports include
-category counts, time, attempts, missing citations and source/code hashes. The server
-model/revision is not exposed by the API and is explicitly marked unavailable.
+category counts, time, attempts, missing citations and source/code hashes. The API's
+`/evaluation/runtime` endpoint reports its startup source/lockfile fingerprint, Git
+revision and dirty state, process instance, Python version, configured model, embedding
+signature and nonsecret retrieval/orchestration settings. Credentials, DSNs, private
+source text and index/namespace names are excluded. The endpoint returns 409 after
+source/config changes until the server restarts. Each SSE session identifies its
+server instance; E2E verifies that instance and the corpus binding before and after
+every case. An old server without this endpoint fails preflight. `--base-url` can
+select another loopback port for an isolated evaluation server.
+
+This records the configured model, not an immutable upstream model revision or the
+identity chosen by a provider's free-model router. Those remain unverified. A source
+fingerprint includes the dependency lockfile, not a proof of installed binary identity.
+
+Before dispatch, E2E reserves the server's maximum chat/embedding/web attempts for
+each request. Optional `--max-chat-calls`, `--max-embedding-calls`, `--max-web-calls`
+bound the entire run; omitted caps default to request count times server caps. Cases
+that cannot fit are explicitly skipped, even if a previous case used fewer calls.
+Judge slots have a separate cap. Reported usage and unknown usage are separate;
+timeouts cannot silently count as zero-cost successes. These bounds are call budgets,
+not dollar costs. Per-category reports include explicit denominators and p50/p95
+latency, with sample counts. Tiny smoke runs do not establish stable latency estimates.
+
+Compare saved sanitized reports with:
+
+```sh
+uv run python -m evals.compare /private/before.json /private/after.json
+```
+
+E2E report version 2 comparisons require the same dataset, index binding, evaluator,
+selection/call budgets, server configuration and attempted cases. Server application
+build changes are allowed. Completion/error changes are reported; a quality metric
+delta is unavailable when the contributing case sets differ, even when counts match.
+Comparisons do not invent thresholds or approve a baseline. Legacy smoke reports lack
+the required provenance and cannot be compared as version 2 reports.
 
 ## Independent review
 
@@ -52,7 +85,10 @@ are separate from these handbook cases and never represented as handbook content
 
 `golden-offline.yml` uses sanitized fixtures without provider credentials.
 `golden-live.yml` runs manually on main only, with a request cap chosen from 1/2/4/8,
-no judge, no retries, concurrency 1 and a 40-minute job limit. It requires:
+no judge, no evaluator retries, concurrency 1 and a 40-minute job limit. Total caps are
+6 chat, 13 embedding and 2 web attempts per requested case, including app recovery
+attempts. A server requiring larger reservations causes explicit skips/failure instead
+of increasing the budget silently. It requires:
 
 - A trusted dedicated self-hosted runner labelled `document-lab-evals`, with uv installed.
 - A `golden-evaluation` GitHub environment; configure its protection rules before use.
@@ -73,5 +109,5 @@ limits and account spending controls appropriate to the selected run.
 All 99 handbook cases remain development drafts. There is no independently approved
 held-out set or calibrated quality gate. Live runs have exposed missing citations and
 omitted facts; mixed-answer success remains unverified. See `implementation-status.md`
-for exact observed results. #11 must remain open until review, split, version provenance,
+for exact observed results. #11 must remain open until review, split,
 private storage, calibration and hosted validation requirements are met.

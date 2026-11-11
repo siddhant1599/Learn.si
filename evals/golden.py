@@ -22,7 +22,7 @@ class Evidence(BaseModel):
 
 
 class Review(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
     status: Literal["assistant_source_reviewed_pending_human", "draft", "approved"]
     reviewer: str = Field(min_length=1)
     method: str = Field(min_length=1)
@@ -98,6 +98,7 @@ def validate(cases, audit, pages, chunks, *, release=False):
             fail("stale_corpus")
         if release and (case.review.status != "approved" or not case.review.independent
                         or not case.review.reviewed_at or not case.annotator
+                        or case.review.reviewed_at > date.today()
                         or case.annotator.strip().casefold() == case.review.reviewer.strip().casefold()):
             fail("independent_review_required")
         if case.expected_answerability in {"sufficient", "partial"}:
@@ -181,6 +182,7 @@ def main():
             errors.append({"row": 0, "code": "empty_dataset"})
         print(json.dumps({"cases": len(cases), "categories": dict(Counter(
             c.category for c in cases)), "review": dict(Counter(c.review.status for c in cases)),
+            "splits": dict(Counter(c.split for c in cases)),
             "errors": errors, "live_index_verified": False}))
         return int(bool(errors))
     except (OSError, ValueError, KeyError, TypeError, ValidationError):

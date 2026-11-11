@@ -22,6 +22,13 @@ it('rejects requests ending with assistant',async()=>{mock();await expect(run({.
 it('sends only latest question and selected IDs',async()=>{mock();const r=request();r.messages.unshift({id:'old',role:'user',text:'Old',files:[]});await run(r);expect(JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string)).toEqual({user_query:'Question',document_ids:['doc'],thread_id:null})});
 it('uses backend session ID for follow-up',async()=>{mock();await run({...request(),serverThreadId:'backend'});expect(JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string).thread_id).toBe('backend')});
 it('maps session event',async()=>{mock(frame('session',{thread_id:'s'})+frame('result',{answer:'x'}));expect((await run())[0]).toEqual({type:'session',serverThreadId:'s'})});
+it('keeps evaluation runtime metadata out of chat events',async()=>{
+ mock(frame('session',{thread_id:'s',runtime_id:'evaluation-instance'})+frame('result',{answer:'x'}));
+ const events=await run();
+ expect(events[0]).toEqual({type:'session',serverThreadId:'s'});
+ expect(JSON.stringify(events)).not.toContain('evaluation-instance');
+ expect(events).toContainEqual({type:'text',delta:'x'});
+});
 it('maps retrieval progress',async()=>{mock(frame('progress',{step:'retrieve'})+frame('result',{answer:'x'}));expect((await run())[0]).toMatchObject({type:'step',step:{label:'Evidence retrieved',status:'complete'}})});
 it('retains unknown progress label',async()=>{mock(frame('progress',{step:'future'})+frame('result',{answer:'x'}));expect((await run())[0]).toMatchObject({step:{label:'future'}})});
 it('maps final answer and source metadata',async()=>{mock(frame('result',{answer:'Blue',citations:[{citation:1,page:3}],warnings:['fallback']}));expect(await run()).toEqual([{type:'text',delta:'Blue'},{type:'sources',citations:[{citation:1,page:3}],warnings:['fallback']}])});

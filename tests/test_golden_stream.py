@@ -60,3 +60,23 @@ def test_web_without_sections_and_no_semantic_overclaim():
     event(check, "result", {"answer": "Mixed answer", "citations": [{"source_type": "web"}]})
     assert check.summary()["separate_sections"] is False
     assert check.summary()["semantic_grounding"] == "requires_review"
+
+
+def test_error_usage_retained_without_error_text_and_duplicates_rejected():
+    check = StreamCheck()
+    event(check, "session", {"runtime_id": "runtime"})
+    event(check, "error", {"message": "private", "usage": {"chat_calls": 3, "web_calls": 2}})
+    assert check.runtime_id == "runtime"
+    assert check.usage == {"chat_calls": 3, "web_calls": 2}
+    assert check.summary()["web_attempts"] == 2
+    assert "private" not in json.dumps(check.__dict__)
+    event(check, "session", {"runtime_id": "wrong"})
+    assert check.runtime_id == "runtime"
+    assert check.summary()["stream_errors"] == 2
+
+
+def test_invalid_usage_cannot_be_hidden_by_an_earlier_valid_value():
+    check = StreamCheck()
+    event(check, "error", {"usage": {"web_calls": 1}})
+    event(check, "result", {"answer": "answer", "usage": {"web_calls": True}})
+    assert not check.summary()["web_cap_valid"]

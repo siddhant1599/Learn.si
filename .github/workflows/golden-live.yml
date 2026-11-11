@@ -43,7 +43,11 @@ jobs:
           --private-dir "$EVAL_PRIVATE_DIR" --pdf "$EVAL_PDF_PATH"
           --dataset "$EVAL_DATASET" --release
       - name: Evaluate approved cases using local application
-        run: >-
-          uv run python -m evals.e2e
-          --private-dir "$EVAL_PRIVATE_DIR" --pdf "$EVAL_PDF_PATH"
-          --dataset "$EVAL_DATASET" --max-requests "$REQUEST_LIMIT"
+        shell: bash
+        run: |
+          uv run python -m evals.e2e \
+            --private-dir "$EVAL_PRIVATE_DIR" --pdf "$EVAL_PDF_PATH" \
+            --dataset "$EVAL_DATASET" --max-requests "$REQUEST_LIMIT" \
+            --max-chat-calls "$((REQUEST_LIMIT * 6))" \
+            --max-embedding-calls "$((REQUEST_LIMIT * 13))" \
+            --max-web-calls "$((REQUEST_LIMIT * 2))"

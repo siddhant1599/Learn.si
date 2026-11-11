@@ -332,3 +332,47 @@ The evaluation detects these failures; it does not fix production answer quality
 The remaining independent review, held-out data, calibration, authoritative server
 version provenance, private runner/storage setup and successful hosted validation
 remain requirements for closing #11. No acceptance criteria were weakened.
+
+## Runtime verification and E2E baseline comparison (2026-11-11)
+
+The local API now exposes nonsecret startup provenance at `/evaluation/runtime`:
+source/dependency-lock fingerprint, Git revision/dirty state, process identity,
+Python version, configured model/embedding and orchestration limits. It rejects
+stale source/config snapshots. SSE sessions identify the serving process. The E2E
+runner verifies the same runtime and unchanged corpus binding around every case.
+Configured model identity is verified; an immutable upstream provider model revision
+is still unavailable and is not inferred from the configured model name.
+
+E2E report version 2 adds per-category denominators, explicit skip/error reasons,
+p50/p95 with sample counts, observed/unknown usage, and total provider-attempt
+reservations. Manual CI now has explicit chat/embedding/web caps. Baseline comparison
+requires matching dataset, evaluator, configuration and attempted cases, and refuses
+quality deltas when the contributing case sets differ. It allows application build
+changes and reports changes in error rates separately. No quality thresholds or
+independent approvals are created by comparison.
+
+Validation:
+- Backend: **448 passed, 1 skipped**; lint and diff checks passed.
+- Frontend adapter/reducer/store: **67 passed**, including a regression confirming
+  that the new session metadata is discarded from chat events.
+- All **99** private draft cases passed source/span/chunk validation. Split counts
+  are now printed explicitly: 13 pilot-development, 86 development, zero held-out.
+- Two bounded live document smoke runs used an isolated server on port 8002, each
+  reserving at most 6 chat/13 embedding/2 web attempts. Both completed, verified
+  runtime/binding/cleanup and safe persistence, and used 3 chat/1 embedding/0 web
+  attempts. Both lacked expected document citations and correctly exited with
+  failure. Completion times were 6.091s and 4.117s. Their compatible comparison
+  succeeded and reported unchanged failed citation coverage; these are not passing
+  answer-quality baselines or statistically meaningful latency estimates.
+- A separate mixed smoke run completed in 17.684s with 6 chat/2 embedding/1 web
+  attempt. It returned two web citations with separate document/web headings and
+  passed persistence/cleanup/runtime checks, but had no expected document citation.
+  It correctly failed. No semantic judge was invoked in these three runs.
+
+The temporary server was stopped after validation. The existing app on port 8001
+was not restarted; it requires a normal restart to serve the new provenance endpoint.
+Private reports remain Git-ignored. Outstanding closure requirements are independent
+review/adjudication, an unexposed held-out set, reviewed quality baselines/calibration,
+durable private storage, trusted live CI execution and resolution/adjudication of
+the recorded answer-quality failures. The implementation is not a claim of release
+benchmark approval.

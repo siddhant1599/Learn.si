@@ -11,6 +11,9 @@ class StreamCheck:
         self.errors = 0
         self.results = 0
         self.session = False
+        self.runtime_id = None
+        self.usage = {}
+        self.invalid_usage = False
 
     def line(self, line):
         if line == "":
@@ -29,7 +32,10 @@ class StreamCheck:
             if not isinstance(payload, dict):
                 raise ValueError()
             if self.name == "session":
+                if self.session:
+                    raise ValueError()
                 self.session = True
+                self.runtime_id = payload.get("runtime_id")
             elif self.name == "token":
                 if not isinstance(payload.get("delta"), str):
                     raise ValueError()
@@ -39,6 +45,18 @@ class StreamCheck:
                 self.result = payload  # Final replacement, never concatenate streamed tokens.
             elif self.name == "error":
                 self.errors += 1
+            if self.name in {"result", "error"}:
+                # Retain counters only, including failures; never retain error messages.
+                usage = payload.get("usage", {})
+                if isinstance(usage, dict):
+                    for key in ("chat_calls", "embedding_calls", "web_calls"):
+                        value = usage.get(key)
+                        if type(value) is int and value >= 0:
+                            self.usage[key] = max(value, self.usage.get(key, 0))
+                        elif key in usage:
+                            self.invalid_usage = True
+                elif "usage" in payload:
+                    self.invalid_usage = True
         except (ValueError, TypeError):
             self.errors += 1
 
@@ -53,8 +71,9 @@ class StreamCheck:
         else:
             malformed = False
         web = sum(c.get("source_type") == "web" for c in citations)
-        calls = usage.get("web_calls", 0) if isinstance(usage, dict) else None
-        calls_valid = type(calls) is int and calls >= 0
+        calls = (self.usage.get("web_calls", usage.get("web_calls", 0))
+                 if isinstance(usage, dict) else None)
+        calls_valid = type(calls) is int and calls >= 0 and not self.invalid_usage
         completed = (self.results == 1 and self.errors == 0 and isinstance(answer, str)
                      and bool(answer.strip()) and not malformed and not self.data)
         return {

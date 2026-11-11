@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
-from evals.e2e import citation_checks, consume, run_case
+from evals.e2e import citation_checks, consume, evaluate, run_case
 from tests.test_golden import corpus as _corpus
 
 
@@ -153,3 +153,70 @@ async def test_judge_keeps_app_completion_and_cleanup_separate(corpus, judge_fai
     calls = conn.execute.call_args_list
     assert "DELETE" in calls[-1].args[0]
     assert calls[0].args[1][0] == calls[-1].args[1][0]
+
+
+async def test_provider_reservations_stop_before_dispatch_and_judge_has_separate_budget(corpus):
+    from tests.test_golden_reporting import row
+
+    runner = AsyncMock(return_value=row())
+    verify = AsyncMock()
+    cap = dict(chat_calls=6, embedding_calls=13, web_calls=2)
+    result = await evaluate([corpus[0]] * 4, runner, verify, max_requests=4,
+                            per_request=cap, limits={k: v * 2 for k, v in cap.items()},
+                            max_judge_calls=1)
+    assert runner.await_count == 2
+    assert verify.await_count == 4
+    assert [c.args[1] for c in runner.call_args_list] == [True, False]
+    assert result["judge_request_slots"] == 1
+    assert result["summary"]["skip_reasons"] == {"provider_budget": 2}
+    assert result["provider_attempts_reserved"]["chat_calls"] == 12
+
+
+async def test_preflight_failure_makes_no_application_call(corpus):
+    runner = AsyncMock()
+    result = await evaluate([corpus[0]], runner, AsyncMock(side_effect=ValueError("private")),
+                            max_requests=1, per_request={"chat_calls": 6},
+                            limits={"chat_calls": 6})
+    runner.assert_not_awaited()
+    assert result["halted"] == "verification_failed"
+    assert result["summary"]["attempted"] == 0
+    assert "private" not in json.dumps(result)
+
+
+@pytest.mark.parametrize("patch,expected", [
+    ({"cleanup_ok": False}, "cleanup_failed"),
+    ({"runtime_verified": False}, "runtime_mismatch"),
+    ({"usage": {"chat_calls": 7}}, "provider_cap_exceeded"),
+])
+async def test_unsafe_outcomes_stop_remaining_requests(corpus, patch, expected):
+    from tests.test_golden_reporting import row
+
+    runner = AsyncMock(return_value=row(**patch))
+    result = await evaluate([corpus[0], corpus[0]], runner, AsyncMock(), max_requests=2,
+                            per_request={"chat_calls": 6}, limits={"chat_calls": 12})
+    assert runner.await_count == 1
+    assert result["halted"] == expected
+    assert result["summary"]["skipped"] == 1
+
+
+async def test_changed_binding_after_request_invalidates_outcome(corpus):
+    from tests.test_golden_reporting import row
+
+    runner = AsyncMock(return_value=row())
+    result = await evaluate([corpus[0]], runner, AsyncMock(side_effect=[None, ValueError()]),
+                            max_requests=1, per_request={"chat_calls": 6},
+                            limits={"chat_calls": 6})
+    assert result["summary"]["errors"] == 1
+    assert result["summary"]["metrics"]["contract_pass_rate"] == 0
+    assert not result["results"][0]["binding_verified"]
+
+
+async def test_category_and_request_limits_have_explicit_skip_counts(corpus):
+    from tests.test_golden_reporting import row
+
+    runner = AsyncMock(return_value=row())
+    cases = [corpus[0].model_copy(update={"category": "table"}), corpus[0], corpus[0]]
+    result = await evaluate(cases, runner, AsyncMock(), max_requests=1, category="direct",
+                            per_request={"chat_calls": 6}, limits={"chat_calls": 18})
+    assert result["summary"]["skip_reasons"] == {"category_filter": 1, "request_budget": 1}
+    assert result["categories"]["table"]["attempted"] == 0

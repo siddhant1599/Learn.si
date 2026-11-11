@@ -10,7 +10,7 @@ import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi import Query as QueryParam
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
@@ -24,12 +24,16 @@ from app.web_search import TavilySearch
 from app.workflow import Workflow
 from scripts.ingest import ingest
 
+# Import after the serving modules so the snapshot includes their startup sources.
+from app.runtime import capture_runtime, runtime_current  # isort: skip
+
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app):
     config = settings()
+    app.state.runtime = capture_runtime(config)
     app.state.storage = None
     app.state.research_limiter = asyncio.Semaphore(config.research_service_concurrency)
     async with httpx.AsyncClient(timeout=45) as client:
@@ -110,6 +114,16 @@ async def health():
     }
 
 
+@app.get("/evaluation/runtime", include_in_schema=False)
+async def evaluation_runtime(request: Request):
+    manifest = getattr(request.app.state, "runtime", None)
+    if manifest is None:
+        raise HTTPException(503, "Runtime provenance unavailable")
+    if not runtime_current(manifest, settings()):
+        raise HTTPException(409, "Restart the server before evaluation")
+    return JSONResponse(manifest.model_dump(mode="json"), headers={"Cache-Control": "no-store"})
+
+
 @app.get("/documents")
 async def documents(store=Depends(storage)):
     return await store.documents()
@@ -148,7 +162,8 @@ async def query(body: Query, request: Request, store=Depends(storage)):
         raise HTTPException(409, str(exc)) from exc
 
     async def stream():
-        yield event("session", {"thread_id": thread_id})
+        runtime_id = str(request.app.state.runtime.instance_id)
+        yield event("session", {"thread_id": thread_id, "runtime_id": runtime_id})
         workflow = Workflow(
             request.app.state.providers,
             store,

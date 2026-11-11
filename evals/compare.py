@@ -3,6 +3,8 @@ import argparse
 import json
 from pathlib import Path
 
+from evals.reporting import compare_e2e
+
 METRICS = ("hit@1", "hit@3", "hit@5", "mrr", "evidence_coverage", "all_evidence")
 
 
@@ -39,7 +41,9 @@ def main():
     parser.add_argument("after", type=Path)
     args = parser.parse_args()
     try:
-        result = compare(json.loads(args.before.read_text()), json.loads(args.after.read_text()))
+        before, after = (json.loads(p.read_text()) for p in (args.before, args.after))
+        is_e2e = before.get("report_version") == 2 or after.get("report_version") == 2
+        result = compare_e2e(before, after) if is_e2e else compare(before, after)
     except (OSError, ValueError, KeyError, TypeError):
         print('{"error":"incompatible_or_invalid_reports"}')
         return 1
