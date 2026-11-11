@@ -1,0 +1,49 @@
+name: Private golden dataset live evaluation
+on:
+  workflow_dispatch:
+    inputs:
+      request_limit:
+        description: Maximum application requests (judge disabled)
+        type: choice
+        options: ['1', '2', '4', '8']
+        default: '1'
+permissions:
+  contents: read
+concurrency:
+  group: private-golden-live
+  cancel-in-progress: false
+jobs:
+  evaluate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, document-lab-evals]
+    environment: golden-evaluation
+    timeout-minutes: 40
+    env:
+      EVAL_PRIVATE_DIR: ${{ vars.EVAL_PRIVATE_DIR }}
+      EVAL_PDF_PATH: ${{ vars.EVAL_PDF_PATH }}
+      EVAL_DATASET: ${{ vars.EVAL_DATASET }}
+      REQUEST_LIMIT: ${{ inputs.request_limit }}
+      DATABASE_URL: ${{ secrets.EVAL_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require private runner configuration
+        shell: bash
+        run: |
+          test -n "$EVAL_PRIVATE_DIR"
+          test -n "$EVAL_PDF_PATH"
+          test -n "$EVAL_DATASET"
+          test -d "$EVAL_PRIVATE_DIR"
+          test -f "$EVAL_PDF_PATH"
+          test -f "$EVAL_PRIVATE_DIR/$EVAL_DATASET"
+      - name: Install locked dependencies
+        run: uv sync --locked
+      - name: Validate approved source annotations
+        run: >-
+          uv run python -m evals.golden
+          --private-dir "$EVAL_PRIVATE_DIR" --pdf "$EVAL_PDF_PATH"
+          --dataset "$EVAL_DATASET" --release
+      - name: Evaluate approved cases using local application
+        run: >-
+          uv run python -m evals.e2e
+          --private-dir "$EVAL_PRIVATE_DIR" --pdf "$EVAL_PDF_PATH"
+          --dataset "$EVAL_DATASET" --max-requests "$REQUEST_LIMIT"

@@ -1,6 +1,6 @@
 """Budgeted local /query smoke evaluation with owned conversation cleanup.
 
-Reports measure contracts and citation identity, not semantic correctness.
+Reports measure contracts and citation identity; optional semantic scores remain uncalibrated.
 """
 import argparse
 import asyncio
@@ -8,6 +8,7 @@ import hashlib
 import json
 import re
 import time
+from collections import defaultdict
 from pathlib import Path
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
@@ -15,10 +16,12 @@ from uuid import UUID, uuid4
 import httpx
 
 from app.config import settings
+from app.providers import Providers
 from app.storage import Storage
 from app.uploads import extract_document
 from evals.golden import Case, validate
-from evals.retrieval import binding_matches, positive
+from evals.grading import grade
+from evals.retrieval import binding_matches, implementation_fingerprint, positive
 from evals.stream import StreamCheck
 
 
@@ -54,7 +57,7 @@ async def consume(client, body):
                    "first_token_seconds": round(first_token, 3) if first_token else None}
 
 
-async def run_case(case, store, client, chunks, timeout):
+async def run_case(case, store, client, chunks, timeout, judge=None):
     # Insert our UUID ourselves: never infer ownership from a server-supplied ID.
     thread = uuid4()
     owned = False
@@ -79,6 +82,13 @@ async def run_case(case, store, client, chunks, timeout):
         result = check.result or {}
         row.update(citation_checks(case, result, chunks))
         row["status"] = "completed" if summary["completed"] else "error"
+        if judge is not None and summary["completed"]:
+            try:
+                async with asyncio.timeout(timeout):
+                    row["semantic_judgment"] = await grade(case, result["answer"], judge)
+            except TimeoutError:
+                row["semantic_judgment"] = {"status": "error", "reason": "judge_timeout",
+                                            "release_gate": False}
         # Inspect only our conversation; compare to the API's safe persistence view.
         async with store.pool.connection() as conn:
             cur = await conn.execute(
@@ -114,6 +124,7 @@ async def run_case(case, store, client, chunks, timeout):
 
 
 async def run(args):
+    implementation_hash = implementation_fingerprint()
     parsed = urlparse(args.base_url)
     if parsed.scheme != "http" or parsed.hostname not in {"localhost", "127.0.0.1", "::1"}:
         raise ValueError("only local app allowed")
@@ -133,6 +144,7 @@ async def run(args):
     store = Storage(config.database_url.get_secret_value())
     await store.pool.open()
     rows = []
+    judge_attempts = 0
     try:
         async with httpx.AsyncClient(base_url=args.base_url, timeout=args.timeout) as client:
             for case in cases:
@@ -150,16 +162,36 @@ async def run(args):
                     current = await cur.fetchall()
                 if not binding_matches(audit, doc, chunks, current):
                     raise ValueError("stale binding")
-                rows.append(await run_case(case, store, client, chunks, args.timeout))
+                judge = None
+                if args.max_judge_calls and judge_attempts < args.max_judge_calls:
+                    judge = Providers(config, client)
+                    judge_attempts += 1
+                rows.append(await run_case(case, store, client, chunks, args.timeout, judge))
                 if not rows[-1]["cleanup_ok"]:
                     break
     finally:
         await store.pool.close()
-    return {"mode": "live_local_sse_smoke", "draft_allowed": args.allow_draft,
+    if implementation_fingerprint() != implementation_hash:
+        raise ValueError("implementation changed during evaluation")
+    categories = defaultdict(list)
+    for row in rows:
+        categories[row["category"]].append(row)
+    category_summary = {name: {
+        "attempted": len(items),
+        "completed": sum(r["status"] == "completed" for r in items),
+        "errors": sum(r["status"] == "error" for r in items),
+        "missing_expected_citations": sum(r.get("missing_expected_citations", False) for r in items),
+        "judge_errors": sum(r.get("semantic_judgment", {}).get("status") == "error" for r in items),
+    } for name, items in categories.items()}
+    return {"implementation_sha256": implementation_hash,
+            "corpus_sha256": audit["pdf_sha256"], "categories": category_summary,
+            "mode": "live_local_sse_smoke", "draft_allowed": args.allow_draft,
             "dataset_sha256": hashlib.sha256(raw).hexdigest(), "max_requests": args.max_requests,
             "timeout_per_request": args.timeout, "attempted": len(rows),
             "skipped": len(cases) - len(rows), "results": rows,
-            "semantic_quality": "not_scored", "server_model_version": "not_exposed_by_api"}
+            "semantic_quality": "uncalibrated_judge" if judge_attempts else "not_scored",
+            "judge_request_slots": judge_attempts,
+            "judge_model": config.openrouter_model if judge_attempts else None, "server_model_version": "not_exposed_by_api"}
 
 
 def main():
@@ -169,6 +201,7 @@ def main():
     parser.add_argument("--dataset", default="pilot.jsonl")
     parser.add_argument("--category", choices=list(Case.model_fields["category"].annotation.__args__))
     parser.add_argument("--max-requests", type=positive, required=True)
+    parser.add_argument("--max-judge-calls", type=positive, default=None)
     parser.add_argument("--timeout", type=positive, default=240)
     parser.add_argument("--allow-draft", action="store_true")
     parser.add_argument("--base-url", default="http://127.0.0.1:8001")

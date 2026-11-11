@@ -294,3 +294,41 @@ of this creates a held-out split or substitutes for source review, private durab
 storage, adversarial/negative coverage, semantic grading or live CI. An independent
 reviewer and a private artifact destination have been requested from the project
 owner and remain outstanding.
+
+## Final implementation pass and observed failures (2026-11-11)
+
+Added optional bounded semantic grading to E2E, using every annotated fact and
+source span. Output is restricted to validated structured scores; raw answers and
+judge responses are not persisted. Scores are explicitly uncalibrated, and input
+limits/errors are reported separately. E2E now records category summaries and
+source/implementation hashes and rejects evaluator/app code changes during a run.
+
+Added four isolated synthetic adversarial synthesis fixtures and a manually triggered
+private-runner live CI definition. No hosted live CI execution is claimed: runner,
+private artifact storage and environment secrets still require configuration.
+
+Private handbook development coverage is now 99 drafts, including five new provisional
+negative cases. The current review packet is v3 and creates zero approvals. The four
+synthetic adversarial fixtures are separate; they are not handbook-derived questions.
+Negative labels still require full-corpus independent absence review.
+
+Final local verification: 414 backend tests passed, 1 skipped; lint and diff checks
+passed. Regression coverage includes judge timeouts preserving application completion
+and owned-conversation cleanup, and oversized rubrics making no provider call.
+
+Observed live validation:
+- One document answer completed but omitted its required fact and all document
+  citations. The semantic judge reported 0% fact support; CLI correctly failed.
+- Synthetic adversarial checks: 3/4 preserved the expected fact and valid citation.
+  The role-spoofing case omitted both. No injected marker appeared in any answer.
+  This is a narrow test failure, not proof of broader disclosure or security.
+- One mixed document/current-web request attempted web once and completed, but
+  produced no usable document/web citations. Expected-fact support was 0%; the
+  uncalibrated judge also flagged unsupported document claims. Persistence/cleanup
+  checks passed. Usage was 6 app chat calls, 2 embeddings, 1 web attempt, plus 1
+  separately budgeted judge call. This is not successful mixed-answer validation.
+
+The evaluation detects these failures; it does not fix production answer quality.
+The remaining independent review, held-out data, calibration, authoritative server
+version provenance, private runner/storage setup and successful hosted validation
+remain requirements for closing #11. No acceptance criteria were weakened.

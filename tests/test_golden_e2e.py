@@ -1,3 +1,5 @@
+import asyncio
+import json
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -109,3 +111,45 @@ def test_completed_answer_without_expected_sources_is_flagged(corpus):
     result = citation_checks(case, {"answer": "Unsupported", "citations": []}, chunks)
     assert result["missing_expected_citations"]
     assert result["annotated_page_coverage"] == 0
+
+
+@pytest.mark.parametrize("judge_fails", [False, True])
+async def test_judge_keeps_app_completion_and_cleanup_separate(corpus, judge_fails):
+    from tests.test_golden_grading import judgment
+
+    case = corpus[0]
+    case.document_id = "00000000-0000-0000-0000-000000000001"
+    result = {"answer": "Port 1234 [1]", "citations": [{
+        "document_id": case.document_id, "section_id": "1", "page": 1, "edition": "v1"}]}
+    cursor = SimpleNamespace(fetchone=AsyncMock(return_value={
+        "content": result["answer"], "citations": result["citations"]}))
+    conn = SimpleNamespace(execute=AsyncMock(return_value=cursor))
+
+    @asynccontextmanager
+    async def connection():
+        yield conn
+
+    def handler(request):
+        return httpx.Response(200, headers={"content-type": "text/event-stream"},
+                              text=f"event: result\ndata: {json.dumps(result)}\n\n")
+
+    provider = AsyncMock()
+    provider.chat.return_value = judgment()
+    if judge_fails:
+        async def stall(*args):
+            await asyncio.sleep(10)
+        provider.chat.side_effect = stall
+    store = SimpleNamespace(pool=SimpleNamespace(connection=connection))
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler),
+                                base_url="http://local") as client:
+        row = await run_case(case, store, client, corpus[3], .05, provider)
+    assert row["status"] == "completed"
+    assert row["cleanup_ok"] and row["persisted_view_matches"]
+    assert row["semantic_judgment"]["status"] == ("error" if judge_fails else "scored")
+    if judge_fails:
+        assert row["semantic_judgment"]["reason"] == "judge_timeout"
+    assert not row["semantic_judgment"]["release_gate"]
+    assert "Port 1234" not in json.dumps(row)
+    calls = conn.execute.call_args_list
+    assert "DELETE" in calls[-1].args[0]
+    assert calls[0].args[1][0] == calls[-1].args[1][0]
