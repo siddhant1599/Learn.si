@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 from collections import Counter
+from datetime import date
 from pathlib import Path
 from typing import Literal
 
@@ -26,7 +27,13 @@ class Review(BaseModel):
     reviewer: str = Field(min_length=1)
     method: str = Field(min_length=1)
     independent: bool = False
-    reviewed_at: str | None = None
+    reviewed_at: date | None = None
+
+
+class HistoryTurn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1)
 
 
 class Case(BaseModel):
@@ -38,7 +45,8 @@ class Case(BaseModel):
         "configuration", "false_premise", "unanswerable", "follow_up", "adversarial",
     ]
     question: str = Field(min_length=1)
-    history: list[dict[str, str]] = Field(default_factory=list)
+    annotator: str | None = Field(default=None, min_length=1)
+    history: list[HistoryTurn] = Field(default_factory=list)
     corpus_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     document_id: str
     document_edition: str
@@ -46,6 +54,8 @@ class Case(BaseModel):
         "sufficient", "partial", "not_in_document", "needs_clarification"
     ]
     required_facts: list[str]
+    fact_evidence: list[list[int]] = Field(default_factory=list)
+    absence_review: str | None = Field(default=None, min_length=1)
     prohibited_claims: list[str]
     evidence: list[Evidence]
     expected_web_fallback: Literal[
@@ -54,6 +64,7 @@ class Case(BaseModel):
     review: Review
     split: Literal["pilot-development", "development", "held-out"]
     group_id: str = Field(min_length=1)
+    related_groups: list[str] = Field(default_factory=list)
 
 
 def digest(text: str) -> str:
@@ -76,8 +87,8 @@ def validate(cases, audit, pages, chunks, *, release=False):
             fail("duplicate_id")
         seen.add(case.id)
         split = "development" if case.split == "pilot-development" else case.split
-        for key, mapping in ((case.group_id, groups),
-                             (" ".join(case.question.casefold().split()), questions)):
+        for key, mapping in ([(g, groups) for g in [case.group_id, *case.related_groups]]
+                             + [(" ".join(case.question.casefold().split()), questions)]):
             if key in mapping and mapping[key] != split:
                 fail("split_leakage")
             mapping[key] = split
@@ -86,11 +97,22 @@ def validate(cases, audit, pages, chunks, *, release=False):
                 or case.document_edition != doc["edition"]):
             fail("stale_corpus")
         if release and (case.review.status != "approved" or not case.review.independent
-                        or not case.review.reviewed_at):
+                        or not case.review.reviewed_at or not case.annotator
+                        or case.annotator.strip().casefold() == case.review.reviewer.strip().casefold()):
             fail("independent_review_required")
         if case.expected_answerability in {"sufficient", "partial"}:
             if not case.evidence or not case.required_facts:
                 fail("missing_ground_truth")
+        negative = case.expected_answerability in {"not_in_document", "needs_clarification"}
+        if release and negative and not case.absence_review:
+            fail("absence_review_required")
+        if case.fact_evidence or (release and not negative):
+            if len(case.fact_evidence) != len(case.required_facts):
+                fail("missing_fact_evidence")
+            for refs in case.fact_evidence:
+                if not refs or len(refs) != len(set(refs)) or any(
+                        i < 0 or i >= len(case.evidence) for i in refs):
+                    fail("invalid_fact_evidence")
         if any(not f.strip() for f in case.required_facts + case.prohibited_claims):
             fail("empty_rubric")
         for ref in case.evidence:
@@ -126,10 +148,13 @@ def retrieval_score(case, hits):
         return None
     relevant = set().union(*targets)
     rank = next((i for i, key in enumerate(unique, 1) if key in relevant), None)
-    coverage = sum(bool(t.intersection(unique)) for t in targets) / len(targets)
+    matched = [bool(t.intersection(unique)) for t in targets]
+    coverage = sum(matched) / len(targets)
+    fact_coverage = (sum(all(matched[i] for i in refs) for refs in case.fact_evidence)
+                     / len(case.fact_evidence) if case.fact_evidence else None)
     return {**{f"hit@{k}": int(rank is not None and rank <= k) for k in (1, 3, 5)},
             "mrr": 1 / rank if rank else 0, "evidence_coverage": coverage,
-            "all_evidence": int(coverage == 1)}
+            "all_evidence": int(coverage == 1), "fact_evidence_coverage": fact_coverage}
 
 
 def main():
@@ -137,6 +162,7 @@ def main():
     parser.add_argument("--private-dir", type=Path, required=True)
     parser.add_argument("--pdf", type=Path, required=True)
     parser.add_argument("--release", action="store_true")
+    parser.add_argument("--dataset", default="pilot.jsonl")
     args = parser.parse_args()
     root = args.private_dir
     try:
@@ -149,7 +175,7 @@ def main():
         pages = [{"page": s.page, "text": s.text} for s in document.sections]
         chunks = json.loads((root / "sql-chunks.json").read_text())
         cases = [Case.model_validate_json(line) for line in
-                 (root / "pilot.jsonl").read_text().splitlines() if line.strip()]
+                 (root / args.dataset).read_text().splitlines() if line.strip()]
         errors = validate(cases, audit, pages, chunks, release=args.release)
         if not cases:
             errors.append({"row": 0, "code": "empty_dataset"})

@@ -68,7 +68,7 @@ def test_binding_requires_generation_and_all_chunks():
 
 
 def test_no_empty_perfect_score():
-    assert summarize([]) == dict(total=0, scored=0, errors=0, skipped=0, skip_reasons={}, metrics=None)
+    assert summarize([]) == dict(total=0, scored=0, errors=0, skipped=0, skip_reasons={}, metrics=None, metric_denominators={})
 
 
 @pytest.mark.asyncio
@@ -95,3 +95,26 @@ async def test_history_and_negative_are_explicitly_skipped(corpus):
     embed.assert_not_called()
     assert result["summary"]["skip_reasons"] == {
         "requires_history": 1, "not_positive_retrieval": 1}
+
+
+def test_unmapped_fact_scores_are_not_counted_as_zero():
+    result = summarize([
+        {"status": "scored", "metrics": {"mrr": 1, "fact_evidence_coverage": None}},
+        {"status": "scored", "metrics": {"mrr": 0, "fact_evidence_coverage": .5}},
+    ])
+    assert result["metrics"]["mrr"] == .5
+    assert result["metrics"]["fact_evidence_coverage"] == .5
+    assert result["metric_denominators"]["mrr"] == 2
+    assert result["metric_denominators"]["fact_evidence_coverage"] == 1
+
+
+def test_implementation_hash_changes_with_app_code(tmp_path, monkeypatch):
+    from evals.retrieval import implementation_fingerprint
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "app").mkdir()
+    source = tmp_path / "app" / "example.py"
+    source.write_text("version = 1")
+    original = implementation_fingerprint()
+    source.write_text("version = 2")
+    assert implementation_fingerprint() != original

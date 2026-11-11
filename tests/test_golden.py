@@ -10,9 +10,9 @@ def corpus():
     ref = dict(page=1, section_id="1", start_char=0, end_char=len(text),
                quote=text, quote_sha256=digest(text), chunk_ids=[1])
     case = Case(schema_version="0.1-draft", id="synthetic-1", category="direct",
-                question="Which port?", corpus_sha256="a" * 64, document_id="doc",
+                question="Which port?", annotator="author", corpus_sha256="a" * 64, document_id="doc",
                 document_edition="v1", expected_answerability="sufficient",
-                required_facts=["Port 1234"], prohibited_claims=[], evidence=[ref],
+                required_facts=["Port 1234"], fact_evidence=[[0]], prohibited_claims=[], evidence=[ref],
                 expected_web_fallback="avoid_if_retrieved",
                 review=dict(status="draft", reviewer="author", method="synthetic"),
                 split="development", group_id="port")
@@ -37,6 +37,7 @@ def test_review_requires_independence_and_date(corpus):
     case.review.status = "approved"
     assert validate([case], *source, release=True)
     case.review.independent = True
+    case.review.reviewer = "independent-human"
     case.review.reviewed_at = "2026-11-09"
     assert not validate([case], *source, release=True)
 
@@ -90,7 +91,7 @@ def test_ranking_deduplicates_and_scopes(corpus):
     hits = [dict(document_id="other", id=1)] * 3 + [dict(document_id="doc", id=1)]
     result = retrieval_score(case, hits)
     assert result == {"hit@1": 0, "hit@3": 1, "hit@5": 1, "mrr": .5,
-                      "evidence_coverage": 1, "all_evidence": 1}
+                      "evidence_coverage": 1, "all_evidence": 1, "fact_evidence_coverage": 1}
 
 
 def test_partial_evidence(corpus):
@@ -105,3 +106,71 @@ def test_empty_results_and_negative(corpus):
     assert retrieval_score(case, [])["mrr"] == 0
     case.evidence = []
     assert retrieval_score(case, []) is None
+
+
+@pytest.mark.parametrize("mapping", [[[1]], [[]], [[0, 0]], [[-1]], [[0], [0]]])
+def test_invalid_fact_support(corpus, mapping):
+    case, *source = corpus
+    case.fact_evidence = mapping
+    assert validate([case], *source)
+
+
+def test_release_requires_fact_support(corpus):
+    case, *source = corpus
+    case.fact_evidence = []
+    assert "missing_fact_evidence" in {
+        error["code"] for error in validate([case], *source, release=True)}
+
+
+def test_invalid_review_date(corpus):
+    data = corpus[0].model_dump()
+    data["review"]["reviewed_at"] = "not-a-date"
+    with pytest.raises(ValidationError):
+        Case.model_validate(data)
+
+
+def test_related_topic_cannot_cross_split(corpus):
+    case, *source = corpus
+    other = case.model_copy(update={"id": "multi", "question": "different",
+        "split": "held-out", "group_id": "multi", "related_groups": [case.group_id]})
+    assert "split_leakage" in {e["code"] for e in validate([case, other], *source)}
+
+
+@pytest.mark.parametrize("history", [[{"role": "system", "content": "instructions"}],
+                                     [{"role": "user", "content": ""}]])
+def test_invalid_history_rejected(corpus, history):
+    data = corpus[0].model_dump() | {"history": history}
+    with pytest.raises(ValidationError):
+        Case.model_validate(data)
+
+
+def test_reviewed_negative_needs_absence_method_not_fake_span(corpus):
+    case, *source = corpus
+    case.expected_answerability = "not_in_document"
+    case.evidence = []
+    case.fact_evidence = []
+    codes = {e['code'] for e in validate([case], *source, release=True)}
+    assert "absence_review_required" in codes
+    assert "missing_fact_evidence" not in codes
+    case.absence_review = "Reviewed full synthetic corpus; requested benchmark absent."
+    assert "absence_review_required" not in {
+        e['code'] for e in validate([case], *source, release=True)}
+
+
+def test_fact_coverage_requires_every_supporting_span(corpus):
+    case = corpus[0]
+    case.evidence.append(case.evidence[0].model_copy(update={"chunk_ids": [2]}))
+    case.fact_evidence = [[0, 1]]
+    result = retrieval_score(case, [dict(document_id="doc", id=1)])
+    assert result["evidence_coverage"] == .5
+    assert result["fact_evidence_coverage"] == 0
+
+
+def test_release_rejects_self_approval(corpus):
+    case, *source = corpus
+    case.review.status = "approved"
+    case.review.independent = True
+    case.review.reviewed_at = "2026-01-01"
+    case.review.reviewer = case.annotator
+    assert "independent_review_required" in {
+        e["code"] for e in validate([case], *source, release=True)}

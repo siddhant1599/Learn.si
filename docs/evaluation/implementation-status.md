@@ -140,3 +140,157 @@ Outstanding #11 acceptance items remain the full proposed dataset, per-fact
 annotations, independent review, grouped held-out freeze, durable private storage,
 semantic grounding/abstention adjudication, mixed-answer live coverage, full provider
 version provenance and separately budgeted live CI. Keep #11 open.
+
+## Dataset expansion and fact provenance (2026-11-10)
+
+The private `development.jsonl` now contains 62 draft cases: the original eight
+pilot cases, 36 new direct questions (two per chapter), and 18 natural paraphrases
+(one per chapter). Every new case was authored from the extracted handbook, not
+from application answers. All 62 cases validate against a fresh checksum-matched
+PDF extraction and the SQL chunk snapshot. Their exact questions, quotes and
+private authoring script remain under `.local/golden-discovery/` and outside Git.
+
+New `fact_evidence` entries map each required fact to zero-based indices into that
+case's evidence list. Provided mappings must cover every fact, contain valid unique
+indices, and never be empty. Release validation requires mappings for all facts;
+legacy draft pilot cases remain readable but are not release eligible. Review dates
+now use a validated date type rather than accepting arbitrary text.
+
+All 62 cases remain development material and independently unapproved. Topic groups
+keep paraphrases and related pilot cases together. No held-out claims are made for
+this exposed set. The 96-case proposal is not satisfied simply by extending this
+count: additional structured-table, conditional-number, cross-section, adversarial
+and multi-turn cases still require careful authoring and review. Existing pilot
+facts also need individual support mappings before release eligibility.
+
+```sh
+uv run python -m evals.golden --private-dir .local/golden-discovery \
+  --pdf /path/to/handbook.pdf --dataset development.jsonl
+```
+
+This expansion received source validation only, not 62 live model evaluations.
+The earlier live baselines still refer exclusively to the eight-case pilot hash.
+
+## Complex coverage and follow-up evaluation
+
+Private development coverage is now 94 draft cases: 37 direct, 18 paraphrase,
+13 multi-page, 9 table, 9 numeric/conditional, 5 follow-up, and one each of
+configuration, false-premise and unanswerable cases. This includes the original
+pilot; these counts do not satisfy every quota in the 96-case proposal. In
+particular, adversarial cases and a broader independently reviewed negative set
+remain missing. Tables were checked against extracted rows, not independently
+visually approved. All 94 cases pass source validation.
+
+New numeric rubrics include units and explicit prohibited inversions. Multi-page
+cases map each fact separately and declare related topic groups; the validator
+rejects related groups crossing development/held-out boundaries. Original pilot
+facts now have mappings in the development copy; the archived pilot is unchanged.
+Negative cases require a recorded absence/ambiguity review method for release,
+instead of fabricated positive evidence spans. Independent approval is still
+required separately.
+
+Follow-up context now uses validated user/assistant history turns. The E2E runner
+seeds these into its owned conversation and cleans them up with that conversation.
+This measures answering with supplied fixture history, not the quality of an
+actual preceding generated answer. System-role history is rejected.
+
+A live seeded follow-up completed in 8.782 seconds (4 chat, 2 embedding, 0 web
+attempts) with successful cleanup and safe persistence. **It returned no document
+citations: annotated-page coverage was 0%.** This is an observed quality failure,
+not a successful answer baseline. The evaluator now explicitly flags missing
+expected citations and returns a nonzero CLI status for that outcome. No production
+answer-generation fix or causal explanation is claimed from this one run.
+The private report `e2e-followup.json` predates that added flag and the pilot-map
+update; its recorded dataset hash identifies the exact earlier draft used.
+
+All current cases remain independently unapproved development data. Remaining work
+includes adversarial/negative coverage, semantic review and grading, a genuinely
+unexposed held-out set, durable private artifact storage, investigation of the
+follow-up citation failure, live mixed-answer coverage and controlled live CI.
+
+## Expanded live retrieval baseline and follow-up investigation
+
+A live run against the 94-case development set scored 88 cases, with 6 explicit
+skips (five history-dependent cases and one negative), zero provider errors and
+88 embedding calls. A second run with unchanged evaluator/application code
+reproduced the aggregate scores:
+
+| Metric | Development result |
+| --- | --- |
+| Hit@1 | 0.5114 |
+| Hit@3 | 0.7045 |
+| Hit@5 | 0.8068 |
+| MRR | 0.6212 |
+| Annotated span coverage | 0.7784 |
+| Fact-evidence coverage | 0.7784 |
+| All required evidence retrieved | 0.7386 |
+
+Every metric has denominator 88. Paraphrase evidence coverage was 0.6111;
+all-evidence coverage for the 13 multi-page cases was 0.4615. These results use
+single scoped `Storage.search` calls with question embeddings, not full agent
+planning/refinement. They therefore identify retrieval limitations without
+establishing end-to-end answer accuracy. They also show why the small eight-case
+pilot was insufficient as a quality baseline.
+
+The authoritative development smoke report for this iteration is private
+`retrieval-development-frozen.json` (24.973 seconds). An earlier run completed
+while evaluator files were being edited, so its implementation fingerprint is not
+suitable for version attribution. The runner now fingerprints evaluator and
+application Python files before execution and rejects the report if they change
+during execution. The unchanged second run supersedes that earlier report.
+
+Fact-evidence coverage requires every support reference mapped to a fact to be
+retrieved. Unmapped facts are not silently scored as zero; metric denominators
+explicitly count available annotations. This remains evidence-identity scoring,
+not semantic claim grading.
+
+A read-only graph diagnostic rerun of the failing seeded follow-up retrieved page
+45 among its results, assessed evidence as sufficient and generated one citation.
+It used four chat and one embedding call. The earlier zero-citation result is not
+consistently reproduced; no deterministic production cause or fix is established.
+Diagnostic output contained only stage names, counts and page numbers, not generated
+answers or web content. No production behavior was changed during this investigation.
+
+Validation for this iteration: 60 evaluation tests pass; full backend suite
+384 passed, 1 skipped; lint passes. Independent review, remaining dataset categories,
+held-out creation, private storage, mixed-answer live coverage and controlled live
+CI remain outstanding. #11 stays in progress.
+
+## Independent-review handoff tooling
+
+`evals.review` now exports a private packet containing the original questions,
+rubrics, evidence mappings and source spans, plus pending decisions. All 94 cases
+are available in `.local/golden-discovery/review-packet-v2.json`; no approval has
+been created. This is the current packet; the earlier packet predates the annotator
+schema field and should not be used.
+
+The reviewer must inspect the original PDF (especially rendered tables, units and
+qualifications), record disagreements and explicitly attest source/rubric checks.
+Negative/ambiguous cases additionally require an absence check. Decision hashes
+bind reviews to the exact case content; annotation changes invalidate old decisions.
+Duplicate, unknown, stale, incomplete and future-dated decisions are rejected.
+The original annotator is preserved across rejection/re-review; self-approval is
+rejected both during import and release validation. Reviewer identity is
+self-attested: this local tool does not authenticate a human or independently prove
+that review happened.
+
+```sh
+# Export to a NEW Git-ignored destination; existing files are never overwritten.
+uv run python -m evals.review .local/golden-discovery/development.jsonl \
+  .local/golden-discovery/review-packet-v2.json
+# After an actual independent reviewer fills in the decisions:
+uv run python -m evals.review .local/golden-discovery/development.jsonl \
+  .local/golden-discovery/reviewed-development.jsonl \
+  --decisions .local/golden-discovery/review-packet-v2.json
+# Approval import is not source validation. Run the separate release check:
+uv run python -m evals.golden --private-dir .local/golden-discovery \
+  --pdf /path/to/handbook.pdf --dataset reviewed-development.jsonl --release
+```
+
+Packets and reviewed datasets are created with owner-only permissions (0600) and
+must be Git-ignored. Public output contains counts only. Rejected cases remain
+release-ineligible drafts, and pending cases are never implicitly approved. None
+of this creates a held-out split or substitutes for source review, private durable
+storage, adversarial/negative coverage, semantic grading or live CI. An independent
+reviewer and a private artifact destination have been requested from the project
+owner and remain outstanding.

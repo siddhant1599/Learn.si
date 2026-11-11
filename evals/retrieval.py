@@ -26,8 +26,12 @@ def summarize(rows):
         "errors": sum(r["status"] == "error" for r in rows),
         "skipped": sum(r["status"] == "skipped" for r in rows),
         "skip_reasons": dict(Counter(r["reason"] for r in rows if r["status"] == "skipped")),
-        "metrics": {key: sum(r[key] for r in successful) / len(successful)
-                    for key in successful[0]} if successful else None,
+        "metrics": {key: (sum(values) / len(values) if values else None)
+                    for key in set().union(*(r.keys() for r in successful))
+                    if (values := [r[key] for r in successful if r.get(key) is not None])
+                    or key == "fact_evidence_coverage"} if successful else None,
+        "metric_denominators": {key: sum(r.get(key) is not None for r in successful)
+                                for key in set().union(*(r.keys() for r in successful))},
     }
 
 
@@ -80,7 +84,14 @@ def binding_matches(audit, document, snapshot, current):
         tuple(c[k] for k in fields) for c in current)
 
 
+def implementation_fingerprint():
+    files = sorted([*Path("evals").glob("*.py"), *Path("app").rglob("*.py")])
+    return hashlib.sha256(b"".join(
+        str(p).encode() + b"\0" + p.read_bytes() for p in files)).hexdigest()
+
+
 async def run(args):
+    implementation_hash = implementation_fingerprint()
     root = args.private_dir
     raw_cases = (root / args.dataset).read_bytes()
     cases = [Case.model_validate_json(line) for line in raw_cases.splitlines() if line.strip()]
@@ -123,13 +134,14 @@ async def run(args):
             result["elapsed_seconds"] = round(time.monotonic() - started, 3)
         finally:
             await store.pool.close()
+    if implementation_fingerprint() != implementation_hash:
+        raise ValueError("implementation changed during evaluation")
     result["manifest"] = {
         "dataset_sha256": hashlib.sha256(raw_cases).hexdigest(),
         "corpus_sha256": audit["pdf_sha256"], "embedding": config.embedding_signature,
         "backend": config.vector_backend, "draft_allowed": args.allow_draft,
         "code_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
-        "implementation_sha256": hashlib.sha256(b"".join(
-            p.read_bytes() for p in sorted(Path("evals").glob("*.py")))).hexdigest(),
+        "implementation_sha256": implementation_hash,
         "working_tree_dirty": bool(subprocess.check_output(
             ["git", "status", "--porcelain"], text=True)),
         "max_embedding_calls": args.max_calls, "per_case_timeout": args.timeout,

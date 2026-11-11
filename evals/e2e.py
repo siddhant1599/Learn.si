@@ -25,7 +25,7 @@ from evals.stream import StreamCheck
 def citation_checks(case, result, chunks):
     citations = result.get("citations", [])
     if not isinstance(citations, list):
-        return {"citation_identity_valid": False, "annotated_page_coverage": None}
+        return {"citation_identity_valid": False, "annotated_page_coverage": None, "missing_expected_citations": bool(case.evidence)}
     documents = [c for c in citations if isinstance(c, dict) and c.get("source_type") != "web"]
     known = {(str(c["section_id"]), c["page"]) for c in chunks}
     valid = all(str(c.get("document_id")) == case.document_id
@@ -34,6 +34,7 @@ def citation_checks(case, result, chunks):
     cited = {(c.get("section_id"), c.get("page")) for c in documents}
     expected = {(e.section_id, e.page) for e in case.evidence}
     return {"citation_identity_valid": valid,
+            "missing_expected_citations": bool(expected and not cited.intersection(expected)),
             "annotated_page_coverage": len(cited & expected) / len(expected) if expected else None}
 
 
@@ -63,6 +64,12 @@ async def run_case(case, store, client, chunks, timeout):
             await conn.execute("INSERT INTO rag.conversations(id,document_ids) VALUES (%s,%s)",
                                (thread, [UUID(case.document_id)]))
         owned = True
+        async with store.pool.connection() as conn:
+            for turn in case.history:
+                await conn.execute(
+                    "INSERT INTO rag.messages(conversation_id,role,content,citations) "
+                    "VALUES (%s,%s,%s,'[]'::jsonb)", (thread, turn.role, turn.content))
+        row["seeded_history_turns"] = len(case.history)
         async with asyncio.timeout(timeout):
             check, timing = await consume(client, {
                 "user_query": case.question, "document_ids": [case.document_id],
@@ -129,7 +136,7 @@ async def run(args):
     try:
         async with httpx.AsyncClient(base_url=args.base_url, timeout=args.timeout) as client:
             for case in cases:
-                if (case.history or len(rows) >= args.max_requests
+                if (len(rows) >= args.max_requests
                         or args.category and case.category != args.category):
                     continue
                 async with store.pool.connection() as conn:
@@ -174,7 +181,8 @@ def main():
     print(json.dumps(report))
     return int(not report["results"] or any(
         r["status"] != "completed" or not r["cleanup_ok"] or not r["web_cap_valid"]
-        or not r["citation_identity_valid"] or not r["persisted_view_matches"]
+        or not r["citation_identity_valid"] or r["missing_expected_citations"]
+        or not r["persisted_view_matches"]
         or r["persisted_web_citations"] or r["persisted_urls"]
         or r.get("separate_sections") is False for r in report["results"]))
 
