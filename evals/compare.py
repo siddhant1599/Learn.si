@@ -42,7 +42,7 @@ def main():
     args = parser.parse_args()
     try:
         before, after = (json.loads(p.read_text()) for p in (args.before, args.after))
-        is_e2e = before.get("report_version") == 2 or after.get("report_version") == 2
+        is_e2e = "report_version" in before or "report_version" in after
         result = compare_e2e(before, after) if is_e2e else compare(before, after)
     except (OSError, ValueError, KeyError, TypeError):
         print('{"error":"incompatible_or_invalid_reports"}')

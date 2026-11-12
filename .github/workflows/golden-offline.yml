@@ -15,5 +15,9 @@ jobs:
         with:
           python-version: '3.12'
       - run: uv sync --locked
-      - run: uv run ruff check evals tests/test_golden*.py
-      - run: uv run pytest tests/test_golden*.py -q
+      - run: >-
+          uv run ruff check evals app/agents/evidence.py app/agents/synthesis.py
+          tests/test_golden*.py tests/test_citation_formats.py tests/test_synthesis.py
+      - run: >-
+          uv run pytest tests/test_golden*.py tests/test_citation_formats.py
+          tests/test_synthesis.py -q

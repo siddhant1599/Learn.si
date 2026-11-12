@@ -10,6 +10,7 @@ def row(**patch):
     return dict(row=1, category="direct", status="completed", cleanup_ok=True,
                 runtime_verified=True, binding_verified=True, usage_limits_valid=True,
                 citation_identity_valid=True, web_cap_valid=True, persisted_view_matches=True,
+                citation_references_valid=True, citation_sections_valid=True,
                 missing_expected_citations=False, persisted_web_citations=False,
                 persisted_urls=False, separate_sections=None, annotated_page_coverage=1,
                 usage=dict(chat_calls=2, embedding_calls=1, web_calls=0), web_attempts=0,
@@ -17,7 +18,7 @@ def row(**patch):
 
 
 def report(rows=None):
-    return {"report_version": 2, "manifest": {
+    return {"report_version": 3, "manifest": {
         "dataset_sha256": "dataset", "corpus_sha256": "corpus", "index_binding_sha256": "index",
         "selection": {"max_requests": 2}, "draft_allowed": True, "evaluator_sha256": "evaluator",
         "judge_model": None, "server": {"source_sha256": "source", "instance_id": "one",
@@ -39,7 +40,8 @@ def test_errors_and_unknown_usage_are_not_zero_cost_passes():
 
 
 @pytest.mark.parametrize("key", ["runtime_verified", "binding_verified", "cleanup_ok",
-                                 "citation_identity_valid", "usage_limits_valid"])
+                                 "citation_identity_valid", "usage_limits_valid",
+                                 "citation_references_valid", "citation_sections_valid"])
 def test_contract_requires_verification(key):
     assert contract_pass(row())
     assert not contract_pass(row(**{key: False}))
@@ -59,6 +61,16 @@ def test_compare_allows_build_change_and_reports_error_delta():
     assert aggregate["metrics"]["completion_rate"]["delta"] == -.5
     assert aggregate["metrics"]["annotated_page_coverage"]["delta"] is None
     assert compared["quality_gate"] == "not_calibrated"
+
+
+def test_older_contract_reports_are_not_rescored_as_current():
+    before, after = report(), report()
+    before["report_version"] = 2
+    with pytest.raises(ValueError, match="unsupported report"):
+        compare_e2e(before, after)
+    after["report_version"] = 2
+    with pytest.raises(ValueError, match="unsupported report"):
+        compare_e2e(before, after)
 
 
 @pytest.mark.parametrize("key", ["dataset_sha256", "selection", "evaluator_sha256", "judge_model"])

@@ -62,6 +62,13 @@ def test_web_without_sections_and_no_semantic_overclaim():
     assert check.summary()["semantic_grounding"] == "requires_review"
 
 
+def test_failed_web_search_still_requires_segregated_answer_sections():
+    check = StreamCheck()
+    event(check, "result", {"answer": "Unsegregated fallback", "citations": [],
+                            "usage": {"web_calls": 1}, "persisted_answer": "safe view"})
+    assert check.summary()["separate_sections"] is False
+
+
 def test_error_usage_retained_without_error_text_and_duplicates_rejected():
     check = StreamCheck()
     event(check, "session", {"runtime_id": "runtime"})

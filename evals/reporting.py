@@ -7,6 +7,7 @@ def contract_pass(row):
     return (row["status"] == "completed"
             and all(row.get(key) is True for key in (
                 "cleanup_ok", "web_cap_valid", "citation_identity_valid",
+                "citation_references_valid", "citation_sections_valid",
                 "persisted_view_matches", "runtime_verified", "binding_verified",
                 "usage_limits_valid"))
             and not any(row.get(key, True) for key in (
@@ -75,7 +76,7 @@ def summarize(rows):
 
 def compare_e2e(before, after):
     """Compare identical attempted cohorts; disclose unavailable quality deltas."""
-    if before["report_version"] != 2 or after["report_version"] != 2:
+    if before["report_version"] != 3 or after["report_version"] != 3:
         raise ValueError("unsupported report")
     for key in ("dataset_sha256", "corpus_sha256", "index_binding_sha256", "selection",
                 "draft_allowed", "evaluator_sha256", "judge_model"):

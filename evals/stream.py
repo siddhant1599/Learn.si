@@ -1,6 +1,8 @@
 """In-memory SSE contract evaluation; never serialize raw answers or web payloads."""
 import json
 
+from evals.citations import answer_sections, web_answer_expected
+
 
 class StreamCheck:
     def __init__(self):
@@ -83,9 +85,8 @@ class StreamCheck:
             "web_citations": web,
             "web_attempts": calls if calls_valid else None,
             "web_cap_valid": calls_valid and calls <= 2,
-            "separate_sections": (
-                "## From your documents" in answer and "## From the web" in answer
-            ) if isinstance(answer, str) and web else None,
+            "separate_sections": bool(answer_sections(answer)) if web_answer_expected(result)
+            else None,
             # Text headings and real citation IDs alone do not prove claim support.
             "semantic_grounding": "requires_review",
         }

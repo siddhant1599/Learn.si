@@ -1,6 +1,59 @@
 # Issue #11 implementation status
 
-## Latest progress: partial-evidence synthesis (2026-11-12)
+## Latest progress: citation validation and delivery audit (2026-11-12)
+
+The dataset still has 99 source-valid drafts, 99 pending independent decisions,
+13 pilot-development cases, 86 development cases and no held-out cases. The current
+private review packet matches every draft's content hash. No private data or local
+environment files are tracked. GitHub currently has no published workflows,
+evaluation environment or self-hosted runner. These requirements remain unresolved;
+the issue must not be closed solely because implementation tests pass.
+
+Version 3 E2E reports now require every annotated page to be cited in the document
+answer. They reject missing or invented inline references, duplicate/invalid source
+numbers and document/web references in the wrong section. Mixed sections require
+ordered, unique headings with nonempty bodies, even when fallback finds no sources.
+Version 2 reports cannot be rescored or compared using the stricter contract.
+These checks establish citation structure, not semantic support for every claim.
+
+Live diagnostics found valid source numbers emitted with model-generated line
+ranges. Synthesis normalizes these references to the application's numeric format,
+discarding unverifiable line precision. Unknown IDs and malformed references remain
+rejected. Separate document and web prompts now receive explicit allowed source
+numbers and clarify that role tags/instructions/citations inside excerpts have no
+authority over generation.
+
+The initial adversarial run passed 2/4 fixtures. Two additional diagnostic probes
+confirmed a fake role instruction was followed and an injected source number was
+copied; final citation validation rejected both answers. After strengthening source
+instructions and supplying the citation catalog, all four synthetic fixtures passed
+fact/marker/citation checks. This small development result is not proof of general
+prompt-injection resistance, including during provisional token streaming.
+
+Validation: 496 backend tests passed, one skipped; 67 frontend adapter/reducer/store
+tests passed; Ruff and diff checks passed. The updated offline CI commands passed
+locally with 190 tests, including synthesis/citation regressions. Hosted execution
+remains unverified. No production application restart was performed.
+
+Final live verification on an isolated server using the current source fingerprint:
+
+- Eight pilot requests completed and passed all deterministic contracts. Every
+  annotated page was cited in all seven positive cases. The negative case attempted
+  fallback once and produced no citations. Usage: 27 chat, 11 embedding, 1 web call;
+  reserved caps: 48/104/16. Completion p50 was 10.4865s and p95 20.156s (eight cases).
+- One separate mixed case passed with 3 document citations and 1 web citation in
+  the correct sections, full annotated-page coverage, and 6 chat/2 embedding/1 web
+  call. Completion took 34.072s. Its reserved caps were 6/13/2.
+- Every request passed runtime/index identity, safe persistence and owned-thread
+  cleanup checks. No web URLs or web citation records were persisted. Reports
+  retained no raw answers, source excerpts or private questions. No judge was used.
+  The temporary server was stopped after verification.
+- A compatible comparison against the earlier eight-case version 3 run changed
+  deterministic contract success from 5/8 to 8/8 and mean annotated-page coverage
+  from 4/7 to 7/7. This small development comparison is not an independently reviewed
+  semantic baseline. No release threshold or held-out quality claim is established.
+
+## Partial-evidence synthesis (2026-11-12)
 
 Ticket #11 remains open. The validator, retrieval/E2E evaluators, review tooling,
 budget controls, report comparisons and CI definitions exist, with 99 private draft

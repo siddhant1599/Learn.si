@@ -63,12 +63,17 @@ Compare saved sanitized reports with:
 uv run python -m evals.compare /private/before.json /private/after.json
 ```
 
-E2E report version 2 comparisons require the same dataset, index binding, evaluator,
+E2E report version 3 comparisons require the same dataset, index binding, evaluator,
 selection/call budgets, server configuration and attempted cases. Server application
 build changes are allowed. Completion/error changes are reported; a quality metric
 delta is unavailable when the contributing case sets differ, even when counts match.
-Comparisons do not invent thresholds or approve a baseline. Legacy smoke reports lack
-the required provenance and cannot be compared as version 2 reports.
+Comparisons do not invent thresholds or approve a baseline. Earlier report versions
+are rejected rather than rescored under a different contract. Version 3 requires
+every annotated page to be cited in the document answer, validates in-text reference
+numbers against the returned catalog, and rejects document/web references in the
+wrong section. Section headings must be unique, ordered and nonempty, including
+fallback responses that return no web citations. These are structural checks; real
+page identities and correct section placement do not prove semantic claim support.
 
 ## Independent review
 
@@ -107,9 +112,10 @@ limits and account spending controls appropriate to the selected run.
 ## Current limitations
 
 All 99 handbook cases remain development drafts. There is no independently approved
-held-out set or calibrated quality gate. Live runs exposed missing citations and
-omitted facts. After clarifying synthesis for partially supported questions, one
-mixed-answer smoke case passed citation, section separation and safe persistence
-checks; semantic quality and repeatability remain unverified. See
+held-out set or calibrated quality gate. After correcting synthesis and citation
+handling, the latest eight-case pilot and separate mixed-answer smoke case passed
+the stricter citation, section separation and safe persistence checks. Four isolated
+synthetic adversarial fixtures also passed. Semantic quality, general attack
+resistance and repeatability remain unverified. See
 `implementation-status.md` for exact observed results. #11 must remain open until review, split,
 private storage, calibration and hosted validation requirements are met.

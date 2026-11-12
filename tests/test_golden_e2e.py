@@ -18,9 +18,10 @@ def corpus():
 
 def test_citation_scope_and_page_not_semantic_support(corpus):
     case, _, _, chunks = corpus
-    citation = dict(document_id="doc", section_id="1", page=1, edition="v1")
-    assert citation_checks(case, {"citations": [citation]}, chunks) == {
+    citation = dict(citation=1, document_id="doc", section_id="1", page=1, edition="v1")
+    assert citation_checks(case, {"answer": "Port 1234 [1]", "citations": [citation]}, chunks) == {
         "citation_identity_valid": True, "annotated_page_coverage": 1,
+        "citation_references_valid": True, "citation_sections_valid": True,
         "missing_expected_citations": False}
     assert not citation_checks(case, {"citations": [citation | {"document_id": "wrong"}]},
                                chunks)["citation_identity_valid"]
@@ -120,7 +121,8 @@ async def test_judge_keeps_app_completion_and_cleanup_separate(corpus, judge_fai
     case = corpus[0]
     case.document_id = "00000000-0000-0000-0000-000000000001"
     result = {"answer": "Port 1234 [1]", "citations": [{
-        "document_id": case.document_id, "section_id": "1", "page": 1, "edition": "v1"}]}
+        "citation": 1, "document_id": case.document_id, "section_id": "1", "page": 1,
+        "edition": "v1"}]}
     cursor = SimpleNamespace(fetchone=AsyncMock(return_value={
         "content": result["answer"], "citations": result["citations"]}))
     conn = SimpleNamespace(execute=AsyncMock(return_value=cursor))

@@ -197,6 +197,8 @@ async def test_partial_document_and_web_findings_keep_separate_citations(monkeyp
     assert web_prompt["coverage"][0]["status"] == "partial"
     assert "Public guidance" not in document_prompt["evidence"]
     assert "Labels must be blue" not in web_prompt["evidence"]
+    assert document_prompt["source_numbers"] == [1]
+    assert web_prompt["source_numbers"] == [2]
     assert result["document_answer"] == answers[0]
     assert result["answer"] == (
         "## From your documents\n\n" + answers[0] + "\n\n## From the web\n\n" + answers[1]

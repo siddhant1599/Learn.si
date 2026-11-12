@@ -20,27 +20,12 @@ from app.providers import Providers
 from app.runtime import RuntimeManifest, source_fingerprint
 from app.storage import Storage
 from app.uploads import extract_document
+from evals.citations import citation_checks
 from evals.golden import Case, validate
 from evals.grading import grade
 from evals.reporting import contract_pass, summarize
 from evals.retrieval import binding_matches, implementation_fingerprint, positive
 from evals.stream import StreamCheck
-
-
-def citation_checks(case, result, chunks):
-    citations = result.get("citations", [])
-    if not isinstance(citations, list):
-        return {"citation_identity_valid": False, "annotated_page_coverage": None, "missing_expected_citations": bool(case.evidence)}
-    documents = [c for c in citations if isinstance(c, dict) and c.get("source_type") != "web"]
-    known = {(str(c["section_id"]), c["page"]) for c in chunks}
-    valid = all(str(c.get("document_id")) == case.document_id
-                and (c.get("section_id"), c.get("page")) in known
-                and c.get("edition") == case.document_edition for c in documents)
-    cited = {(c.get("section_id"), c.get("page")) for c in documents}
-    expected = {(e.section_id, e.page) for e in case.evidence}
-    return {"citation_identity_valid": valid,
-            "missing_expected_citations": bool(expected and not cited.intersection(expected)),
-            "annotated_page_coverage": len(cited & expected) / len(expected) if expected else None}
 
 
 async def consume(client, body):
@@ -260,7 +245,7 @@ async def run(args):
         await store.pool.close()
     if implementation_fingerprint() != implementation_hash:
         raise ValueError("implementation changed during evaluation")
-    result.update(report_version=2, mode="live_local_sse_evaluation", manifest={
+    result.update(report_version=3, mode="live_local_sse_evaluation", manifest={
         "evaluator_sha256": evaluator_hash, "implementation_sha256": implementation_hash,
         "corpus_sha256": audit["pdf_sha256"], "dataset_sha256": hashlib.sha256(raw).hexdigest(),
         "index_binding_sha256": hashlib.sha256(json.dumps(
