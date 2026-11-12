@@ -107,7 +107,9 @@ limits and account spending controls appropriate to the selected run.
 ## Current limitations
 
 All 99 handbook cases remain development drafts. There is no independently approved
-held-out set or calibrated quality gate. Live runs have exposed missing citations and
-omitted facts; mixed-answer success remains unverified. See `implementation-status.md`
-for exact observed results. #11 must remain open until review, split,
+held-out set or calibrated quality gate. Live runs exposed missing citations and
+omitted facts. After clarifying synthesis for partially supported questions, one
+mixed-answer smoke case passed citation, section separation and safe persistence
+checks; semantic quality and repeatability remain unverified. See
+`implementation-status.md` for exact observed results. #11 must remain open until review, split,
 private storage, calibration and hosted validation requirements are met.

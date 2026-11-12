@@ -1,5 +1,51 @@
 # Issue #11 implementation status
 
+## Latest progress: partial-evidence synthesis (2026-11-12)
+
+Ticket #11 remains open. The validator, retrieval/E2E evaluators, review tooling,
+budget controls, report comparisons and CI definitions exist, with 99 private draft
+cases. Independent review, an unexposed held-out set, durable private storage,
+reviewed quality baselines/calibration and hosted CI execution remain outstanding.
+The dated entries below retain earlier observations and their limitations.
+
+A bounded in-memory diagnostic reproduced a mixed-question failure: document
+assessment marked one part sufficient and another unsupported, but synthesis
+abstained from the entire document answer. The prompt required acknowledging gaps
+while also abstaining when the question could not be answered. Both document and
+web synthesis now explicitly answer supported parts with citations, identify gaps,
+and reserve complete abstention for questions with no supported part. Citation
+validation, source isolation and provider-call limits remain enforced.
+
+Validation: 450 backend tests passed, one skipped; Ruff and diff checks passed.
+Two new synthetic regression cases exercise streaming and nonstreaming mixed
+answers, separate evidence, global citation numbering and unsupported-question
+coverage. Mocked generation checks contracts, not semantic model behavior.
+
+Three bounded live `/query` runs on an isolated local server passed deterministic
+E2E checks, with verified server/source/index identities and owned-thread cleanup:
+
+| Case | Document / web citations | Chat / embedding / web calls | Completion |
+|---|---:|---:|---:|
+| Document-only pilot | 1 / 0 | 3 / 1 / 0 | 4.798s |
+| Mixed document/public query | 2 / 2 | 6 / 2 / 1 | 20.528s |
+| Unanswerable pilot | 0 / 0 | 3 / 1 / 1 | 7.009s |
+
+Both answerable runs cited all annotated pages. The mixed result had separate
+document/web sections. All three matched the safe stored response and contained
+no persisted web URLs or web citation records. The unanswerable case exercised
+fallback without producing citations; semantic abstention correctness was not
+independently graded. Each run reserved at most 6 chat, 13 embedding and 2 web
+attempts; no judge was used. Source text, questions and raw web outputs were not
+stored in reports or committed. The isolated server was stopped afterwards.
+
+The manifest-checked comparison with the preceding mixed run changed citation-page
+coverage and contract pass from 0 to 1 with the same call counts. This is one
+development case, not a reviewed quality baseline or proof of repeatability. Earlier
+missing-citation failures on other cases are not declared resolved. The running
+application on port 8001 was not restarted by this validation.
+
+## Initial implementation
+
 The first implementation slice adds `evals.golden`: a strict draft case schema,
 source validator and deterministic retrieval metrics. It validates every annotated
 span against a fresh extraction of the checksum-matched PDF, then checks every

@@ -151,6 +151,62 @@ async def test_no_supported_sources_skips_generation():
     assert result["citations"] == []
 
 
+@pytest.mark.parametrize("streaming", [False, True])
+async def test_partial_document_and_web_findings_keep_separate_citations(monkeypatch, streaming):
+    """Exercise the mixed-result contract; mocked generation is not a quality score."""
+    s = state()
+    s["assessments"][1].update(status="none", evidence_ids=[])
+    s["web_requested"] = True
+    s["web_results"] = [{
+        "question": "What is public guidance?",
+        "assessment": {"status": "partial", "evidence_ids": ["w1"],
+                       "missing_information": ["Local policy is unknown."]},
+        "hits": [{"id": "w1", "source_type": "web", "title": "Public guide",
+                  "url": "https://example.com/guide", "text": "Public guidance: use green.",
+                  "retrieved_at": "2026-11-12", "published_date": None}],
+    }]
+    answers = [
+        "The document requires blue [1]. The second requirement is not documented.",
+        "Public guidance recommends green [2]. This does not establish local policy.",
+    ]
+
+    class MixedProvider:
+        def __init__(self):
+            self.prompts = []
+
+        async def chat(self, system, prompt):
+            self.prompts.append((system, json.loads(prompt)))
+            return answers[len(self.prompts) - 1]
+
+        async def stream_chat(self, *args):
+            answer = await self.chat(*args)
+            for part in (answer[:20], answer[20:]):
+                yield part
+
+    provider = MixedProvider()
+    deltas = []
+    monkeypatch.setattr("app.agents.synthesis.get_stream_writer", lambda: deltas.append)
+    result = await SynthesisAgent(provider, stream_answer=streaming)(s)
+    assert len(provider.prompts) == 2
+    document_system, document_prompt = provider.prompts[0]
+    web_system, web_prompt = provider.prompts[1]
+    assert "only when no part can be answered" in document_system
+    assert "only when no part can be answered" in web_system
+    assert [c["status"] for c in document_prompt["coverage"]] == ["sufficient", "none"]
+    assert document_prompt["coverage"][1]["citations"] == []
+    assert web_prompt["coverage"][0]["status"] == "partial"
+    assert "Public guidance" not in document_prompt["evidence"]
+    assert "Labels must be blue" not in web_prompt["evidence"]
+    assert result["document_answer"] == answers[0]
+    assert result["answer"] == (
+        "## From your documents\n\n" + answers[0] + "\n\n## From the web\n\n" + answers[1]
+    )
+    assert [(c["citation"], c["source_type"]) for c in result["citations"]] == [
+        (1, "document"), (2, "web")]
+    if streaming:
+        assert "".join(event["delta"] for event in deltas) == result["answer"]
+
+
 async def test_real_deltas_forwarded_and_final_text_validated(monkeypatch):
     events = []
     monkeypatch.setattr("app.agents.synthesis.get_stream_writer", lambda: events.append)
