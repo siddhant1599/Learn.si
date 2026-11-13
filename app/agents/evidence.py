@@ -3,6 +3,8 @@
 import json
 import re
 
+from app.citations import malformed_citations, normalize_citations, references
+
 
 def parse_object(text):
     text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
@@ -45,14 +47,13 @@ def grounded_citations(answer, sources):
     # Our catalog has page-level sources, not line anchors. Discard model-supplied
     # line ranges rather than presenting them as verified locations; validate
     # every referenced source ID against the same catalog below.
-    answer = re.sub(r"【(\d+)(?:†L\d+(?:-L\d+)?)?】|［(\d+)］",
-                    lambda m: f"[{m[1] or m[2]}]", answer)
+    answer = normalize_citations(answer)
     if answer.strip() == "INSUFFICIENT_EVIDENCE":
         return "The selected documents do not contain enough evidence to answer this question.", []
-    numbers = {int(n) for n in re.findall(r"\[(\d+)\]", answer)}
+    numbers = references(answer)
     valid = {s["citation"] for s in sources}
     # Do not return unsupported numbered citations as a seemingly grounded answer.
     if (not numbers or not numbers.issubset(valid)
-            or any(delimiter in answer for delimiter in "【】［］")):
+            or malformed_citations(answer)):
         return "I could not produce a supported answer with valid source citations.", []
     return answer, [s for s in sources if s["citation"] in numbers]

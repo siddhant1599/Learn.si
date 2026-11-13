@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 import { site } from "@/config/site";
 
-import { persistedThread } from "./privacy";
+import { CHAT_PREFIX, DELETED_PREFIX, readChats, restoreSettings, saveChat } from "./cache";
 import { chatAdapter } from "./adapter";
 
 import {
@@ -25,7 +25,6 @@ import {
 } from "./reducer";
 import type { ChatMessage, ChatSettings, ChatThread } from "./types";
 
-const THREADS_KEY = "document-lab.threads";
 const SETTINGS_KEY = "document-lab.settings";
 
 const DEFAULT_SETTINGS: ChatSettings = {
@@ -137,19 +136,47 @@ export function ChatStoreProvider({ children }: { children: ReactNode }) {
   const threadsRef = useRef(threads);
   threadsRef.current = threads;
 
+  const owned = useRef(new Set<string>());
   useEffect(() => {
-    const saved = readJson<ChatThread[]>(THREADS_KEY) ?? [];
-    const restored = saved.map(settleInterruptedTurn);
-    setThreads(restored);
-    const savedSettings = readJson<Partial<ChatSettings>>(SETTINGS_KEY);
-    setSettings((current) => ({ ...current, ...savedSettings }));
+    const restore = () => {
+      try {
+        const { threads: saved, invalid } = readChats(localStorage);
+        const restored = saved.map(settleInterruptedTurn);
+        setThreads(current => {
+          const incoming = new Map(restored.map(t => [t.id, t]));
+          // A local in-flight turn wins over external updates until it settles.
+          for (const t of current) if (owned.current.has(t.id)) incoming.set(t.id, t);
+          return [...incoming.values()].sort((a,b) => b.updatedAt-a.updatedAt || a.id.localeCompare(b.id));
+        });
+        if (invalid) toast.error("Some saved chats could not be restored. Valid chats remain available; the original cache was preserved.");
+      } catch {
+        // Blocked storage must not make the in-memory workspace unusable.
+      }
+    };
+    restore();
+    setSettings(current => restoreSettings(readJson<unknown>(SETTINGS_KEY), current));
     setReady(true);
+    const changed = (event: StorageEvent) => {
+      if (event.key === null || (event.key.startsWith(CHAT_PREFIX) || event.key.startsWith(DELETED_PREFIX))) restore();
+    };
+    window.addEventListener("storage", changed);
+    return () => window.removeEventListener("storage", changed);
   }, []);
 
-  // Saved between turns rather than on every streamed token.
   useEffect(() => {
-    if (ready && streamingIds.size === 0) {
-      writeJson(THREADS_KEY, threads.map(persistedThread));
+    if (!ready) return;
+    for (const thread of threads) {
+      if (!owned.current.has(thread.id) || streamingIds.has(thread.id)) continue;
+      try {
+        if (!saveChat(localStorage, thread)) {
+          setThreads(current => current.filter(t => t.id !== thread.id));
+          toast.error("This chat was deleted in another tab.");
+        }
+      } catch {
+        toast.error("Chat could not be saved in this browser. It remains available in this tab.");
+        continue;
+      }
+      owned.current.delete(thread.id);
     }
   }, [ready, streamingIds, threads]);
 
@@ -197,6 +224,7 @@ export function ChatStoreProvider({ children }: { children: ReactNode }) {
       }
       const messages = [...(existing?.messages ?? []), userMessage];
 
+      owned.current.add(threadId);
       setThreads((current) => {
         const next: ChatThread = {
           id: threadId,

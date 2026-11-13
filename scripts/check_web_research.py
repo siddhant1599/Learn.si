@@ -103,9 +103,11 @@ def main():
             "Automatic fallback displays without client controls; final text replaces draft"
         )
         page.wait_for_function(
-            "localStorage.getItem('document-lab.threads')?.includes('links not retained')"
+            "Object.keys(localStorage).filter(k => k.startsWith('document-lab.chat.v2.')).some(k => localStorage.getItem(k)?.includes('links not retained'))"
         )
-        saved = page.evaluate("localStorage.getItem('document-lab.threads')")
+        saved = page.evaluate(
+            "JSON.stringify(Object.keys(localStorage).filter(k => k.startsWith('document-lab.chat.v2.')).map(k => localStorage.getItem(k)))"
+        )
         assert URL not in saved and "External live finding" not in saved
         checks.append("Browser persistence excludes web URLs and generated web text")
         page.get_by_role("textbox", name="Message", exact=True).fill("Document-only follow-up")

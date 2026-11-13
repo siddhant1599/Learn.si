@@ -1,9 +1,7 @@
 """Deterministic citation structure checks, not semantic claim validation."""
 import re
 
-
-def references(text):
-    return {int(number) for number in re.findall(r"\[(\d+)\]", text)}
+from app.citations import references
 
 
 def answer_sections(answer):

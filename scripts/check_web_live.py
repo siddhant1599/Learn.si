@@ -46,7 +46,9 @@ def main():
             page.locator('[aria-label="Sources"]').wait_for(timeout=240000)
             text = page.locator("body").inner_text().lower()
             assert "title" in text and "edition" in text
-            threads = page.evaluate('JSON.parse(localStorage.getItem("document-lab.threads"))')
+            threads = page.evaluate(
+                'Object.keys(localStorage).filter(k => k.startsWith("document-lab.chat.v2.")).map(k => JSON.parse(localStorage.getItem(k)).thread)'
+            )
             thread_id = threads[0]["serverThreadId"]
             page.screenshot(path=".local/web-real-answer.png", full_page=True)
             print(

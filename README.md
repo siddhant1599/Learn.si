@@ -538,3 +538,23 @@ include methodology, fixed synthetic cases, measured results and limitations.
 Run `uv run python -m scripts.validate_research` for the offline concurrency benchmark;
 add `--live-assessment` to explicitly use the configured OpenRouter model for the
 12-case assessment evaluation. The Builder.ai golden dataset remains separate work.
+
+### Browser cache recovery and vector compensation
+
+Chat history uses one `document-lab.chat.v2.<id>` localStorage record per chat.
+Separate tabs cannot overwrite unrelated chats; same-chat conflicts use the last
+completed save. Storage events refresh other tabs while preserving locally running
+turns. Existing history migrates automatically. Invalid records are retained for
+recovery and skipped, valid records remain usable, and invalid settings fall back
+to defaults. Web answers/URLs still pass through the existing privacy filter.
+Future deletion code must use `markChatDeleted` so persistent tombstones prevent
+stale tabs from restoring deleted records.
+
+Run `uv run python -m scripts.migrate` before deploying the ingestion changes.
+Pinecone ingestion journals generation IDs in `rag.vector_cleanup` before writing
+vectors. Failed ingestion and successful replacement attempt immediate cleanup;
+the API retries pending cleanup every 60 seconds. Cleanup takes the same document
+lock as ingestion and checks the active SQL generation before deleting, including
+after uncertain commit outcomes. Cleanup failures retain the journal transaction
+for retry; no source text or credentials are stored in it. The worker requires a
+running API with the matching Pinecone index/namespace configuration.

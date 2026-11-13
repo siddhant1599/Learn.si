@@ -20,6 +20,7 @@ from app.privacy import safe_turn
 from app.providers import ProviderError, Providers
 from app.storage import Conflict, NotFound, Storage, recent_context
 from app.uploads import MAX_BYTES, extract_document
+from app.vector_cleanup import cleanup_loop
 from app.web_search import TavilySearch
 from app.workflow import Workflow
 from scripts.ingest import ingest
@@ -48,9 +49,18 @@ async def lifespan(app):
             store = Storage(config.database_url.get_secret_value(), vectors)
             await store.pool.open()
             app.state.storage = store
+        cleanup_task = (asyncio.create_task(cleanup_loop(config, client))
+                        if config.database_url.get_secret_value()
+                        and config.vector_backend == "pinecone" else None)
         try:
             yield
         finally:
+            if cleanup_task:
+                cleanup_task.cancel()
+                try:
+                    await cleanup_task
+                except asyncio.CancelledError:
+                    pass
             if app.state.storage:
                 await app.state.storage.pool.close()
 

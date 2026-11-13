@@ -1,3 +1,4 @@
+import {CHAT_PREFIX,readChats} from '@/core/chat/cache';
 import {beforeEach,it,expect,vi} from 'vitest';
 import {renderHook,act,waitFor} from '@testing-library/react';
 import {ChatStoreProvider,useChatStore} from '@/core/chat/store';
@@ -15,7 +16,7 @@ it('settles interrupted restored answer to stopped',async()=>{localStorage.setIt
 it('invalid stored JSON does not crash workspace',async()=>{localStorage.setItem('document-lab.threads','{bad');const h=await ready();expect(h.result.current.threads).toEqual([])});
 it('rejects sending without selected documents',async()=>{const h=await ready();expect(()=>act(()=>h.result.current.send({threadId:'new',text:'Q',files:[]}))).toThrow('Select a document');expect(mocks.stream).not.toHaveBeenCalled()});
 it('rejects question beyond 4000 characters',async()=>{const h=await ready();act(()=>h.result.current.setSelectedIds(['doc']));expect(()=>act(()=>h.result.current.send({threadId:'new',text:'q'.repeat(4001),files:[]}))).toThrow('Question too long');expect(mocks.stream).not.toHaveBeenCalled()});
-it('successful stream persists answer and backend session',async()=>{const h=await ready();act(()=>h.result.current.setSelectedIds(['doc']));act(()=>h.result.current.send({threadId:'new',text:'Q',files:[]}));await waitFor(()=>expect(h.result.current.threads[0].messages[1]).toMatchObject({text:'Blue',status:'complete'}));expect(h.result.current.threads[0].serverThreadId).toBe('backend');expect(JSON.parse(localStorage.getItem('document-lab.threads')!)[0].serverThreadId).toBe('backend')});
+it('successful stream persists answer and backend session',async()=>{const h=await ready();act(()=>h.result.current.setSelectedIds(['doc']));act(()=>h.result.current.send({threadId:'new',text:'Q',files:[]}));await waitFor(()=>expect(h.result.current.threads[0].messages[1]).toMatchObject({text:'Blue',status:'complete'}));expect(h.result.current.threads[0].serverThreadId).toBe('backend');expect(readChats(localStorage).threads[0].serverThreadId).toBe('backend')});
 it('follow-up uses immutable thread selection',async()=>{const t=saved();t.messages[0].status='complete';localStorage.setItem('document-lab.threads',JSON.stringify([t]));const h=await ready();act(()=>h.result.current.setSelectedIds(['other']));act(()=>h.result.current.send({threadId:'t',text:'Followup',files:[]}));await waitFor(()=>expect(mocks.stream).toHaveBeenCalled());expect(mocks.stream.mock.calls[0][0]).toMatchObject({documentIds:['doc'],serverThreadId:'backend'})});
 it('stream error preserves partial output and marks failed turn',async()=>{mocks.stream.mockImplementation(async function*(){yield {type:'text',delta:'Partial'};throw new Error('Disconnected')});const h=await ready();act(()=>h.result.current.setSelectedIds(['doc']));act(()=>h.result.current.send({threadId:'new',text:'Q',files:[]}));await waitFor(()=>expect(h.result.current.threads[0].messages[1]).toMatchObject({text:'Partial',status:'error',error:'Disconnected'}));expect(h.result.current.isStreaming('new')).toBe(false)});
 
@@ -31,7 +32,7 @@ it('keeps web response live while persisting only the safe answer',async()=>{
  act(()=>h.result.current.send({threadId:'new',text:'Q',files:[]}));
  await waitFor(()=>expect(h.result.current.threads[0].messages[1]).toMatchObject({status:'complete'}));
  expect(h.result.current.threads[0].messages[1].text).toContain('https://example.org/sentinel');
- const saved=localStorage.getItem('document-lab.threads')!;
+ const saved=(localStorage.getItem(CHAT_PREFIX+'new') ?? '');
  expect(saved).not.toContain('sentinel');
  expect(saved).not.toContain('External excerpt');
  expect(saved).toContain('Document answer');
@@ -50,8 +51,8 @@ it('never persists an interrupted automatic web draft',async()=>{
  act(()=>h.result.current.setSelectedIds(['doc']));
  act(()=>h.result.current.send({threadId:'new',text:'Q',files:[]}));
  await waitFor(()=>expect(h.result.current.threads[0].messages[1].text).toContain('Transient external secret'));
- expect(localStorage.getItem('document-lab.threads')).not.toContain('Transient external secret');
+ expect(localStorage.getItem(CHAT_PREFIX+'new') ?? '').not.toContain('Transient external secret');
  act(()=>interrupt());
  await waitFor(()=>expect(h.result.current.threads[0].messages[1]).toMatchObject({status:'error'}));
- expect(localStorage.getItem('document-lab.threads')).not.toContain('Transient external secret');
+ expect(localStorage.getItem(CHAT_PREFIX+'new') ?? '').not.toContain('Transient external secret');
 });

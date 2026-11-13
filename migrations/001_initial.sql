@@ -70,3 +70,13 @@ CREATE INDEX IF NOT EXISTS messages_history ON rag.messages(conversation_id, id 
 
 -- Active external vector generation; old or partial writes never become searchable.
 ALTER TABLE rag.documents ADD COLUMN IF NOT EXISTS vector_generation uuid;
+
+-- Durable compensation records have no FK: they must survive failed ingestion.
+CREATE TABLE IF NOT EXISTS rag.vector_cleanup (
+    document_id uuid NOT NULL,
+    generation uuid NOT NULL,
+    index_name text NOT NULL,
+    namespace text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (document_id, generation, index_name, namespace)
+);
