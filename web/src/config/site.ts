@@ -98,8 +98,7 @@ export const site = {
 
   chat: {
     greeting: "What would you like to understand?",
-    description:
-      "Select documents and ask a question. When document evidence is insufficient, web search runs automatically. Document and web findings are labeled separately.",
+    description: "Select documents and ask a question.",
     placeholder: "Ask a question about your documents…",
     disclaimer: "Answers can make mistakes. Check the cited sources.",
     surpriseMe: {

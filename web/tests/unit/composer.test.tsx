@@ -22,11 +22,22 @@ it('file paste directs user to indexed upload',()=>{const {box,props}=setup();fi
 it('file drop directs user to sidebar rather than silently attaching',()=>{const {box}=setup();fireEvent.drop(box,{dataTransfer:{files:[new File(['x'],'x.txt')],types:['Files']}});expect(toast.info).toHaveBeenCalledWith(expect.stringContaining('index files'))});
 it('Shift+Enter inserts newline without submitting',async()=>{const {box,props}=setup();await userEvent.type(box,'Line one');await userEvent.keyboard('{Shift>}{Enter}{/Shift}Line two');expect(props.onSubmit).not.toHaveBeenCalled();expect(box).toHaveValue('Line one\nLine two')});
 
-it('explains automatic fallback without a web checkbox or query field',()=>{
- setup({webAvailable:true});
+it.each([
+ {isWelcomeMode:true,webAvailable:true},
+ {isWelcomeMode:true,webAvailable:null},
+ {isWelcomeMode:true,webAvailable:undefined},
+ {isWelcomeMode:false,webAvailable:true},
+ {isWelcomeMode:false,webAvailable:null},
+ {isWelcomeMode:false,webAvailable:undefined},
+])('keeps the input compact with welcome=$isWelcomeMode and web=$webAvailable',(options)=>{
+ const {box}=setup(options);
  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
  expect(screen.queryByRole('textbox',{name:'Public search queries'})).not.toBeInTheDocument();
- expect(screen.getByText(/When documents lack evidence/)).toBeVisible();
+ expect(screen.queryByText(/When documents lack evidence/)).not.toBeInTheDocument();
+ expect(screen.queryByText(/Web search is unavailable/)).not.toBeInTheDocument();
+ expect(box.closest('form')!.querySelector('p')).toBeNull();
+ expect(screen.getByText('Document search · selected sources')).toBeVisible();
+ expect(screen.getByText('Answers can make mistakes. Check the cited sources.')).toBeVisible();
 });
 it('automatic fallback needs only the normal question',async()=>{
  const {box,props}=setup({webAvailable:true});
