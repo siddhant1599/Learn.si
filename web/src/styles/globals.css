@@ -494,10 +494,12 @@ html.dark .shiki span {
 }
 @media (hover: hover) and (pointer: fine) {
   .delete-action { width: 2rem; height: 2rem; }
-  .deletable-row .delete-action { opacity: 0; pointer-events: none; }
+  /* Opacity only: pointer-events:none would make the row swallow clicks aimed at the
+     button by pointer-driven tools (automation, voice control) before hover reveals it. */
+  .deletable-row .delete-action { opacity: 0; }
   .deletable-row:hover .delete-action,
   .deletable-row:focus-within .delete-action,
-  .deletable-row .delete-action[data-state="open"] { opacity: 1; pointer-events: auto; }
+  .deletable-row .delete-action[data-state="open"] { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
   .delete-action { transition: none; }
