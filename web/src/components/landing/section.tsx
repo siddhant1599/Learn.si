@@ -20,7 +20,7 @@ export function Section({
     >
       <header className="flex flex-col items-center justify-between px-4">
         {/* Real headings: the page outline is one h1 (hero) and an h2 per section. */}
-        <h2 className="mb-4 max-w-full bg-linear-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-center text-3xl font-bold break-words text-transparent sm:text-4xl md:text-5xl">
+        <h2 className="mb-3 max-w-full bg-linear-to-r from-white via-gray-200 to-gray-400 bg-clip-text px-2 pb-1.5 text-center text-3xl leading-tight font-bold break-words text-transparent sm:text-4xl md:text-5xl">
           {title}
         </h2>
         {subtitle && (

@@ -98,7 +98,8 @@ export function ConstellationSection({ className }: { className?: string }) {
             </p>
             <h2
               id="path-title"
-              className="mb-3 max-w-full bg-linear-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-3xl font-bold break-words text-transparent sm:text-4xl md:text-5xl"
+              // Padding keeps glyph overhang and descenders inside the clipped gradient box.
+              className="mb-2 max-w-full bg-linear-to-r from-white via-gray-200 to-gray-400 bg-clip-text px-2 pb-1.5 text-3xl leading-tight font-bold break-words text-transparent sm:text-4xl md:text-5xl"
             >
               {copy.title}
             </h2>
