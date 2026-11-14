@@ -477,3 +477,28 @@ html.dark .shiki span {
 @media (prefers-reduced-motion: reduce) {
  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Secondary row actions: mouse reveal without layout shift; always available on touch. */
+.delete-action {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+  border-radius: 0.5rem;
+  transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+.delete-action:hover,
+.delete-action[data-state="open"] {
+  color: var(--destructive);
+  background-color: color-mix(in srgb, var(--destructive) 10%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .delete-action { width: 2rem; height: 2rem; }
+  .deletable-row .delete-action { opacity: 0; pointer-events: none; }
+  .deletable-row:hover .delete-action,
+  .deletable-row:focus-within .delete-action,
+  .deletable-row .delete-action[data-state="open"] { opacity: 1; pointer-events: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .delete-action { transition: none; }
+}

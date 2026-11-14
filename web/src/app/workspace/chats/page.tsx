@@ -18,9 +18,9 @@ export default function ChatsPage() {
       <main className="mx-auto w-full max-w-(--container-width-md) flex-1 overflow-y-auto px-4 py-4">
         <ul className="flex flex-col gap-2">
           {threads.map((thread) => (
-            <li key={thread.id} className="flex items-center">
+            <li key={thread.id} className="deletable-row flex items-center gap-2 rounded-lg border pr-2 transition-colors hover:bg-accent/50 focus-within:bg-accent/50">
               <Link
-                className="hover:bg-accent block min-w-0 flex-1 rounded-lg border px-4 py-3 text-sm transition-colors"
+                className="block min-w-0 flex-1 rounded-lg px-4 py-3 text-sm transition-colors"
                 href={`/workspace/chats/${thread.id}`}
               >
                 <span className="block truncate font-medium">

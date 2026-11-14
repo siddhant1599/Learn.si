@@ -141,13 +141,13 @@ function RecentChats() {
       <SidebarGroupContent>
         <SidebarMenu>
           {threads.map((thread) => (
-            <SidebarMenuItem key={thread.id} className="flex items-center">
+            <SidebarMenuItem key={thread.id} className="deletable-row flex items-center gap-1 rounded-md pr-1 hover:bg-sidebar-accent/60 focus-within:bg-sidebar-accent/60">
               <SidebarMenuButton
                 isActive={pathname === `/workspace/chats/${thread.id}`}
                 asChild
               >
                 <Link
-                  className="text-muted-foreground"
+                  className="text-muted-foreground min-w-0 flex-1"
                   href={`/workspace/chats/${thread.id}`}
                 >
                   <span className="truncate">{thread.title}</span>

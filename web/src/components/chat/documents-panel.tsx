@@ -131,9 +131,9 @@ export function DocumentsPanel() {
       ) : (
         <div className="max-h-60 space-y-1 overflow-y-auto">
           {documents.map((d) => (
-            <div key={d.id} className="flex items-center">
+            <div key={d.id} className={`deletable-row flex items-center gap-1 rounded-lg border pr-1 transition-colors ${selection.includes(d.id) ? "bg-accent border-border" : "border-transparent hover:bg-accent/50 focus-within:bg-accent/50"}`}>
             <label
-              className={`flex cursor-pointer items-start gap-2 rounded-md border p-2 text-xs transition-colors ${selection.includes(d.id) ? "bg-accent border-border" : "border-transparent hover:bg-accent/50"}`}
+              className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 p-2 text-xs"
             >
               <input
                 type="checkbox"
@@ -152,7 +152,7 @@ export function DocumentsPanel() {
                   );
                 }}
               />
-              <span className="min-w-0 break-words">
+              <span className="min-w-0 [overflow-wrap:anywhere]">
                 {d.title}
                 <small className="text-muted-foreground mt-1 block">
                   {d.edition}
