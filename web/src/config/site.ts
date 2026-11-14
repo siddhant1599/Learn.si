@@ -43,7 +43,7 @@ export const site = {
     ],
     rotatingSuffix: "",
     description:
-      "A workspace for the knowledge. Bring your documents, ask a question, and follow the answer back to its source.",
+      "A knowledge workspace. Bring your documents, ask a question, and follow the answer back to its source.",
     ctaLabel: "Explore your documents",
     ctaHref: "/workspace",
   },
