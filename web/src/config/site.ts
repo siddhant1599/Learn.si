@@ -48,6 +48,44 @@ export const site = {
       "A learning workspace for your documents. Ask a question and follow the answer back to its source, or turn a document into short lessons, quizzes and a path to mastery.",
     ctaLabel: "Start learning",
     ctaHref: "/workspace",
+    /** Synthetic page whose sentences become a map of lessons as the hero scrolls. */
+    constellation: {
+      source: "Pump station guide.pdf · Page 3",
+      caption: "A document's sentences become a map of lessons.",
+      modules: ["Operate", "Maintain"],
+      stars: [
+        {
+          sentence: "Inspect the inlet filter before every start-up.",
+          label: "Start-up checks",
+          module: 0,
+        },
+        {
+          sentence: "Open the bypass valve until the pressure settles.",
+          label: "Pressure control",
+          module: 0,
+        },
+        {
+          sentence: "Never exceed 6 bar on the discharge line.",
+          label: "Safety limits",
+          module: 0,
+        },
+        {
+          sentence: "Log every shutdown with the time and operator.",
+          label: "Shutdown log",
+          module: 1,
+        },
+        {
+          sentence: "Replace the seal kit every 500 running hours.",
+          label: "Service intervals",
+          module: 1,
+        },
+        {
+          sentence: "Report leaks to the facilities desk at once.",
+          label: "Incident reporting",
+          module: 1,
+        },
+      ],
+    },
   },
 
   whatsNew: {
