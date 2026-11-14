@@ -4,6 +4,7 @@ import {LAST_MODE_KEY} from '@/core/workspace/mode';
 const mocks=vi.hoisted(()=>({push:vi.fn()}));
 vi.mock('next/link',()=>({default:({children,href,...props}:any)=><a href={href} {...props}>{children}</a>}));
 vi.mock('next/navigation',()=>({usePathname:()=>'/workspace',useRouter:()=>({push:mocks.push})}));
+vi.mock('@/components/landing/galaxy-backdrop',()=>({GalaxyBackdrop:()=><div data-testid="galaxy"/>}));
 import {ModeChooser} from '@/components/workspace/mode-chooser';
 
 it('offers both modes with the approved copy and destinations, without numbering or redirecting',()=>{
@@ -17,10 +18,12 @@ it('offers both modes with the approved copy and destinations, without numbering
  expect(document.title).toContain('Choose a mode');
 });
 
-it('is a standalone page: brand and Docs links, no sidebar controls',()=>{
+it('is a standalone page: starfield, brand link only, no Docs link, no sidebar controls',()=>{
  render(<ModeChooser/>);
+ expect(screen.getByTestId('galaxy')).toBeInTheDocument();
  expect(screen.getByRole('link',{name:'Study Buddy'})).toHaveAttribute('href','/');
- expect(screen.getByRole('link',{name:'Docs'})).toHaveAttribute('href','/docs');
+ expect(screen.queryByRole('link',{name:'Docs'})).not.toBeInTheDocument();
+ expect(screen.getAllByRole('link')).toHaveLength(3);
  expect(screen.queryByRole('button',{name:/Toggle Sidebar/})).not.toBeInTheDocument();
  expect(screen.getByRole('heading',{level:1})).toHaveTextContent('How do you want to learn today?');
 });

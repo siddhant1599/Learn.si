@@ -4,6 +4,7 @@ import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { GalaxyBackdrop } from "@/components/landing/galaxy-backdrop";
 import { site } from "@/config/site";
 import {
   MODES,
@@ -16,7 +17,10 @@ import { cn } from "@/lib/utils";
 import { MODE_ICONS } from "./mode-icons";
 import { useDocumentTitle } from "./page-header";
 
-/** The workspace entry at /workspace: standalone (no sidebar), never auto-redirects. */
+/**
+ * The workspace entry at /workspace: standalone (no sidebar), never auto-redirects.
+ * Shares the landing starfield but not its logo mask.
+ */
 export function ModeChooser() {
   useDocumentTitle("Choose a mode");
   const [lastMode, setLastMode] = useState<WorkspaceMode | null>(null);
@@ -25,24 +29,19 @@ export function ModeChooser() {
   }, []);
 
   return (
-    <div className="bg-background text-foreground flex min-h-screen flex-col">
-      <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+    <div className="relative flex min-h-screen flex-col overflow-x-clip bg-[#0a0a0a] text-white">
+      <GalaxyBackdrop />
+      <header className="relative z-10 mx-auto flex w-full max-w-5xl items-center px-4 py-4 sm:px-6">
         <Link href="/" className="font-serif text-xl">
           {site.name}
         </Link>
-        <Link
-          href="/docs"
-          className="text-secondary-foreground hover:text-foreground text-sm transition-colors"
-        >
-          Docs
-        </Link>
       </header>
-      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center px-4 pb-16 sm:px-8">
+      <main className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center px-4 pb-16 sm:px-8">
         <div className="mb-8 text-center sm:mb-10">
-          <h1 className="font-serif text-3xl leading-tight sm:text-4xl">
+          <h1 className="font-serif text-3xl leading-tight text-shadow-sm sm:text-4xl">
             How do you want to learn today?
           </h1>
-          <p className="text-muted-foreground mx-auto mt-3 max-w-xl text-sm sm:text-base">
+          <p className="mx-auto mt-3 max-w-xl text-sm text-white/70 sm:text-base">
             Pick a mode to open the workspace. You can switch any time from the
             sidebar.
           </p>
@@ -59,19 +58,19 @@ export function ModeChooser() {
                   aria-label={`${mode.label}: ${mode.tagline}`}
                   onClick={() => writeLastMode(localStorage, mode.value)}
                   className={cn(
-                    "group bg-card text-card-foreground flex h-full min-h-56 flex-col justify-between rounded-2xl border p-6 shadow-xs transition-[border-color,box-shadow,transform] outline-none sm:p-8",
-                    "hover:border-foreground/30 hover:shadow-md motion-safe:hover:-translate-y-0.5",
-                    "focus-visible:ring-ring/50 focus-visible:border-ring focus-visible:ring-[3px]",
-                    isLast && "border-foreground/40",
+                    "group flex h-full min-h-56 flex-col justify-between rounded-2xl border border-white/15 bg-white/[0.03] p-6 shadow-2xl backdrop-blur-sm transition-[border-color,background-color,transform] outline-none sm:p-8",
+                    "hover:border-white/40 hover:bg-white/[0.06] motion-safe:hover:-translate-y-0.5",
+                    "focus-visible:border-white/60 focus-visible:ring-[3px] focus-visible:ring-white/40",
+                    isLast && "border-white/40",
                   )}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <Icon
                       aria-hidden="true"
-                      className="text-muted-foreground group-hover:text-foreground size-7 transition-colors"
+                      className="size-7 text-white/70 transition-colors group-hover:text-white"
                     />
                     {isLast && (
-                      <span className="bg-accent text-accent-foreground rounded-full px-2 py-0.5 text-[11px] font-medium">
+                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium text-white">
                         Last used
                       </span>
                     )}
@@ -80,7 +79,7 @@ export function ModeChooser() {
                     <span className="block font-serif text-3xl leading-none">
                       {mode.label}
                     </span>
-                    <span className="text-muted-foreground mt-2 block text-base">
+                    <span className="mt-2 block text-base text-white/70">
                       {mode.tagline}
                     </span>
                   </div>

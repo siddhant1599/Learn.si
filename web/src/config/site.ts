@@ -24,6 +24,8 @@ export const site = {
     "Learn from your documents: ask questions with evidence, or master them lesson by lesson.",
   /** The single landing entry point; the workspace lets you choose a mode. */
   repositoryUrl: "/workspace",
+  /** The SVG silhouette the landing hero's flickering grid is masked to. */
+  logoMaskUrl: "/images/landing-logo-mask.svg",
 
   header: {
     links: [
