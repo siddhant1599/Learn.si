@@ -1,3 +1,4 @@
+import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -38,20 +39,20 @@ export function Header({ className }: { className?: string }) {
             filter: "blur(16px)",
           }}
         />
+        {/* Internal route with a visible label at every width; no external-link cue. */}
         <Button
           variant="outline"
           size="sm"
           asChild
           className="group relative z-10"
         >
-          <a
-            href={site.repositoryUrl}
-            rel="noopener noreferrer"
-            aria-label={site.header.ctaLabel}
-          >
-            <span aria-hidden="true">↗</span>
-            <span className="hidden sm:inline">{site.header.ctaLabel}</span>
-          </a>
+          <Link href={site.repositoryUrl}>
+            {site.header.ctaLabel}
+            <ArrowRightIcon
+              aria-hidden="true"
+              className="size-3.5 transition-transform motion-safe:group-hover:translate-x-0.5"
+            />
+          </Link>
         </Button>
       </div>
       <MobileNav links={site.header.links} />

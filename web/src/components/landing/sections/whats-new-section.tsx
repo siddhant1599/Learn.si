@@ -3,31 +3,37 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, type RefObject } from "react";
 
-import { type BentoCardProps } from "@/components/ui/magic-bento";
+import { StaticBentoGrid, type BentoCardData } from "@/components/ui/bento-grid";
 import { site } from "@/config/site";
 import {
   usePrefersReducedMotion,
   useRenderActivity,
 } from "@/core/dom/render-activity";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 import { Section } from "../section";
 
+// gsap-driven enhancement; the static grid below carries the same markup and copy.
 const MagicBento = dynamic(() => import("@/components/ui/magic-bento"), {
   ssr: false,
 });
 
 const COLOR = "#0a0a0a";
-const features: BentoCardProps[] = site.whatsNew.features.map((feature) => ({
+const features: BentoCardData[] = site.whatsNew.features.map((feature) => ({
   ...feature,
   color: COLOR,
 }));
 
 export function WhatsNewSection({ className }: { className?: string }) {
   const bentoContainerRef = useRef<HTMLDivElement>(null);
-  const renderBento = useRenderActivity(bentoContainerRef, false, false);
+  const inView = useRenderActivity(bentoContainerRef, false, false);
   const reducedMotion = usePrefersReducedMotion();
-  useBentoSpotlight(bentoContainerRef, renderBento && !reducedMotion);
+  const isMobile = useIsMobile();
+  // Server HTML and every non-pointer context get the plain grid; desktop pointer
+  // devices swap in the animated version once the section scrolls into view.
+  const enhance = inView && !reducedMotion && !isMobile;
+  useBentoSpotlight(bentoContainerRef, enhance);
 
   return (
     <Section
@@ -39,12 +45,10 @@ export function WhatsNewSection({ className }: { className?: string }) {
         ref={bentoContainerRef}
         className="flex min-h-96 w-full items-center justify-center"
       >
-        {renderBento && (
-          <MagicBento
-            data={features}
-            disableAnimations={reducedMotion}
-            enableSpotlight={false}
-          />
+        {enhance ? (
+          <MagicBento data={features} enableSpotlight={false} />
+        ) : (
+          <StaticBentoGrid data={features} />
         )}
       </div>
     </Section>

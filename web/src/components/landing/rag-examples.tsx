@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowRight,
   BookOpen,
@@ -170,15 +169,11 @@ export function RagExamples() {
               <div className="ml-4 rounded-2xl bg-white/10 px-5 py-4 text-sm">
                 {item.question}
               </div>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={`${selected}-${shown}`}
-                  initial={reduced ? false : { opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="mt-8"
-                >
+              {/* Keyed remount restarts the CSS stage-in animation. */}
+              <div
+                key={`${selected}-${shown}`}
+                className={`mt-8 ${reduced ? "" : "animate-stage-in"}`}
+              >
                   <div className="mb-4 flex items-center gap-2 text-xs text-amber-100">
                     <Search size={14} />
                     {
@@ -209,8 +204,7 @@ export function RagExamples() {
                       </div>
                     </>
                   )}
-                </motion.div>
-              </AnimatePresence>
+              </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-6 py-4 text-xs text-muted-foreground">

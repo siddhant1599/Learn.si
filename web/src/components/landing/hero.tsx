@@ -1,7 +1,6 @@
 "use client";
 
 import { ChevronRightIcon } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -74,24 +73,19 @@ function HeroWordRotate({
 
   return (
     <div className="relative max-w-full min-w-0 overflow-hidden py-2">
-      <AnimatePresence mode="popLayout">
-        <motion.div
-          key={index}
-          className="max-w-full"
-          initial={{ opacity: 0, y: -50, filter: "blur(16px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          exit={{ opacity: 0, y: 50, filter: "blur(16px)" }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+      {/* Remounting on index restarts the CSS enter animation; no exit animation needed. */}
+      <div
+        key={index}
+        className={cn("max-w-full", !reduced && "animate-word-in")}
+      >
+        <AuroraText
+          className="max-w-full [overflow-wrap:anywhere] whitespace-normal"
+          speed={3}
+          colors={["#efefbb", "#e9c665", "#e3a812"]}
         >
-          <AuroraText
-            className="max-w-full [overflow-wrap:anywhere] whitespace-normal"
-            speed={3}
-            colors={["#efefbb", "#e9c665", "#e3a812"]}
-          >
-            {words[index]}
-          </AuroraText>
-        </motion.div>
-      </AnimatePresence>
+          {words[index]}
+        </AuroraText>
+      </div>
     </div>
   );
 }

@@ -4,8 +4,6 @@ import {RagExamples} from '@/components/landing/rag-examples';
 const state=vi.hoisted(()=>({active:true,reduced:false}));
 vi.mock('@/core/dom/render-activity',()=>({useRenderActivity:()=>state.active,usePrefersReducedMotion:()=>state.reduced}));
 vi.mock('next/link',()=>({default:({children,href,...props}:any)=><a href={href} {...props}>{children}</a>}));
-// Motion owns animation timing; unit tests assert the component state and content.
-vi.mock('motion/react',()=>({AnimatePresence:({children}:any)=>children,motion:{div:({children,initial,animate,exit,transition,...props}:any)=><div {...props}>{children}</div>}}));
 beforeEach(()=>{state.active=true;state.reduced=false});
 it('labels examples as scripted rather than live answers',()=>{render(<RagExamples/>);expect(screen.getByText(/scripted illustration using fictional excerpts/)).toBeVisible()});
 it('first scenario is selected and associated with its panel',()=>{render(<RagExamples/>);const tab=screen.getByRole('tab',{name:'Find a requirement'});expect(tab).toHaveAttribute('aria-selected','true');expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby',tab.id)});
