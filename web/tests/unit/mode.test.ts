@@ -14,10 +14,11 @@ it('derives the mode from each route family and nothing else',()=>{
 });
 
 it('uses the approved copy and homes',()=>{
- expect(MODES.map(m=>[m.label,m.tagline,m.number])).toEqual([
-  ['Ask','Get answers. Understand anything.','Mode 01'],
-  ['Master','Learn deeply. Build mastery.','Mode 02'],
+ expect(MODES.map(m=>[m.label,m.tagline])).toEqual([
+  ['Ask','Get answers. Understand anything.'],
+  ['Master','Learn deeply. Build mastery.'],
  ]);
+ expect(JSON.stringify(MODES)).not.toMatch(/Mode 0\d/);
  expect(modeHome('ask')).toBe('/workspace/chats/new');
  expect(modeHome('master')).toBe('/workspace/courses');
 });

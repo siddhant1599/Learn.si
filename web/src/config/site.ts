@@ -24,8 +24,6 @@ export const site = {
     "Learn from your documents: ask questions with evidence, or master them lesson by lesson.",
   /** The single landing entry point; the workspace lets you choose a mode. */
   repositoryUrl: "/workspace",
-  /** The SVG silhouette the hero's flickering grid is masked to. */
-  logoMaskUrl: "/images/landing-logo-mask.svg",
 
   header: {
     links: [
@@ -56,7 +54,7 @@ export const site = {
       "Ask mode answers with evidence. Master mode turns a document into lessons, quizzes and progress.",
     features: [
       {
-        label: "Ask · Mode 01",
+        label: "Ask mode",
         title: "Get answers. Understand anything.",
         description:
           "Upload PDF, TXT or Markdown, select up to five sources and ask. Answers stay grounded in your documents, with citations beside them.",
@@ -74,7 +72,7 @@ export const site = {
           "Document titles, editions, section references and page numbers sit next to every citation. When document evidence is insufficient, separately labeled web findings fill the gap.",
       },
       {
-        label: "Master · Mode 02",
+        label: "Master mode",
         title: "Learn deeply. Build mastery.",
         description:
           "Turn a document into a lesson plan of modules and short lessons, each with an example, a diagram and a tutor that guides your thinking. In development.",

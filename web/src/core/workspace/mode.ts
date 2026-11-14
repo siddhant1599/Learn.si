@@ -6,7 +6,6 @@ export type ModeDefinition = {
   label: string;
   /** Approved product copy; render verbatim. */
   tagline: string;
-  number: string;
   /** Where entering the mode lands. */
   href: string;
 };
@@ -16,14 +15,12 @@ export const MODES: readonly ModeDefinition[] = [
     value: "ask",
     label: "Ask",
     tagline: "Get answers. Understand anything.",
-    number: "Mode 01",
     href: "/workspace/chats/new",
   },
   {
     value: "master",
     label: "Master",
     tagline: "Learn deeply. Build mastery.",
-    number: "Mode 02",
     href: "/workspace/courses",
   },
 ];

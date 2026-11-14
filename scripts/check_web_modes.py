@@ -21,12 +21,13 @@ def check_desktop(page, errors):
     page.goto(BASE)
     page.get_by_role("link", name="Start learning").click()
     expect(page).to_have_url(f"{BASE}/workspace")
-    ask = page.get_by_role("link", name="Ask: Get answers. Understand anything. Mode 01")
-    master = page.get_by_role("link", name="Master: Learn deeply. Build mastery. Mode 02")
+    ask = page.get_by_role("link", name="Ask: Get answers. Understand anything.")
+    master = page.get_by_role("link", name="Master: Learn deeply. Build mastery.")
     expect(ask).to_be_visible()
     expect(master).to_be_visible()
-    expect(mode_button(page, "Ask")).to_have_attribute("aria-pressed", "false")
-    expect(mode_button(page, "Master")).to_have_attribute("aria-pressed", "false")
+    # Standalone chooser: no sidebar, no mode switch.
+    expect(page.get_by_role("button", name="Toggle Sidebar")).to_have_count(0)
+    expect(page.get_by_role("group", name="Workspace mode")).to_have_count(0)
     no_overflow(page, "chooser")
     # Keyboard: the Ask card is reachable and Enter opens Ask mode.
     ask.focus()
@@ -46,7 +47,7 @@ def check_desktop(page, errors):
     expect(page).to_have_url(f"{BASE}/workspace/chats/new")
     page.go_forward()
     expect(page).to_have_url(f"{BASE}/workspace/courses")
-    # Brand link returns to the chooser; the chooser remembers but does not redirect.
+    # Sidebar brand link returns to the chooser; the chooser remembers but does not redirect.
     page.get_by_role("link", name="Study Buddy", exact=True).first.click()
     expect(page).to_have_url(f"{BASE}/workspace")
     expect(page.get_by_text("Last used")).to_be_visible()
@@ -67,14 +68,14 @@ def check_desktop(page, errors):
     page.get_by_role("button", name="Ask mode").click()
     expect(page).to_have_url(f"{BASE}/workspace/chats/new")
     assert not errors, errors
-    print("Desktop: chooser copy, keyboard entry, sidebar switch, history, deep links, rail passed")
+    print("Desktop: standalone chooser, keyboard entry, sidebar switch, history, deep links, rail passed")
 
 
 def check_themes(page):
     page.goto(f"{BASE}/workspace")
     for theme in ("dark", "light"):
         page.evaluate(f"document.documentElement.classList.toggle('dark', {str(theme == 'dark').lower()})")
-        expect(page.get_by_role("link", name="Ask: Get answers. Understand anything. Mode 01")).to_be_visible()
+        expect(page.get_by_role("link", name="Ask: Get answers. Understand anything.")).to_be_visible()
     print("Themes: chooser renders in dark and light")
 
 
@@ -82,7 +83,7 @@ def check_mobile(page, errors):
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto(f"{BASE}/workspace")
     no_overflow(page, "chooser mobile")
-    page.get_by_role("link", name="Master: Learn deeply. Build mastery. Mode 02").click()
+    page.get_by_role("link", name="Master: Learn deeply. Build mastery.").click()
     expect(page).to_have_url(f"{BASE}/workspace/courses")
     no_overflow(page, "courses mobile")
     page.get_by_role("button", name="Toggle Sidebar").first.click()

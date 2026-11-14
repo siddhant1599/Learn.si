@@ -3,11 +3,11 @@ import {render,screen} from '@testing-library/react';
 vi.mock('next/link',()=>({default:({children,href,...props}:any)=><a href={href} {...props}>{children}</a>}));
 vi.mock('next/navigation',()=>({usePathname:()=>'/workspace/courses',useRouter:()=>({push:vi.fn()}),useParams:()=>({course_id:'c 1',lesson_id:'l1'})}));
 vi.mock('@/components/chat/workspace-sidebar-trigger',()=>({WorkspaceSidebarTrigger:()=>null}));
-import CoursesPage from '@/app/workspace/courses/page';
-import CoursePage from '@/app/workspace/courses/[course_id]/page';
-import LessonPage from '@/app/workspace/courses/[course_id]/lessons/[lesson_id]/page';
-import ProgressPage from '@/app/workspace/progress/page';
-import CoursesLoading from '@/app/workspace/courses/loading';
+import CoursesPage from '@/app/workspace/(shell)/courses/page';
+import CoursePage from '@/app/workspace/(shell)/courses/[course_id]/page';
+import LessonPage from '@/app/workspace/(shell)/courses/[course_id]/lessons/[lesson_id]/page';
+import ProgressPage from '@/app/workspace/(shell)/progress/page';
+import CoursesLoading from '@/app/workspace/(shell)/courses/loading';
 
 it('courses page renders an accessible empty state and sets the title',()=>{
  render(<CoursesPage/>);

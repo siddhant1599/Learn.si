@@ -13,10 +13,11 @@ it('brand is Study Buddy with a single workspace entry point',()=>{
  expect(JSON.stringify(site)).not.toContain('Document Lab');
 });
 
-it('landing copy names both modes but links to neither directly',()=>{
+it('landing copy names both modes without numbering and links to neither directly',()=>{
  const labels=site.whatsNew.features.map(f=>f.label).join(' ');
- expect(labels).toMatch(/Ask · Mode 01/);
- expect(labels).toMatch(/Master · Mode 02/);
+ expect(labels).toMatch(/Ask mode/);
+ expect(labels).toMatch(/Master mode/);
+ expect(JSON.stringify(site)).not.toMatch(/Mode 0\d/);
  for(const link of site.header.links)expect(link.label).not.toMatch(/^(Ask|Master)$/);
 });
 

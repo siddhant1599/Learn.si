@@ -4,6 +4,7 @@ import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { site } from "@/config/site";
 import {
   MODES,
   readLastMode,
@@ -13,23 +14,34 @@ import {
 import { cn } from "@/lib/utils";
 
 import { MODE_ICONS } from "./mode-icons";
-import { WorkspacePageHeader } from "./page-header";
+import { useDocumentTitle } from "./page-header";
 
-/** The workspace entry: always shown at /workspace, never auto-redirects. */
+/** The workspace entry at /workspace: standalone (no sidebar), never auto-redirects. */
 export function ModeChooser() {
+  useDocumentTitle("Choose a mode");
   const [lastMode, setLastMode] = useState<WorkspaceMode | null>(null);
   useEffect(() => {
     setLastMode(readLastMode(localStorage));
   }, []);
 
   return (
-    <div className="flex size-full flex-col">
-      <WorkspacePageHeader title="Choose a mode" />
-      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center px-4 py-8 sm:px-8">
+    <div className="bg-background text-foreground flex min-h-screen flex-col">
+      <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+        <Link href="/" className="font-serif text-xl">
+          {site.name}
+        </Link>
+        <Link
+          href="/docs"
+          className="text-secondary-foreground hover:text-foreground text-sm transition-colors"
+        >
+          Docs
+        </Link>
+      </header>
+      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center px-4 pb-16 sm:px-8">
         <div className="mb-8 text-center sm:mb-10">
-          <h2 className="font-serif text-3xl leading-tight sm:text-4xl">
+          <h1 className="font-serif text-3xl leading-tight sm:text-4xl">
             How do you want to learn today?
-          </h2>
+          </h1>
           <p className="text-muted-foreground mx-auto mt-3 max-w-xl text-sm sm:text-base">
             Pick a mode to open the workspace. You can switch any time from the
             sidebar.
@@ -44,7 +56,7 @@ export function ModeChooser() {
                 <Link
                   href={mode.href}
                   data-mode={mode.value}
-                  aria-label={`${mode.label}: ${mode.tagline} ${mode.number}`}
+                  aria-label={`${mode.label}: ${mode.tagline}`}
                   onClick={() => writeLastMode(localStorage, mode.value)}
                   className={cn(
                     "group bg-card text-card-foreground flex h-full min-h-56 flex-col justify-between rounded-2xl border p-6 shadow-xs transition-[border-color,box-shadow,transform] outline-none sm:p-8",
@@ -54,9 +66,10 @@ export function ModeChooser() {
                   )}
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <span className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-                      {mode.number}
-                    </span>
+                    <Icon
+                      aria-hidden="true"
+                      className="text-muted-foreground group-hover:text-foreground size-7 transition-colors"
+                    />
                     {isLast && (
                       <span className="bg-accent text-accent-foreground rounded-full px-2 py-0.5 text-[11px] font-medium">
                         Last used
@@ -64,11 +77,7 @@ export function ModeChooser() {
                     )}
                   </div>
                   <div className="mt-8">
-                    <Icon
-                      aria-hidden="true"
-                      className="text-muted-foreground group-hover:text-foreground size-7 transition-colors"
-                    />
-                    <span className="mt-4 block font-serif text-3xl leading-none">
+                    <span className="block font-serif text-3xl leading-none">
                       {mode.label}
                     </span>
                     <span className="text-muted-foreground mt-2 block text-base">
