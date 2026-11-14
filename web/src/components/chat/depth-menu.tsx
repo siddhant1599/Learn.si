@@ -17,11 +17,11 @@ import {
   DropdownMenuGroup,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import type { ChatMode } from "@/core/chat/types";
+import type { ChatDepth } from "@/core/chat/types";
 import { cn } from "@/lib/utils";
 
-const MODES: {
-  value: ChatMode;
+const DEPTHS: {
+  value: ChatDepth;
   label: string;
   description: string;
   icon: LucideIcon;
@@ -54,22 +54,23 @@ const MODES: {
   },
 ];
 
-export function ModeMenu({
-  mode,
+/** Reasoning-depth picker for a chat turn. Not the Ask/Master product mode switch. */
+export function DepthMenu({
+  depth,
   disabled,
   onChange,
 }: {
-  mode: ChatMode;
+  depth: ChatDepth;
   disabled?: boolean;
-  onChange: (mode: ChatMode) => void;
+  onChange: (depth: ChatDepth) => void;
 }) {
-  const current = MODES.find((item) => item.value === mode) ?? MODES[0]!;
-  const isUltra = mode === "ultra";
+  const current = DEPTHS.find((item) => item.value === depth) ?? DEPTHS[0]!;
+  const isUltra = depth === "ultra";
 
   return (
     <PromptInputActionMenu>
       <PromptInputActionMenuTrigger
-        aria-label={`Mode: ${current.label}`}
+        aria-label={`Depth: ${current.label}`}
         className="max-w-28 gap-1! px-2! sm:max-w-none"
         disabled={disabled}
       >
@@ -88,10 +89,10 @@ export function ModeMenu({
       <PromptInputActionMenuContent className="w-80">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="text-muted-foreground text-xs">
-            Mode
+            Depth
           </DropdownMenuLabel>
-          {MODES.map((item) => {
-            const selected = item.value === mode;
+          {DEPTHS.map((item) => {
+            const selected = item.value === depth;
             return (
               <PromptInputActionMenuItem
                 key={item.value}

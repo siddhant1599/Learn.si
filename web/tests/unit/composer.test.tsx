@@ -5,7 +5,7 @@ import {Composer} from '@/components/chat/composer';
 import {PromptInputProvider} from '@/components/ai-elements/prompt-input';
 const toast=vi.hoisted(()=>({info:vi.fn(),error:vi.fn()}));
 vi.mock('sonner',()=>({toast}));
-function setup(extra:Record<string,unknown>={}){const props={isWelcomeMode:true,isStreaming:false,disabled:false,settings:{mode:'pro' as const,model:'default'},onSettingsChange:vi.fn(),onSubmit:vi.fn(),onStop:vi.fn(),...extra};const result=render(<PromptInputProvider><Composer {...props}/></PromptInputProvider>);return {...result,props,box:screen.getByRole('textbox',{name:'Message'})}}
+function setup(extra:Record<string,unknown>={}){const props={isWelcomeMode:true,isStreaming:false,disabled:false,settings:{depth:'pro' as const,model:'default'},onSettingsChange:vi.fn(),onSubmit:vi.fn(),onStop:vi.fn(),...extra};const result=render(<PromptInputProvider><Composer {...props}/></PromptInputProvider>);return {...result,props,box:screen.getByRole('textbox',{name:'Message'})}}
 it('message field has accessible label and character limit',()=>{const {box}=setup();expect(box).toHaveAttribute('maxlength','4000')});
 it('source-less composer disables input and send',()=>{const {box}=setup({disabled:true});expect(box).toBeDisabled();expect(screen.getByRole('button',{name:'Send',exact:true})).toBeDisabled()});
 it('submits trimmed question',async()=>{const {box,props}=setup();fireEvent.change(box,{target:{value:'  What color?  '}});fireEvent.click(screen.getByRole('button',{name:'Send',exact:true}));await waitFor(()=>expect(props.onSubmit).toHaveBeenCalledWith('What color?',[]))});

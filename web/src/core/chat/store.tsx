@@ -28,7 +28,7 @@ import type { ChatMessage, ChatSettings, ChatThread } from "./types";
 const SETTINGS_KEY = "document-lab.settings";
 
 const DEFAULT_SETTINGS: ChatSettings = {
-  mode: "pro",
+  depth: "pro",
   model: site.chat.models[0]!.name,
 };
 

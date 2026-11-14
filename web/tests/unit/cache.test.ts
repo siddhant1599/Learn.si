@@ -44,10 +44,10 @@ it('invalid nested v2 records do not discard a valid neighboring chat',()=>{
  expect(readChats(localStorage)).toMatchObject({invalid:true,threads:[thread('good')]});
 });
 it('invalid settings fall back field by field',()=>{
- const fallback={mode:'pro' as const,model:'default'};
- expect(restoreSettings({mode:{},model:[]},fallback)).toEqual(fallback);
+ const fallback={depth:'pro' as const,model:'default'};
+ expect(restoreSettings({depth:{},model:[]},fallback)).toEqual(fallback);
  expect(restoreSettings(null,fallback)).toEqual(fallback);
- expect(restoreSettings({mode:'flash',model:42},fallback)).toEqual({...fallback,mode:'flash'});
+ expect(restoreSettings({depth:'flash',model:42},fallback)).toEqual({...fallback,depth:'flash'});
 });
 it('private web content is sanitized before a per-chat write',()=>{
  const t=thread();

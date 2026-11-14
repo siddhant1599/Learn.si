@@ -124,7 +124,7 @@ export function ChatPage() {
                 isWelcomeMode={isWelcomeMode}
                 settings={settings}
                 webAvailable={webAvailable}
-                extraHeader={isWelcomeMode && <Welcome mode={settings.mode} />}
+                extraHeader={isWelcomeMode && <Welcome depth={settings.depth} />}
                 onSettingsChange={setSettings}
                 onStop={() => stop(routeThreadId)}
                 onSubmit={handleSubmit}

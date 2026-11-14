@@ -89,7 +89,7 @@ def test_no_token_required_and_stream_persistence(monkeypatch):
             assert 'href="/chat"' in landing.text
             page = client.get("/legacy/chat")
             assert page.status_code == 200
-            assert "Document Lab" in page.text
+            assert "Study Buddy" in page.text
             assert "APP_API_KEY" not in page.text
             assert 'id="token"' not in page.text
             assert "/static/app.js?v=5" in page.text

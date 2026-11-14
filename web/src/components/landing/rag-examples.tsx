@@ -11,6 +11,7 @@ import {
   Search,
 } from "lucide-react";
 import Link from "next/link";
+import { site } from "@/config/site";
 import {
   usePrefersReducedMotion,
   useRenderActivity,
@@ -118,7 +119,7 @@ export function RagExamples() {
         >
           <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 text-sm">
             <span className="flex items-center gap-2">
-              <span className="size-2 rounded-full bg-amber-200" /> Document Lab{" "}
+              <span className="size-2 rounded-full bg-amber-200" /> {site.name}{" "}
               <span className="text-muted-foreground">
                 / Interactive preview
               </span>

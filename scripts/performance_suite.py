@@ -145,7 +145,7 @@ async def main():
                 assert (await get("/health")).json()["status"] == "ok"
 
             async def frontend():
-                assert "Document Lab" in (await get("/legacy")).text
+                assert "Study Buddy" in (await get("/legacy")).text
 
             async def js():
                 assert "readEvents" in (await get("/static/app.js")).text

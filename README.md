@@ -1,8 +1,14 @@
-# Agentic RAG clone
+# Study Buddy
 
-A focused backend reimplementation of `../Agentic_RAG-sample-project` using
+Study Buddy is a learning workspace for your own documents. **Ask mode** answers
+questions with evidence from up to five selected sources. **Master mode** (in
+development; tracked in the Study Buddy epic) turns a document into short
+lessons, quizzes and a progress tracker. The landing page leads to a single
+workspace entry where you choose a mode.
+
+The backend is a focused reimplementation of `../Agentic_RAG-sample-project` using
 FastAPI, LangGraph, PostgreSQL, Pinecone, and OpenRouter for chat and embeddings. The original sample
-is untouched. No Redis, Neo4j, separate API gateway, Tavily, Cohere, scheduled
+is untouched. No Redis, Neo4j, separate API gateway, Cohere, scheduled
 keep-alives, or local conversation files are required.
 
 This is a local, single-owner test app with no app access token or login.

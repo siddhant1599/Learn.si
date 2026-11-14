@@ -4,19 +4,19 @@ import { useEffect, useMemo } from "react";
 
 import { AuroraText } from "@/components/ui/aurora-text";
 import { site } from "@/config/site";
-import type { ChatMode } from "@/core/chat/types";
+import type { ChatDepth } from "@/core/chat/types";
 import { cn } from "@/lib/utils";
 
 let waved = false;
 
 export function Welcome({
   className,
-  mode,
+  depth,
 }: {
   className?: string;
-  mode?: ChatMode;
+  depth?: ChatDepth;
 }) {
-  const isUltra = useMemo(() => mode === "ultra", [mode]);
+  const isUltra = useMemo(() => depth === "ultra", [depth]);
   const colors = useMemo(() => {
     if (isUltra) {
       return ["#efefbb", "#e9c665", "#e3a812"];

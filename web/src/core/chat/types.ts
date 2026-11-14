@@ -17,7 +17,8 @@ export type WebCitation = {
   published_date?: string;
 };
 export type Citation = DocumentCitation | WebCitation;
-export type ChatMode = "flash" | "thinking" | "pro" | "ultra";
+/** How much reasoning a turn should spend. A UI preference, not a product mode. */
+export type ChatDepth = "flash" | "thinking" | "pro" | "ultra";
 
 export type ChatStepKind = "search" | "fetch" | "bash" | "write";
 
@@ -76,7 +77,7 @@ export type ChatThread = {
 };
 
 export type ChatSettings = {
-  mode: ChatMode;
+  depth: ChatDepth;
   model: string;
 };
 

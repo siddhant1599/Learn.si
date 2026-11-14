@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { site } from '@/config/site';
 import { docs, docHref, findDoc } from '@/content/docs';
 
 type Props = {params: Promise<{slug?: string[]}>};
 export function generateStaticParams() { return docs.map(page => ({slug: page.slug ? [page.slug] : []})); }
 export async function generateMetadata({params}: Props) {
  const page = findDoc(((await params).slug ?? []).join('/'));
- return {title: page ? `${page.title} | Document Lab` : 'Documentation not found', description:page?.summary};
+ return {title: page ? `${page.title} | ${site.name}` : 'Documentation not found', description:page?.summary};
 }
 export default async function DocsPage({params}: Props) {
  const page = findDoc(((await params).slug ?? []).join('/'));

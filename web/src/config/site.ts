@@ -8,7 +8,7 @@ import {
   ShapesIcon,
 } from "lucide-react";
 
-/** Brand and capability copy for the RAG frontend. */
+/** Brand and capability copy for the Study Buddy frontend. */
 
 export type ChatSuggestion = {
   label: string;
@@ -17,10 +17,12 @@ export type ChatSuggestion = {
 };
 
 export const site = {
-  name: "Document Lab",
+  name: "Study Buddy",
   /** Shown when the sidebar is collapsed to its icon rail. */
-  shortName: "DL",
-  description: "Explore your documents with evidence-grounded answers.",
+  shortName: "SB",
+  description:
+    "Learn from your documents: ask questions with evidence, or master them lesson by lesson.",
+  /** The single landing entry point; the workspace lets you choose a mode. */
   repositoryUrl: "/workspace",
   /** The SVG silhouette the hero's flickering grid is masked to. */
   logoMaskUrl: "/images/landing-logo-mask.svg",
@@ -34,66 +36,66 @@ export const site = {
   },
 
   hero: {
-    title: "Document Lab",
+    title: "Study Buddy",
     rotatingWords: [
-      "Explore the details",
-      "Find the evidence",
-      "Connect your sources",
-      "Ask better questions",
+      "Ask anything",
+      "Understand deeply",
+      "Build mastery",
+      "Learn from your sources",
     ],
     rotatingSuffix: "",
     description:
-      "A knowledge workspace. Bring your documents, ask a question, and follow the answer back to its source.",
-    ctaLabel: "Explore your documents",
+      "A learning workspace for your documents. Ask a question and follow the answer back to its source, or turn a document into short lessons, quizzes and a path to mastery.",
+    ctaLabel: "Start learning",
     ctaHref: "/workspace",
   },
 
   whatsNew: {
-    title: "Built for a closer reading",
+    title: "Two ways to learn from what you have",
     subtitle:
-      "From your first question to the supporting passage, keep the evidence in view.",
+      "Ask mode answers with evidence. Master mode turns a document into lessons, quizzes and progress.",
     features: [
       {
-        label: "Your library",
-        title: "Bring your documents",
+        label: "Ask · Mode 01",
+        title: "Get answers. Understand anything.",
         description:
-          "Upload PDF, TXT, or Markdown. Search across up to five selected sources.",
+          "Upload PDF, TXT or Markdown, select up to five sources and ask. Answers stay grounded in your documents, with citations beside them.",
       },
       {
         label: "Agentic retrieval",
         title: "Break down complex questions",
         description:
-          "Simple questions go straight to document search. Complex questions can be split into smaller questions, with independent searches running together.",
+          "Simple questions go straight to document search. Complex questions are split into smaller ones, with independent searches running together and evidence checked before the answer.",
       },
       {
         label: "Evidence",
         title: "Sources beside answers",
         description:
-          "Answers combine evidence across your questions, with document titles, editions, section references, and available page numbers beside citations.",
+          "Document titles, editions, section references and page numbers sit next to every citation. When document evidence is insufficient, separately labeled web findings fill the gap.",
       },
       {
-        label: "Context",
-        title: "Follow the conversation",
+        label: "Master · Mode 02",
+        title: "Learn deeply. Build mastery.",
         description:
-          "Ask follow-up questions using a bounded window of recent exchanges.",
+          "Turn a document into a lesson plan of modules and short lessons, each with an example, a diagram and a tutor that guides your thinking. In development.",
       },
       {
-        label: "Transparency",
-        title: "Know the limits",
+        label: "Quizzes",
+        title: "Check understanding as you go",
         description:
-          "Evidence is checked for each question. When document evidence is insufficient, web search adds separately labeled external findings.",
+          "Every lesson ends with a short quiz that explains wrong answers. Passing unlocks the next lesson; retakes bring fresh questions. In development.",
       },
       {
-        label: "Your workspace",
-        title: "Follow the answer as it arrives",
+        label: "Progress",
+        title: "See your mastery grow",
         description:
-          "Watch the answer appear as it is generated. The completed response replaces the draft after its citation references are checked.",
+          "Follow course progress, lesson completion, quiz performance, topic mastery and study time in one place. In development.",
       },
     ],
   },
 
   footer: {
-    quote: "Less searching. More understanding.",
+    quote: "Understand what you read. Remember what you learn.",
   },
 
   chat: {
