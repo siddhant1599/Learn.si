@@ -617,3 +617,16 @@ sections, and announces only stage changes politely. Interrupted work settles as
 failed/stopped, never as invented success. Activity detail badges are transient;
 only safe labels, IDs and lifecycle metadata persist in browser history. Server
 conversation persistence still contains only the existing privacy-filtered turns.
+
+### Project documentation
+
+Open `/docs` on the frontend for user guides, setup, architecture, API/SSE,
+privacy/deletion, evaluation status and troubleshooting. The landing page links
+to Docs on desktop and mobile; the original `#examples` section remains.
+
+Public content lives in `web/src/content/docs.ts`. Keep stable slugs and section
+IDs; navigation and docs-only search derive from this content. Do not import
+private datasets, uploads, chat caches or environment files into the collection.
+The [reference review](docs/docs-reference-review.md) records the design research
+and implementation tradeoffs. Validate with the docs unit tests, frontend build
+and `uv run --with playwright python -m scripts.check_web_docs` after restart.

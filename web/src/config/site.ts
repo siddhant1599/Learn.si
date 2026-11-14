@@ -28,7 +28,7 @@ export const site = {
   header: {
     links: [
       { href: "/workspace", label: "Workspace" },
-      { href: "#examples", label: "Examples" },
+      { href: "/docs", label: "Docs" },
     ],
     ctaLabel: "Open workspace",
   },
