@@ -11,41 +11,47 @@ import {
 import { site } from "@/config/site";
 
 /**
- * Six sentences on a synthetic page travel to their places as named stars while
- * the hero scrolls. Positions are written straight to the DOM from update(p);
+ * Three acts driven by progress p in [0, 1], written straight to the DOM:
+ *   1. 0.00–0.50  sentences lift off the page and travel to their star positions
+ *   2. 0.45–0.75  lines draw within modules, labels and module names fade in
+ *   3. 0.75–1.00  the path shows: module one mastered (gold), the next lesson lit,
+ *                 the rest dimmed as locked; a legend explains the states
  * React renders this tree once.
  */
 export type ConstellationHandle = { update: (progress: number) => void };
 
-const { stars: STARS, modules: MODULES } = site.hero.constellation;
-// Pairs of star indexes joined by a line; the 2–3 link bridges the modules faintly.
-const LINES: [number, number, boolean][] = [
-  [0, 1, false],
-  [1, 2, false],
-  [3, 4, false],
-  [4, 5, false],
-  [2, 3, true],
-];
+const { stars: STARS, modules: MODULES } = site.constellation;
 const GOLD = "#e9c665";
+const MASTERED_MODULE = 0;
+const NEXT_STAR = STARS.findIndex((star) => star.module === MASTERED_MODULE + 1);
+
+// Consecutive stars inside a module; the last of one module bridges (dashed) to the next.
+const LINES: [number, number, boolean][] = [];
+STARS.forEach((star, index) => {
+  const next = STARS[index + 1];
+  if (!next) return;
+  LINES.push([index, index + 1, next.module !== star.module]);
+});
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const easeOut = (t: number) => 1 - (1 - t) ** 3;
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-/** Final star layout as fractions of the stage; narrow stages spread wider. */
+/** Final layout: one column per module, a gentle zigzag inside each column. */
 function targets(width: number, height: number): [number, number][] {
   const narrow = width < 640;
-  const left = narrow ? [0.2, 0.34, 0.24] : [0.24, 0.36, 0.3];
-  const right = narrow ? [0.66, 0.8, 0.74] : [0.64, 0.76, 0.7];
-  const rows = narrow ? [0.6, 0.7, 0.83] : [0.58, 0.68, 0.8];
-  return [
-    [left[0]! * width, rows[0]! * height],
-    [left[1]! * width, rows[1]! * height],
-    [left[2]! * width, rows[2]! * height],
-    [right[0]! * width, rows[0]! * height],
-    [right[1]! * width, rows[1]! * height],
-    [right[2]! * width, rows[2]! * height],
-  ];
+  // Narrow stages keep columns straight so under-star labels never collide.
+  const columns = narrow ? [0.17, 0.5, 0.83] : [0.2, 0.5, 0.8];
+  const rows = narrow ? [0.54, 0.68, 0.82] : [0.52, 0.66, 0.8];
+  const wobble = narrow ? [0, 0, 0] : [-0.06, 0.06, -0.02];
+  const counters = MODULES.map(() => 0);
+  return STARS.map((star) => {
+    const row = counters[star.module]!++;
+    return [
+      (columns[star.module]! + wobble[row]!) * width,
+      rows[row]! * height,
+    ];
+  });
 }
 
 export const ConstellationScene = forwardRef<
@@ -54,11 +60,15 @@ export const ConstellationScene = forwardRef<
 >(function ConstellationScene({ className }, ref) {
   const stage = useRef<HTMLDivElement>(null);
   const page = useRef<HTMLDivElement>(null);
+  const legend = useRef<HTMLDivElement>(null);
   const sentences = useRef<(HTMLSpanElement | null)[]>([]);
   const starNodes = useRef<(SVGGElement | null)[]>([]);
+  const coreNodes = useRef<(SVGCircleElement | null)[]>([]);
+  const ringNodes = useRef<(SVGCircleElement | null)[]>([]);
   const lineNodes = useRef<(SVGLineElement | null)[]>([]);
   const labelNodes = useRef<(SVGTextElement | null)[]>([]);
   const moduleNodes = useRef<(SVGTextElement | null)[]>([]);
+  const chip = useRef<SVGTextElement>(null);
   const origins = useRef<[number, number][]>([]);
   const ends = useRef<[number, number][]>([]);
   const current = useRef<[number, number][]>([]);
@@ -80,16 +90,26 @@ export const ConstellationScene = forwardRef<
     progress.current = p;
     if (!origins.current.length) measure();
     const width = stage.current?.clientWidth ?? 0;
-    current.current = STARS.map((_, index) => {
-      const local = clamp((p - index * 0.07) / 0.55);
+    const narrow = width < 640;
+    const path = clamp((p - 0.78) / 0.18); // Act three
+    current.current = STARS.map((star, index) => {
+      const local = clamp((p - index * 0.045) / 0.5);
       const t = easeOut(local);
       const [ox, oy] = origins.current[index] ?? [0, 0];
       const [tx, ty] = ends.current[index] ?? [0, 0];
       const node = starNodes.current[index];
+      const mastered = star.module === MASTERED_MODULE;
+      const next = index === NEXT_STAR;
+      const locked = !mastered && !next;
       if (node) {
-        node.style.transform = `translate(${lerp(ox, tx, t)}px, ${lerp(oy, ty, t)}px) scale(${0.4 + 0.6 * t})`;
-        node.style.opacity = String(clamp(local * 2.5));
+        const scale = 0.4 + 0.6 * t + (mastered ? 0.35 * path : next ? 0.2 * path : 0);
+        node.style.transform = `translate(${lerp(ox, tx, t)}px, ${lerp(oy, ty, t)}px) scale(${scale})`;
+        node.style.opacity = String(clamp(local * 2.5) * (locked ? 1 - 0.55 * path : 1));
       }
+      const core = coreNodes.current[index];
+      if (core) core.setAttribute("fill", mastered && path > 0.5 ? GOLD : "#ffffff");
+      const ring = ringNodes.current[index];
+      if (ring) ring.style.opacity = String(mastered ? path : next ? path * 0.7 : 0);
       return [lerp(ox, tx, t), lerp(oy, ty, t)];
     });
     LINES.forEach(([a, b], index) => {
@@ -101,16 +121,14 @@ export const ConstellationScene = forwardRef<
       node.setAttribute("y1", String(from[1]));
       node.setAttribute("x2", String(to[0]));
       node.setAttribute("y2", String(to[1]));
-      const draw = clamp((p - 0.5 - index * 0.04) / 0.3);
-      node.style.strokeDashoffset = String(1 - draw);
+      node.style.strokeDashoffset = String(1 - clamp((p - 0.45 - index * 0.025) / 0.3));
     });
-    const reveal = clamp((p - 0.72) / 0.24);
-    const narrow = width < 640;
+    const reveal = clamp((p - 0.62) / 0.2);
     labelNodes.current.forEach((node, index) => {
       const point = current.current[index];
       if (!node || !point) return;
+      node.setAttribute("font-size", narrow ? "11" : "13");
       if (narrow) {
-        // Beside-the-star labels run off a phone screen; sit them under the star instead.
         node.setAttribute("x", String(point[0]));
         node.setAttribute("y", String(point[1] + 22));
         node.setAttribute("text-anchor", "middle");
@@ -120,7 +138,8 @@ export const ConstellationScene = forwardRef<
         node.setAttribute("y", String(point[1] + 4));
         node.setAttribute("text-anchor", leftSide ? "end" : "start");
       }
-      node.style.opacity = String(reveal);
+      const locked = STARS[index]!.module !== MASTERED_MODULE && index !== NEXT_STAR;
+      node.style.opacity = String(reveal * (locked ? 1 - 0.45 * path : 1));
     });
     moduleNodes.current.forEach((node, moduleIndex) => {
       if (!node) return;
@@ -132,9 +151,16 @@ export const ConstellationScene = forwardRef<
       node.setAttribute("y", String(top - 34));
       node.style.opacity = String(reveal);
     });
+    const nextPoint = current.current[NEXT_STAR];
+    if (chip.current && nextPoint) {
+      chip.current.setAttribute("x", String(nextPoint[0]));
+      chip.current.setAttribute("y", String(nextPoint[1] + (narrow ? 40 : 26)));
+      chip.current.style.opacity = String(path);
+    }
+    if (legend.current) legend.current.style.opacity = String(path);
     if (page.current) {
-      page.current.style.opacity = String(1 - clamp(p / 0.6));
-      page.current.style.transform = `translate(-50%, ${-28 * clamp(p / 0.6)}px)`;
+      page.current.style.opacity = String(1 - clamp(p / 0.55));
+      page.current.style.transform = `translate(-50%, ${-28 * clamp(p / 0.55)}px)`;
     }
   }, [measure]);
 
@@ -152,20 +178,21 @@ export const ConstellationScene = forwardRef<
     return () => observer.disconnect();
   }, [measure, update]);
 
+  const { source, states, nextLesson } = site.constellation;
   return (
     <div ref={stage} className={className} aria-hidden="true" data-constellation>
       <div
         ref={page}
         data-constellation-page
-        className="absolute bottom-[7svh] left-1/2 w-[min(92vw,34rem)] rounded-xl border border-white/15 bg-white/[0.03] p-5 shadow-2xl backdrop-blur-sm sm:p-6"
+        className="absolute bottom-[9svh] left-1/2 w-[min(92vw,36rem)] rounded-xl border border-white/15 bg-white/[0.03] p-5 shadow-2xl backdrop-blur-sm sm:p-6"
         // Centering lives in the inline transform that update() also animates.
         style={{ transform: "translate(-50%, 0)" }}
       >
-        <div className="mb-3 flex items-center justify-between text-[11px] tracking-widest text-white/50 uppercase">
-          <span>{site.hero.constellation.source}</span>
+        <div className="mb-3 flex items-center justify-between gap-4 text-[11px] tracking-widest text-white/50 uppercase">
+          <span>{source}</span>
           <span>Source excerpt</span>
         </div>
-        <p className="font-serif text-base leading-7 text-white/85 sm:text-lg sm:leading-8">
+        <p className="font-serif text-[15px] leading-7 text-white/85 sm:text-lg sm:leading-8">
           {STARS.map((star, index) => (
             <span
               key={star.label}
@@ -209,7 +236,23 @@ export const ConstellationScene = forwardRef<
             style={{ opacity: 0, transformOrigin: "0 0" }}
           >
             <circle r={18} fill="url(#constellation-glow)" opacity={0.55} />
-            <circle r={3} fill="#fff" />
+            <circle
+              ref={(node) => {
+                ringNodes.current[index] = node;
+              }}
+              r={8}
+              fill="none"
+              stroke={GOLD}
+              strokeWidth={1.25}
+              style={{ opacity: 0 }}
+            />
+            <circle
+              ref={(node) => {
+                coreNodes.current[index] = node;
+              }}
+              r={3}
+              fill="#ffffff"
+            />
           </g>
         ))}
         {STARS.map((star, index) => (
@@ -236,12 +279,41 @@ export const ConstellationScene = forwardRef<
             fill={GOLD}
             fontSize={11}
             letterSpacing={3}
-            style={{ opacity: 0, textTransform: "uppercase" }}
+            style={{ opacity: 0 }}
           >
             {title.toUpperCase()}
           </text>
         ))}
+        <text
+          ref={chip}
+          data-constellation-chip
+          textAnchor="middle"
+          fill={GOLD}
+          fontSize={12}
+          style={{ opacity: 0 }}
+        >
+          {nextLesson}
+        </text>
       </svg>
+      <div
+        ref={legend}
+        data-constellation-legend
+        className="absolute bottom-5 left-1/2 flex w-[min(92vw,40rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[11px] tracking-wide text-white/60"
+        style={{ opacity: 0 }}
+      >
+        <span className="flex items-center gap-2">
+          <span className="size-2 rounded-full bg-[#e9c665] ring-2 ring-[#e9c665]/40" />
+          {states.mastered}
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="size-2 rounded-full bg-white ring-2 ring-[#e9c665]/40" />
+          {states.available}
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="size-2 rounded-full bg-white/40" />
+          {states.locked}
+        </span>
+      </div>
     </div>
   );
 });

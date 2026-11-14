@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { ConstellationSection } from "@/components/landing/constellation-section";
 import { Footer } from "@/components/landing/footer";
 import { Header } from "@/components/landing/header";
 import { Hero } from "@/components/landing/hero";
@@ -15,6 +16,7 @@ export default function LandingPage() {
       <main className="flex w-full flex-col">
         <Hero />
         <RagExamples />
+        <ConstellationSection />
         <WhatsNewSection />
       </main>
       <Footer />
