@@ -143,6 +143,5 @@ export const site = {
       },
     ] satisfies ChatSuggestion[],
     models: [{ name: "default", displayName: "Configured OpenRouter model" }],
-    placeholderNav: [] as { label: string; icon: LucideIcon }[],
   },
 };

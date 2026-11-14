@@ -3,12 +3,14 @@
 import {
   ChevronsUpDown,
   HouseIcon,
+  LibraryIcon,
   MessageSquarePlus,
   MessagesSquare,
   MonitorIcon,
   MoonIcon,
   SettingsIcon,
   SunIcon,
+  TrendingUpIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -38,13 +40,10 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { ModeSwitch } from "@/components/workspace/mode-switch";
 import { site } from "@/config/site";
 import { useChatStore } from "@/core/chat/store";
+import { modeFromPathname } from "@/core/workspace/mode";
 import { cn } from "@/lib/utils";
 
 import { DeleteButton } from "./delete-button";
@@ -54,6 +53,7 @@ import { WorkspaceSidebarTrigger } from "./workspace-sidebar-trigger";
 function SidebarBrand() {
   const { isMobile, open } = useSidebar();
   const pathname = usePathname();
+  const mode = modeFromPathname(pathname);
   const expanded = isMobile || open;
 
   return (
@@ -61,67 +61,72 @@ function SidebarBrand() {
       <div className="group/workspace-header flex h-12 flex-col justify-center">
         {!expanded ? (
           <div className="flex w-full cursor-pointer items-center justify-center">
-            <div className="text-primary block pt-1 font-serif group-hover/workspace-header:hidden">
+            <Link
+              href="/workspace"
+              aria-label={`${site.name}: choose a mode`}
+              className="text-primary block pt-1 font-serif group-hover/workspace-header:hidden"
+            >
               {site.shortName}
-            </div>
+            </Link>
             <WorkspaceSidebarTrigger className="hidden pl-2 group-hover/workspace-header:block" />
           </div>
         ) : (
           <div className="flex items-center justify-between gap-2">
-            <Link href="/" className="text-primary ml-2 font-serif">
+            <Link href="/workspace" className="text-primary ml-2 font-serif">
               {site.name}
             </Link>
             <WorkspaceSidebarTrigger />
           </div>
         )}
       </div>
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            isActive={pathname === "/workspace/chats/new"}
-            asChild
-          >
-            <Link className="text-muted-foreground" href="/workspace/chats/new">
-              <MessageSquarePlus size={16} />
-              <span>New chat</span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
+      <ModeSwitch />
+      {mode === "ask" && (
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname === "/workspace/chats/new"}
+              asChild
+            >
+              <Link className="text-muted-foreground" href="/workspace/chats/new">
+                <MessageSquarePlus size={16} />
+                <span>New chat</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      )}
     </>
   );
 }
 
+const MODE_NAV = {
+  ask: [{ href: "/workspace/chats", label: "Chats", icon: MessagesSquare }],
+  master: [
+    { href: "/workspace/courses", label: "Courses", icon: LibraryIcon },
+    { href: "/workspace/progress", label: "Progress", icon: TrendingUpIcon },
+  ],
+} as const;
+
 function SidebarNav() {
   const pathname = usePathname();
+  const mode = modeFromPathname(pathname);
+  // The chooser shows only the mode switch; nothing else is "current" there.
+  if (!mode) return null;
   return (
     <SidebarGroup className="pt-1">
       <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton isActive={pathname === "/workspace/chats"} asChild>
-            <Link className="text-muted-foreground" href="/workspace/chats">
-              <MessagesSquare />
-              <span>Chats</span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-        {site.chat.placeholderNav.map((item) => (
-          <SidebarMenuItem key={item.label}>
-            {/* aria-disabled makes the button inert, so the span takes hover. */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="block w-full cursor-not-allowed">
-                  <SidebarMenuButton
-                    className="text-muted-foreground/50"
-                    aria-disabled
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="right">Feature not enabled</TooltipContent>
-            </Tooltip>
+        {MODE_NAV[mode].map((item) => (
+          <SidebarMenuItem key={item.href}>
+            <SidebarMenuButton
+              isActive={pathname === item.href}
+              tooltip={item.label}
+              asChild
+            >
+              <Link className="text-muted-foreground" href={item.href}>
+                <item.icon />
+                <span>{item.label}</span>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
       </SidebarMenu>
@@ -245,6 +250,7 @@ function SettingsMenu() {
 
 export function ChatSidebar() {
   const { isMobile } = useSidebar();
+  const mode = modeFromPathname(usePathname());
   return (
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader className="py-0">
@@ -252,8 +258,9 @@ export function ChatSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarNav />
-        <DocumentsPanel />
-        <RecentChats />
+        {/* Sources and chats belong to Ask; Master lists courses once #27 lands. */}
+        {mode === "ask" && <DocumentsPanel />}
+        {mode === "ask" && <RecentChats />}
       </SidebarContent>
       <SidebarFooter>
         <SettingsMenu />

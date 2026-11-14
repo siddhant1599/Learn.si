@@ -24,6 +24,8 @@ import {
   updateAssistantMessage,
 } from "./reducer";
 import type { ChatMessage, ChatSettings, ChatThread } from "./types";
+import { usePathname } from "next/navigation";
+import { modeFromPathname } from "@/core/workspace/mode";
 
 const SETTINGS_KEY = "document-lab.settings";
 
@@ -131,10 +133,17 @@ export function ChatStoreProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => {
     void refreshDocuments();
+  }, [refreshDocuments]);
+  // Web availability only matters to Ask-mode chat; Master pages skip the probe.
+  const inAsk = modeFromPathname(usePathname()) === "ask";
+  const probedHealth = useRef(false);
+  useEffect(() => {
+    if (!inAsk || probedHealth.current) return;
+    probedHealth.current = true;
     void fetch("/api/rag/health", { signal: AbortSignal.timeout(10000) })
       .then(r => r.json()).then(data => setWebAvailable(data.web_available === true))
       .catch(() => setWebAvailable(null));
-  }, [refreshDocuments]);
+  }, [inAsk]);
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [streamingIds, setStreamingIds] = useState<ReadonlySet<string>>(

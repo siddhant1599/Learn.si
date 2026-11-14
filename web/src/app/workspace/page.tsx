@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { ModeChooser } from "@/components/workspace/mode-chooser";
 
 export default function WorkspacePage() {
-  redirect("/workspace/chats/new");
+  return <ModeChooser />;
 }
