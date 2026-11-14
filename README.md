@@ -558,3 +558,62 @@ lock as ingestion and checks the active SQL generation before deleting, includin
 after uncertain commit outcomes. Cleanup failures retain the journal transaction
 for retry; no source text or credentials are stored in it. The worker requires a
 running API with the matching Pinecone index/namespace configuration.
+
+### Delete a chat or source
+
+Use the trash button beside a chat (sidebar or Chats page) or document (Sources).
+Confirm the named item, or Cancel to keep it. Any item can be deleted regardless
+of age; there is no automatic retention policy. Chat deletion removes saved
+messages but keeps source documents. Deleting an active chat stops the request
+and opens a new chat. Browser-only drafts are supported.
+
+Deleting a source removes its SQL metadata, sections and chunks from retrieval.
+Historical chats remain readable and may still contain information from that
+source. Their citations show “Source unavailable (deleted)”; start a new chat
+with available sources to continue, or delete those historical chats separately.
+Uploaded bytes are processed in memory: no original upload files are retained.
+External `source_uri` files are not owned uploads and are never removed.
+
+APIs (UUID IDs): `DELETE /conversations/{id}` returns 200 `deleted`;
+`DELETE /documents/{id}` returns 200 `deleted` or 202 `cleanup_pending`.
+Repeated/absent-ID requests are idempotent and retain ID-only tombstones.
+Malformed IDs return 422; active indexing returns 409 (retry after indexing);
+database failures return a safe 503. Pinecone cleanup filters by exact document
+ID within the configured namespace, covering all generations. SQL removal and
+its durable pending record commit before remote cleanup. Pending cleanup is
+visible in Sources, manually retryable with the same DELETE, and retried by the
+API every 30 seconds. Apply `uv run python -m scripts.migrate` before restart.
+A live API with the matching index/namespace is required for retries.
+
+`GET /deletions` supplies ID-only tombstones and pending flags for browser
+reconciliation on startup, focus and every five seconds. Local cross-tab chat
+deletion also uses storage events. Tombstones must not be discarded: they prevent
+stale caches and indexing jobs from resurrecting deleted IDs. Final answer saves
+revalidate and lock document scope; deleting a source never silently rewrites a
+conversation's source IDs.
+
+These endpoints are for the existing **local, single-owner application without
+authentication**. They do not enforce per-user ownership; keep the app bound to
+localhost and add authentication/authorization before exposing it publicly.
+
+### Live agent activity
+
+The chat activity panel shows work as it runs, with expandable document and web
+research tasks, real counts, coverage outcomes and optional recovery/refinement.
+It does not show internal reasoning, prompts, research-query text or evidence
+excerpts. No model calls are made to generate activity descriptions. Existing
+provider budgets, including the two-attempt Tavily limit, are unchanged.
+
+SSE `progress` events use version 1 with `step`, stable `id`, `status`
+(`started`, `completed`, `failed`, `stopped`), `attempt` and increasing `sequence`
+within each node invocation. Optional task/parent IDs, bounded counts and
+allowlisted outcome codes provide details. Attempts increase across recovery or
+refinement so stale/repeated events cannot regress a terminal task. Custom graph
+progress is routed separately from `token` deltas. Legacy completion-only events
+remain supported; unknown stages/optional data are ignored safely.
+
+The frontend maps codes to ordinary-language labels, groups tasks in expandable
+sections, and announces only stage changes politely. Interrupted work settles as
+failed/stopped, never as invented success. Activity detail badges are transient;
+only safe labels, IDs and lifecycle metadata persist in browser history. Server
+conversation persistence still contains only the existing privacy-filtered turns.

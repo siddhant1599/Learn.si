@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from app.progress import progress
 from app.providers import ProviderError
 
 from .budget import current_budget
@@ -32,6 +33,7 @@ class HyDEAgent:
             if budget and budget.chat_limit - budget.chat_calls <= 2:
                 warnings.append("HyDE skipped to reserve calls for assessment and answering.")
                 break
+            progress("started", item["id"], "hints")
             try:
                 response = await self.providers.chat(
                     "Generate a hypothetical document excerpt solely to aid semantic retrieval. "
@@ -43,6 +45,8 @@ class HyDEAgent:
                 )
                 passage = Hypothesis.model_validate(parse_object(response)).passage
                 passages[item["id"]] = passage
+                progress("completed", item["id"], "hints", 1)
             except (ProviderError, ValidationError):
+                progress("failed", item["id"], "unavailable")
                 warnings.append("HyDE unavailable or invalid; retained original-query retrieval.")
         return {"hyde_passages": passages, "warnings": warnings}

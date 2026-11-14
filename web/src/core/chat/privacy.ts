@@ -23,13 +23,19 @@ export function persistedThread(thread: ChatThread): ChatThread {
     title: stripUrls(thread.title),
     messages: thread.messages.map(message => {
       if (message.role === "user") return { ...message, text: stripUrls(message.text) };
-      const { persistedAnswer, persistedCitations, ...rest } = message;
+      const { persistedAnswer, persistedCitations, ...original } = message;
+      // Activity details are transient. Retain only safe identity/lifecycle fields;
+      // never spread unknown event payloads into browser history.
+      const rest = {...original, steps: original.steps.map(s => s.progressVersion === 1 ? {
+        id:s.id, kind:s.kind, label:stripUrls(s.label), status:s.status,
+        progressVersion:1 as const, attempt:s.attempt, sequence:s.sequence, parent:s.parent,
+      } : s)};
       if (message.webRequested) return {
         ...rest,
         text: stripUrls(persistedAnswer ?? WEB_NOT_RETAINED),
         citations: documentCitations(persistedCitations),
         reasoning: "", warnings: [], error: message.error ? "Web response was interrupted." : undefined,
-        steps: message.steps.map(s => ({ ...s, label: stripUrls(s.label), results: undefined })),
+        steps: rest.steps.map(s => ({ ...s, label: stripUrls(s.label), results: undefined })),
       };
       return { ...rest, text: stripUrls(message.text), citations: documentCitations(message.citations) };
     }),

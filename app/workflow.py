@@ -28,6 +28,7 @@ from app.agents.hyde import HyDEAgent
 from app.agents.recovery import ErrorHandlerAgent, GuardedAgent
 from app.agents.triage import ConversationalAgent, TriageAgent
 from app.agents.web import WebResearchAgent
+from app.progress import TrackedAgent
 
 
 class Workflow:
@@ -75,15 +76,15 @@ class Workflow:
         for name in names:
             graph.add_node(
                 name,
-                GuardedAgent(
+                TrackedAgent(name, GuardedAgent(
                     name,
                     getattr(self, name),
                     timeout_seconds,
                     chat_call_limit,
                     embedding_call_limit,
-                ),
+                )),
             )
-        graph.add_node("error_handler", ErrorHandlerAgent())
+        graph.add_node("error_handler", TrackedAgent("error_handler", ErrorHandlerAgent()))
         graph.add_edge(START, "triage")
         graph.add_conditional_edges(
             "triage",

@@ -80,3 +80,14 @@ CREATE TABLE IF NOT EXISTS rag.vector_cleanup (
     created_at timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (document_id, generation, index_name, namespace)
 );
+
+-- Permanent ID-only tombstones prevent stale writers and browser caches resurrecting data.
+CREATE TABLE IF NOT EXISTS rag.deletions (
+    kind text NOT NULL CHECK (kind IN ('document', 'conversation')),
+    id uuid NOT NULL,
+    pending boolean NOT NULL DEFAULT false,
+    index_name text NOT NULL DEFAULT '',
+    namespace text NOT NULL DEFAULT '',
+    created_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (kind, id)
+);

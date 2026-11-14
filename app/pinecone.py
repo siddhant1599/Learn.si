@@ -123,6 +123,9 @@ class PineconeVectors:
         except (KeyError, TypeError, ValueError):
             raise ProviderError("Pinecone returned invalid search results") from None
 
+    async def delete_document(self, document_id):
+        await self.data("/vectors/delete", {"filter": {"document_id": {"$eq": str(document_id)}}})
+
     async def delete_generation(self, document_id, generation):
         if generation:
             await self.data(

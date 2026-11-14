@@ -30,7 +30,7 @@ it('keeps evaluation runtime metadata out of chat events',async()=>{
  expect(events).toContainEqual({type:'text',delta:'x'});
 });
 it('maps retrieval progress',async()=>{mock(frame('progress',{step:'retrieve'})+frame('result',{answer:'x'}));expect((await run())[0]).toMatchObject({type:'step',step:{label:'Evidence retrieved',status:'complete'}})});
-it('retains unknown progress label',async()=>{mock(frame('progress',{step:'future'})+frame('result',{answer:'x'}));expect((await run())[0]).toMatchObject({step:{label:'future'}})});
+it('ignores unknown progress stages safely',async()=>{mock(frame('progress',{step:'future'})+frame('result',{answer:'x'}));const events=await run();expect(events.some(e=>e.type==='step')).toBe(false)});
 it('maps final answer and source metadata',async()=>{mock(frame('result',{answer:'Blue',citations:[{citation:1,page:3}],warnings:['fallback']}));expect(await run()).toEqual([{type:'text',delta:'Blue'},{type:'sources',citations:[{citation:1,page:3}],warnings:['fallback']}])});
 it('defaults omitted citations and warnings to empty',async()=>{mock();expect((await run())[1]).toEqual({type:'sources',citations:[],warnings:[]})});
 it('propagates useful HTTP error details',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({detail:'Changed sources'}),{status:409})));await expect(run()).rejects.toThrow('Changed sources')});
@@ -84,4 +84,11 @@ it('accepts automatic fallback persistence without client web flags',async()=>{
 it('maps web progress without treating it as answer text',async()=>{
  mock(frame('progress',{step:'web',status:'completed'})+frame('result',{answer:'Answer'}));
  expect((await run())[0]).toMatchObject({type:'step',step:{label:'Web search and evidence assessment completed'}});
+});
+it('keeps interleaved structured progress out of answer deltas',async()=>{
+ mock(frame('progress',{version:1,step:'answer',id:'answer',status:'started',attempt:0,sequence:1,delta:'PRIVATE TRACE',detail:'https://secret.example'})+frame('token',{delta:'Draft'})+frame('progress',{version:1,step:'answer',id:'answer',status:'completed',attempt:0,sequence:2})+frame('result',{answer:'Final'}));
+ const events=await run();
+ expect(events.filter(e=>e.type==='text')).toEqual([{type:'text',delta:'Draft'}]);
+ expect(events).toContainEqual({type:'text-replace',text:'Final'});
+ expect(JSON.stringify(events)).not.toMatch(/PRIVATE TRACE|secret.example/);
 });

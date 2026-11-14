@@ -19,6 +19,11 @@ function message(v: unknown): v is ChatMessage {
     && typeof s.label === 'string' && ['active','complete','failed','stopped'].includes(s.status)
     && ['search','fetch','bash','write'].includes(s.kind) && (s.results === undefined || strings(s.results)))) return false;
   for (const field of ['reasoning','error','persistedAnswer']) if (v[field] !== undefined && typeof v[field] !== 'string') return false;
+  if (v.steps.some((s: Record<string, unknown>) =>
+    (s.progressVersion !== undefined && s.progressVersion !== 1) ||
+    (s.attempt !== undefined && (!Number.isSafeInteger(s.attempt) || (s.attempt as number) < 0)) ||
+    (s.sequence !== undefined && (!Number.isSafeInteger(s.sequence) || (s.sequence as number) < 1)) ||
+    (s.parent !== undefined && typeof s.parent !== 'string'))) return false;
   if (v.warnings !== undefined && !strings(v.warnings)) return false;
   if (v.durationSeconds !== undefined && (typeof v.durationSeconds !== 'number' || !Number.isFinite(v.durationSeconds))) return false;
   if (v.webRequested !== undefined && typeof v.webRequested !== 'boolean') return false;

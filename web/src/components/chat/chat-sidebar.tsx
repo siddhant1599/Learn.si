@@ -47,6 +47,7 @@ import { site } from "@/config/site";
 import { useChatStore } from "@/core/chat/store";
 import { cn } from "@/lib/utils";
 
+import { DeleteButton } from "./delete-button";
 import { DocumentsPanel } from "./documents-panel";
 import { WorkspaceSidebarTrigger } from "./workspace-sidebar-trigger";
 
@@ -129,7 +130,7 @@ function SidebarNav() {
 }
 
 function RecentChats() {
-  const { threads } = useChatStore();
+  const { threads, deleteChat } = useChatStore();
   const pathname = usePathname();
   const { isMobile, open } = useSidebar();
   if (!(isMobile || open) || threads.length === 0) return null;
@@ -140,7 +141,7 @@ function RecentChats() {
       <SidebarGroupContent>
         <SidebarMenu>
           {threads.map((thread) => (
-            <SidebarMenuItem key={thread.id}>
+            <SidebarMenuItem key={thread.id} className="flex items-center">
               <SidebarMenuButton
                 isActive={pathname === `/workspace/chats/${thread.id}`}
                 asChild
@@ -152,6 +153,7 @@ function RecentChats() {
                   <span className="truncate">{thread.title}</span>
                 </Link>
               </SidebarMenuButton>
+              <DeleteButton title={thread.title} description="Delete this chat and its saved messages. Source documents will be kept." onDelete={() => deleteChat(thread.id)} />
             </SidebarMenuItem>
           ))}
         </SidebarMenu>

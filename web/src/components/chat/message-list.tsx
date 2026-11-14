@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 
 import { CopyButton } from "./copy-button";
 import { MessageReasoning } from "./message-reasoning";
+import { useChatStore } from "@/core/chat/store";
 import { safeWebUrl } from "@/core/chat/privacy";
 import { MessageSteps } from "./message-steps";
 import { StreamingIndicator } from "./streaming-indicator";
@@ -112,6 +113,7 @@ function statusNote(status: AssistantMessage["status"]) {
 }
 
 function AssistantRow({ message }: { message: AssistantMessage }) {
+  const { deletions } = useChatStore();
   const isLoading = message.status === "streaming";
   const isEmpty =
     !message.reasoning && !message.text && message.steps.length === 0;
@@ -154,6 +156,7 @@ function AssistantRow({ message }: { message: AssistantMessage }) {
                 <summary className="cursor-pointer break-words">
                   [{c.citation}] {c.document_title}
                   {c.page ? ` · Page ${c.page}` : ""}
+                  {deletions.some(d => d.kind === "document" && d.id === c.document_id) && " · Source unavailable (deleted)"}
                 </summary>
                 <p className="mt-2">
                   {c.edition} · {c.kind} {c.number}

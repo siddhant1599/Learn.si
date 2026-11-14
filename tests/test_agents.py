@@ -236,7 +236,7 @@ async def test_shared_workflow_isolates_concurrent_state_sources_and_tokens(stre
         final = updates[-1]["answer"]
         assert final["answer"] == color + " [1]"
         assert final["citations"][0]["document_id"] == str(records[color]["document_id"])
-        tokens = [value["delta"] for mode, value in events if mode == "custom"]
+        tokens = [value["delta"] for mode, value in events if mode == "custom" and "delta" in value]
         assert tokens == ([color, " [1]"] if streaming else [])
 
     await asyncio.gather(run("blue"), run("green"))

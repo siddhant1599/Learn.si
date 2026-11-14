@@ -8,6 +8,7 @@ import asyncio
 import time
 from dataclasses import dataclass
 
+from app.progress import progress
 from app.providers import ProviderError
 
 from .assessment import AssessmentAgent as AssessmentAgent
@@ -76,6 +77,7 @@ class RetrievalAgent:
                             hits, notices = await execute(item)
                     else:
                         hits, notices = await execute(item)
+                progress("completed", item["id"], "retrieved" if hits else "empty", len(hits))
                 return {
                     "sub_question_id": item["id"],
                     "hits": hits,
@@ -84,6 +86,7 @@ class RetrievalAgent:
                     "elapsed_ms": round((time.monotonic() - started) * 1000, 3),
                 }
             except ProviderError as exc:
+                progress("failed", item["id"])
                 failures[item["id"]] = exc
                 return {
                     "sub_question_id": item["id"],
@@ -94,6 +97,7 @@ class RetrievalAgent:
                 }
 
         async def execute(item):
+            progress("started", item["id"])
             hits, notices = await self.search.search([item["question"]], state["document_ids"])
             passage = state.get("hyde_passages", {}).get(item["id"])
             if passage and item["id"] in optional:
@@ -128,6 +132,7 @@ class RetrievalAgent:
                     completed[dep]["status"] in {"failed", "blocked"}
                     for dep in item["dependencies"]
                 ):
+                    progress("stopped", item["id"], "blocked")
                     completed[item["id"]] = {
                         "sub_question_id": item["id"],
                         "hits": [],

@@ -14,7 +14,7 @@ async function proxy(
   const { path } = await context.params;
   const endpoint = path.join("/");
   if (
-    !/^(documents|documents\/upload|query|health|conversations\/[0-9a-f-]+\/messages)$/.test(
+    !/^(documents|documents\/upload|documents\/[0-9a-f-]+|deletions|query|health|conversations\/[0-9a-f-]+(?:\/messages)?)$/.test(
       endpoint,
     )
   )
@@ -54,4 +54,4 @@ async function proxy(
     );
   }
 }
-export { proxy as GET, proxy as POST };
+export { proxy as GET, proxy as POST, proxy as DELETE };

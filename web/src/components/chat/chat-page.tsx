@@ -26,7 +26,7 @@ export function ChatPage() {
   // Not useParams: it ignores the history.replaceState call in handleSubmit.
   const routeThreadId = usePathname().split("/").pop() ?? NEW_THREAD_ID;
   const {
-    ready,
+    ready, deletions,
     webAvailable,
     threads,
     selectedIds,
@@ -42,6 +42,7 @@ export function ChatPage() {
   const isWelcomeMode = isNewThread || !thread?.messages.length;
   const streaming = isStreaming(routeThreadId);
   const title = thread?.title;
+  const missingSource = thread?.documentIds?.some(id => deletions.some(d => d.kind === "document" && d.id === id));
 
   useEffect(() => {
     document.title = `${title ?? "New chat"} - ${site.name}`;
@@ -110,13 +111,14 @@ export function ChatPage() {
               {thread && thread.todos.length > 0 && !isWelcomeMode && (
                 <TodoList className="bg-background/5" todos={thread.todos} />
               )}
+              {missingSource && <p role="alert" className="p-3 text-sm">A source was deleted. Saved answers may still contain its information. <Link className="underline" href="/workspace/chats/new">Start a new chat with available sources.</Link></p>}
               <Composer
                 className={cn(
                   "bg-background/5 w-full",
                   isWelcomeMode && "-translate-y-2 sm:-translate-y-4",
                 )}
                 disabled={
-                  !ready || !(thread?.documentIds?.length || selectedIds.length)
+                  !ready || missingSource || !(thread?.documentIds?.length || selectedIds.length)
                 }
                 isStreaming={streaming}
                 isWelcomeMode={isWelcomeMode}

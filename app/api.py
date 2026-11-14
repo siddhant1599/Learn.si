@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from app import deletions
 from app.config import settings
 from app.models import Query
 from app.pinecone import PineconeVectors
@@ -52,9 +53,17 @@ async def lifespan(app):
         cleanup_task = (asyncio.create_task(cleanup_loop(config, client))
                         if config.database_url.get_secret_value()
                         and config.vector_backend == "pinecone" else None)
+        deletion_task = (asyncio.create_task(deletions.cleanup_loop(app.state.storage, config))
+                         if app.state.storage else None)
         try:
             yield
         finally:
+            if deletion_task:
+                deletion_task.cancel()
+                try:
+                    await deletion_task
+                except asyncio.CancelledError:
+                    pass
             if cleanup_task:
                 cleanup_task.cancel()
                 try:
@@ -103,7 +112,7 @@ if settings().cors_origin:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[settings().cors_origin],
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["Content-Type"],
     )
 
@@ -137,6 +146,30 @@ async def evaluation_runtime(request: Request):
 @app.get("/documents")
 async def documents(store=Depends(storage)):
     return await store.documents()
+
+
+@app.get("/deletions")
+async def deletion_state(store=Depends(storage)):
+    return await deletions.state(store)
+
+
+@app.delete("/conversations/{thread_id}")
+async def delete_conversation(thread_id: UUID, store=Depends(storage)):
+    try:
+        return await deletions.delete_chat(store, thread_id)
+    except Exception:
+        raise HTTPException(503, "Chat deletion failed. Retry when the database is available.") from None
+
+
+@app.delete("/documents/{document_id}")
+async def delete_document(document_id: UUID, store=Depends(storage)):
+    try:
+        result = await deletions.delete_document(store, settings(), document_id)
+        return JSONResponse(result, status_code=202 if result["status"] == "cleanup_pending" else 200)
+    except Conflict as exc:
+        raise HTTPException(409, str(exc)) from None
+    except Exception:
+        raise HTTPException(503, "Document deletion failed. Retry when the database is available.") from None
 
 
 @app.get("/conversations/{thread_id}/messages")
@@ -200,20 +233,13 @@ async def query(body: Query, request: Request, store=Depends(storage)):
                     stream_mode=["updates", "custom"],
                 ):
                     if mode == "custom":
-                        yield event("token", update)
+                        if isinstance(update, dict) and update.get("type") == "progress":
+                            yield event("progress", update)
+                        elif isinstance(update, dict) and isinstance(update.get("delta"), str):
+                            yield event("token", {"delta": update["delta"]})
                         continue
                     for step, values in update.items():
                         final.update(values)
-                        status = values.get("status")
-                        yield event(
-                            "progress",
-                            {
-                                "step": step,
-                                "status": "failed"
-                                if status in {"recovering", "failed"}
-                                else "completed",
-                            },
-                        )
                 if final.get("status") != "succeeded":
                     failure = final.get("failure") or {}
                     message = (
@@ -262,8 +288,23 @@ async def query(body: Query, request: Request, store=Depends(storage)):
             logger.error("Query failed (%s)", type(exc).__name__)
             yield event("error", {"message": "Request failed. Check backend configuration."})
 
+    async def managed_stream():
+        completed = False
+        try:
+            async for item in stream():
+                yield item
+            completed = True
+        finally:
+            # A disconnected first request may never deliver its server ID to the
+            # browser. Remove only the empty draft, never a completed conversation.
+            if not completed and body.thread_id is None and hasattr(store, "discard_empty"):
+                try:
+                    await asyncio.shield(store.discard_empty(thread_id))
+                except Exception:
+                    logger.warning("Empty conversation cleanup failed")
+
     return StreamingResponse(
-        stream(),
+        managed_stream(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"},
     )
@@ -289,6 +330,8 @@ async def upload_document(
             count = await ingest(document, settings(), request.app.state.providers)
     except TimeoutError:
         raise HTTPException(504, "Indexing timed out. Try a smaller document.") from None
+    except Conflict as exc:
+        raise HTTPException(409, str(exc)) from None
     except ProviderError as exc:
         raise HTTPException(502, str(exc)) from exc
     except Exception as exc:

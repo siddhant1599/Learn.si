@@ -6,9 +6,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useChatStore } from "@/core/chat/store";
+import { DeleteButton } from "./delete-button";
 export function DocumentsPanel() {
   const {
-    documents,
+    documents, deletions, deleteDocument,
     selectedIds,
     setSelectedIds,
     refreshDocuments,
@@ -130,8 +131,8 @@ export function DocumentsPanel() {
       ) : (
         <div className="max-h-60 space-y-1 overflow-y-auto">
           {documents.map((d) => (
+            <div key={d.id} className="flex items-center">
             <label
-              key={d.id}
               className={`flex cursor-pointer items-start gap-2 rounded-md border p-2 text-xs transition-colors ${selection.includes(d.id) ? "bg-accent border-border" : "border-transparent hover:bg-accent/50"}`}
             >
               <input
@@ -158,9 +159,15 @@ export function DocumentsPanel() {
                 </small>
               </span>
             </label>
+            <DeleteButton title={d.title} description="Remove this source from search. Historical answers may still contain its information; delete those chats separately. Existing chats using this source cannot continue." onDelete={() => deleteDocument(d.id)} />
+            </div>
           ))}
         </div>
       )}
+      {deletions.filter(d => d.kind === "document" && d.pending).map(d => <div key={d.id} className="text-xs mt-2" role="status">
+        Source removed; external cleanup pending.
+        <DeleteButton title="pending source cleanup" description="Retry external vector cleanup for this already removed source." onDelete={() => deleteDocument(d.id)} />
+      </div>)}
       {locked && (
         <p className="text-muted-foreground mt-2 text-xs">
           Start a new chat to change sources.

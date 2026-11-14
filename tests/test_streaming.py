@@ -90,7 +90,7 @@ async def test_workflow_emits_tokens_before_validated_final_update():
             stream_mode=["updates", "custom"],
         )
     ]
-    tokens = [value["delta"] for mode, value in events if mode == "custom"]
+    tokens = [value["delta"] for mode, value in events if mode == "custom" and "delta" in value]
     assert tokens == ["Blue ", "[1]"]
     assert events[-1][1]["answer"]["answer"] == "Blue [1]"
     assert events[-1][1]["answer"]["citations"]

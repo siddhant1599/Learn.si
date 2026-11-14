@@ -59,6 +59,50 @@ def main():
             page.evaluate("([event,data]) => window.sendTestEvent(event,data)", [event, data])
 
         send("session", {"thread_id": "22222222-2222-4222-8222-222222222222"})
+
+        def activity(stage, status, sequence, task=None, **details):
+            send(
+                "progress",
+                {
+                    "version": 1,
+                    "step": stage,
+                    "id": stage + (":" + task if task else ""),
+                    "status": status,
+                    "sequence": sequence,
+                    "attempt": 0,
+                    **({"task": task} if task else {}),
+                    **details,
+                },
+            )
+
+        activity("plan", "started", 1)
+        expect(
+            page.get_by_text("Preparing research questions — running", exact=True)
+        ).to_be_visible()
+        expect(page.get_by_text("Validated answer", exact=True)).to_have_count(0)
+        activity("plan", "completed", 2, count=2)
+        expect(page.get_by_text("2 research tasks", exact=True)).to_be_visible()
+        activity("retrieve", "started", 1)
+        activity("retrieve", "started", 2, "q1")
+        activity("retrieve", "started", 3, "q2", detail="PRIVATE https://secret.example")
+        summary = page.get_by_text("Research task details (2)", exact=True)
+        summary.focus()
+        page.keyboard.press("Enter")
+        expect(page.get_by_text("Document search 1 — running", exact=True)).to_be_visible()
+        expect(page.get_by_text("Document search 2 — running", exact=True)).to_be_visible()
+        activity("retrieve", "completed", 4, "q1", count=3, outcome="retrieved")
+        activity("retrieve", "started", 2, "q1")
+        expect(page.get_by_text("Document search 1 — running", exact=True)).to_have_count(0)
+        expect(page.get_by_text("3 evidence items", exact=True)).to_be_visible()
+        activity("retrieve", "completed", 5, "q2", count=0, outcome="empty")
+        activity("retrieve", "completed", 6)
+        expect(page.get_by_text("PRIVATE", exact=False)).to_have_count(0)
+        page.set_viewport_size({"width": 390, "height": 900})
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.set_viewport_size({"width": 1280, "height": 960})
+        checks.append(
+            "Running planning and concurrent tasks precede tokens; counts, keyboard expansion, stale-event rejection and mobile layout work"
+        )
         send("progress", {"step": "assess", "status": "failed"})
         expect(page.get_by_text("Evidence checked — failed", exact=True)).to_be_visible()
         checks.append("Failed backend stage is displayed as failed")
@@ -68,6 +112,8 @@ def main():
         expect(page.get_by_text("Evidence checked — failed", exact=True)).to_have_count(0)
         expect(page.get_by_text("Evidence checked", exact=True)).to_have_count(1)
         checks.append("Recovery and reassessment update the existing stage")
+        activity("answer", "started", 1)
+        expect(page.get_by_text("Preparing the answer — running", exact=True)).to_be_visible()
         send("token", {"delta": "Streaming draft"})
         expect(page.get_by_text("Streaming draft", exact=True)).to_be_visible()
         expect(page.get_by_role("button", name="Stop", exact=True)).to_be_visible()
@@ -77,6 +123,7 @@ def main():
             page.get_by_text("Streaming draft arrives incrementally.", exact=True)
         ).to_be_visible()
         checks.append("Second delta appends to the existing answer")
+        activity("answer", "completed", 2)
         send(
             "result",
             {
@@ -106,6 +153,13 @@ def main():
         page.get_by_text("[1] Streaming test manual · Page 3", exact=True).click()
         expect(page.get_by_role("button", name="Stop", exact=True)).to_have_count(0)
         checks.append("Final citations are interactive and streaming controls settle")
+        saved = page.evaluate("JSON.stringify(localStorage)")
+        assert (
+            "PRIVATE" not in saved
+            and "secret.example" not in saved
+            and "3 evidence items" not in saved
+        )
+        checks.append("Untrusted details never render; activity details are not persisted")
         expect(page.get_by_text("Evidence partial for q2.", exact=True)).to_be_visible()
         checks.append("Per-question evidence warning is visible beside the answer")
         page.get_by_role("textbox", name="Message", exact=True).fill("Follow-up failure")

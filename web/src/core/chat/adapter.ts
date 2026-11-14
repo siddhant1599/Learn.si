@@ -1,3 +1,4 @@
+import { progressStep } from "./progress.ts";
 import type { ChatAdapter } from "./types";
 export async function* parseSSE(
   body: ReadableStream<Uint8Array>,
@@ -63,31 +64,13 @@ export const chatAdapter: ChatAdapter = {
     if (!response.body) throw new Error("Streaming is unavailable.");
     let complete = false;
     let streamed = false;
-    const labels: Record<string, string> = {
-      triage: "Request routed",
-      conversational: "Response prepared",
-      plan: "Search planned",
-      hyde: "Retrieval hints prepared",
-      retrieve: "Evidence retrieved",
-      assess: "Evidence checked",
-      refine: "Search refined",
-      answer: "Answer prepared",
-      error_handler: "Recovery handled",
-      web: "Web search and evidence assessment completed",
-    };
     for await (const { event, data } of parseSSE(response.body)) {
       if (event === "session")
         yield { type: "session", serverThreadId: data.thread_id };
-      if (event === "progress")
-        yield {
-          type: "step",
-          step: {
-            id: data.step,
-            kind: "search",
-            label: labels[data.step] || data.step,
-            status: data.status === "failed" ? "failed" : "complete",
-          },
-        };
+      if (event === "progress") {
+        const step = progressStep(data);
+        if (step) yield { type: "step", step };
+      }
       if (event === "token" && typeof data.delta === "string") {
         streamed = true;
         yield { type: "text", delta: data.delta };

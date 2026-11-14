@@ -10,7 +10,7 @@ const doc=(n:number)=>({id:`d${n}`,title:`Manual ${n}`,edition:'2026'});
 const file=()=>new File(['content'],'manual.txt',{type:'text/plain'});
 const upload=(f=file())=>fireEvent.change(screen.getByLabelText('Upload file'),{target:{files:[f]}});
 const success=()=>vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>({id:'new',title:'New manual',chunks:3})}));
-beforeEach(()=>{mocks.path='/workspace/chats/new';mocks.store={documents:[doc(1),doc(2)],selectedIds:[],setSelectedIds:vi.fn(),refreshDocuments:vi.fn().mockResolvedValue(undefined),documentsError:'',threads:[],isStreaming:()=>false};mocks.sidebar={open:true,isMobile:false,setOpen:vi.fn()};success()});
+beforeEach(()=>{mocks.path='/workspace/chats/new';mocks.store={deletions:[],deleteDocument:vi.fn().mockResolvedValue(undefined),documents:[doc(1),doc(2)],selectedIds:[],setSelectedIds:vi.fn(),refreshDocuments:vi.fn().mockResolvedValue(undefined),documentsError:'',threads:[],isStreaming:()=>false};mocks.sidebar={open:true,isMobile:false,setOpen:vi.fn()};success()});
 it('shows document titles and editions',()=>{render(<DocumentsPanel/>);expect(screen.getByRole('checkbox', {name: /Manual 1\s*2026/})).toBeInTheDocument()});
 it('shows selected source count',()=>{mocks.store.selectedIds=['d1'];render(<DocumentsPanel/>);expect(screen.getByText('Sources · 1/5')).toBeInTheDocument()});
 it('shows empty library guidance',()=>{mocks.store.documents=[];render(<DocumentsPanel/>);expect(screen.getByText('Upload a document to get started.')).toBeInTheDocument()});

@@ -31,10 +31,17 @@ export function applyChatEvent(
       case "text":
         return { ...message, text: message.text + event.delta };
       case "step": {
-        const exists = message.steps.some((step) => step.id === event.step.id);
+        const previous = message.steps.find(step => step.id === event.step.id);
+        if (previous?.progressVersion === 1) {
+          if (event.step.progressVersion !== 1) return message;
+          const before = previous.attempt ?? 0, after = event.step.attempt ?? 0;
+          if (after < before || (after === before && ((event.step.sequence ?? 0) <= (previous.sequence ?? 0)
+            || previous.status !== "active" && event.step.status === "active"))) return message;
+        }
+        const exists = !!previous;
         return {
           ...message,
-          webRequested: message.webRequested || event.step.id === "web",
+          webRequested: message.webRequested || (event.step.id === "web" || event.step.parent === "web"),
           steps: exists
             ? message.steps.map((step) =>
                 step.id === event.step.id ? event.step : step,
@@ -73,7 +80,7 @@ export function finishAssistantMessage(
     durationSeconds,
     steps: message.steps.map((step) =>
       step.status === "active"
-        ? { ...step, status: status === "error" ? "failed" : status === "stopped" ? "stopped" : "complete" }
+        ? { ...step, status: status === "error" ? "failed" : status === "stopped" ? "stopped" : "stopped" }
         : step,
     ),
   };

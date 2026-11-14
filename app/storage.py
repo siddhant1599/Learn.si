@@ -98,6 +98,14 @@ class Storage:
 
     async def save_turn(self, thread_id, version, question, answer, citations):
         async with self.pool.connection() as conn:
+            scope = await conn.execute("SELECT document_ids FROM rag.conversations WHERE id=%s", (thread_id,))
+            row = await scope.fetchone()
+            if not row:
+                raise Conflict("Conversation was deleted. Start a new chat.")
+            # Shared document locks serialize final save with source deletion.
+            cur = await conn.execute("SELECT id FROM rag.documents WHERE id=ANY(%s) ORDER BY id FOR SHARE", (row["document_ids"],))
+            if {d["id"] for d in await cur.fetchall()} != set(row["document_ids"]):
+                raise Conflict("A source was deleted. Start a new chat with available sources.")
             cur = await conn.execute(
                 "UPDATE rag.conversations SET version=version+1 WHERE id=%s AND version=%s "
                 "RETURNING id",
@@ -112,6 +120,10 @@ class Storage:
                 "VALUES (%s, 'user', %s, '[]'), (%s, 'assistant', %s, %s)",
                 (thread_id, question, thread_id, answer, Jsonb(citations)),
             )
+
+    async def discard_empty(self, thread_id):
+        async with self.pool.connection() as conn:
+            await conn.execute("DELETE FROM rag.conversations WHERE id=%s AND version=0", (thread_id,))
 
     async def search(self, query, document_ids, embedding):
         # Parameterized and document-scoped throughout. Exact references precede

@@ -13,6 +13,7 @@ from app.config import settings
 from app.models import Document
 from app.pinecone import PineconeVectors, vector_record
 from app.providers import Providers, vector_literal
+from app.storage import Conflict
 from app.vector_cleanup import attempt_cleanup, journal
 
 
@@ -53,6 +54,9 @@ async def ingest(document, config, providers):
             await conn.execute(
                 "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (str(document.id),)
             )
+            deleted = await conn.execute("SELECT 1 FROM rag.deletions WHERE kind='document' AND id=%s", (document.id,))
+            if await deleted.fetchone():
+                raise Conflict("This document was deleted. Upload it as a new document instead.")
             if vectors:
                 cur = await conn.execute(
                     "SELECT vector_generation FROM rag.documents WHERE id=%s", (document.id,)

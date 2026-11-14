@@ -240,7 +240,7 @@ async def test_partial_stream_failure_never_replays_tokens():
     provider = Provider({})
     final, stages, events = await run(Workflow(provider, FakeSearch([hit()]), stream_answer=True))
     assert provider.stream_calls == 1
-    assert [v for mode, v in events if mode == "custom"] == [{"delta": "partial "}]
+    assert [v for mode, v in events if mode == "custom" and "delta" in v] == [{"delta": "partial "}]
     assert stages[-2:] == ["answer", "error_handler"]
     assert final["status"] == "failed"
     assert final["answer"] == ""

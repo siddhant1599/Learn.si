@@ -22,6 +22,10 @@ export type ChatMode = "flash" | "thinking" | "pro" | "ultra";
 export type ChatStepKind = "search" | "fetch" | "bash" | "write";
 
 export type ChatStep = {
+  progressVersion?: 1;
+  attempt?: number;
+  sequence?: number;
+  parent?: string;
   id: string;
   kind: ChatStepKind;
   label: string;
