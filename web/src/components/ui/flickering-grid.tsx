@@ -57,7 +57,8 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
 
   const setupCanvas = useCallback(
     (canvas: HTMLCanvasElement, width: number, height: number) => {
-      const dpr = window.devicePixelRatio || 1;
+      // Decorative 4px squares do not need a 2x backing store; DPR 2 quadruples the fill work.
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       canvas.width = width * dpr;
       canvas.height = height * dpr;
       canvas.style.width = `${width}px`;
@@ -137,10 +138,15 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
     updateCanvasSize();
 
     let lastTime = 0;
+    const FRAME_MS = 1000 / 30; // Flicker reads the same at 30fps; halves main-thread paint work.
     const animate = (time: number) => {
       if (!isInView) return;
+      if (time - lastTime < FRAME_MS) {
+        animationFrameId = requestAnimationFrame(animate);
+        return;
+      }
 
-      const deltaTime = (time - lastTime) / 1000;
+      const deltaTime = lastTime ? (time - lastTime) / 1000 : 0;
       lastTime = time;
 
       updateSquares(gridParams.squares, deltaTime);

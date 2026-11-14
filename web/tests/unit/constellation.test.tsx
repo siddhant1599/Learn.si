@@ -16,7 +16,7 @@ it('renders the section heading, nine sentences, nine stars, three modules and t
   expect(screen.getByText(new RegExp(escape(star.sentence)))).toBeInTheDocument();
   expect(screen.getByText(star.label)).toBeInTheDocument();
  }
- for(const title of site.constellation.modules)expect(screen.getByText(title.toUpperCase())).toBeInTheDocument();
+ for(const title of site.constellation.modules)expect(screen.getByText(title)).toHaveClass('uppercase');
  expect(document.querySelectorAll('[data-constellation-star]')).toHaveLength(9);
  expect(screen.getByText(site.constellation.nextLesson)).toBeInTheDocument();
  for(const text of Object.values(site.constellation.states))expect(screen.getByText(text)).toBeInTheDocument();

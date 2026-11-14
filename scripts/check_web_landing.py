@@ -53,8 +53,8 @@ def check_stage(page, width, height, errors):
     assert page.evaluate("[...document.querySelectorAll('[data-constellation-label]')].every(l => parseFloat(l.style.opacity) > 0.4)")
     assert page.evaluate("document.querySelector('[data-constellation-legend]').style.opacity") == "1"
     assert page.evaluate("document.querySelector('[data-constellation-chip]').style.opacity") == "1"
-    gold = page.evaluate("[...document.querySelectorAll('[data-constellation-star] circle:last-child')].filter(c => c.getAttribute('fill') !== '#ffffff').length")
-    assert gold == 3, gold  # Module one mastered.
+    states = page.evaluate("[...document.querySelectorAll('[data-constellation-star]')].map(s => s.dataset.state)")
+    assert states.count("mastered") == 3 and states.count("next") == 1 and states.count("locked") == 5, states
     boxes = page.evaluate("(() => { const b = document.querySelector('[data-constellation]').getBoundingClientRect(); return [...document.querySelectorAll('[data-constellation-star], [data-constellation-label]')].map(s => s.getBoundingClientRect()).map(r => [r.left - b.left, r.top - b.top, r.right - b.left, r.bottom - b.top]); })()")
     for left, top, right, bottom in boxes:
         assert 0 <= left and right <= width and 0 <= top and bottom <= height, (left, top, right, bottom)

@@ -19,7 +19,11 @@ export function ConstellationSection({ className }: { className?: string }) {
   const scene = useRef<ConstellationHandle>(null);
 
   useEffect(() => {
+    let last = -1;
     const apply = (p: number) => {
+      // Outside the stage p is pinned at 0 or 1: skip the DOM work entirely.
+      if (p === last) return;
+      last = p;
       stage.current?.style.setProperty("--stage-progress", String(p));
       scene.current?.update(p);
     };
@@ -28,6 +32,7 @@ export function ConstellationSection({ className }: { className?: string }) {
       return;
     }
     let frame: number | undefined;
+    let near = true;
     const read = () => {
       frame = undefined;
       const el = stage.current;
@@ -40,13 +45,28 @@ export function ConstellationSection({ className }: { className?: string }) {
       apply(p);
     };
     const schedule = () => {
-      if (frame === undefined) frame = requestAnimationFrame(read);
+      // Scrolling elsewhere on the page costs nothing: no frame is even scheduled.
+      if (near && frame === undefined) frame = requestAnimationFrame(read);
     };
+    // Track whether the stage is within a screen of the viewport; settle its
+    // pinned value once when it leaves so a fast scroll never strands a half state.
+    const observer =
+      typeof IntersectionObserver === "undefined"
+        ? undefined
+        : new IntersectionObserver(
+            ([entry]) => {
+              near = entry?.isIntersecting ?? true;
+              read();
+            },
+            { rootMargin: "100% 0px" },
+          );
+    if (stage.current) observer?.observe(stage.current);
     read();
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
     return () => {
       if (frame !== undefined) cancelAnimationFrame(frame);
+      observer?.disconnect();
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
     };
