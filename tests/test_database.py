@@ -2,7 +2,6 @@
 
 import asyncio
 import os
-from pathlib import Path
 from uuid import uuid4
 
 import psycopg
@@ -12,6 +11,7 @@ from app.config import Settings
 from app.models import Document
 from app.storage import Conflict, NotFound, Storage
 from scripts.ingest import ingest
+from scripts.migrate import migration_files
 
 
 class Embeddings:
@@ -23,9 +23,9 @@ class Embeddings:
 async def test_pgvector_ingestion_retrieval_history_and_isolation():
     dsn = os.environ["TEST_DATABASE_URL"]
     config = Settings(_env_file=None, database_url=dsn)
-    schema = (Path(__file__).parents[1] / "migrations/001_initial.sql").read_text()
     async with await psycopg.AsyncConnection.connect(dsn, prepare_threshold=None) as conn:
-        await conn.execute(schema)
+        for migration in migration_files():
+            await conn.execute(migration.read_text())
     doc = Document(
         id=uuid4(),
         title="Integration fixture",

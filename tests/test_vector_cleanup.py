@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 
 from app import vector_cleanup as cleanup
+from scripts.migrate import migration_files
 
 
 class Connection:
@@ -83,7 +84,6 @@ async def test_failed_delete_rolls_back_journal_and_retry_succeeds(monkeypatch):
 async def test_ingestion_compensation_real_transactions(monkeypatch, failure):
     import asyncio
     import os
-    from pathlib import Path
 
     import psycopg
 
@@ -107,7 +107,8 @@ async def test_ingestion_compensation_real_transactions(monkeypatch, failure):
     monkeypatch.setattr(ingestion, "PineconeVectors", lambda *_: vectors)
     providers = SimpleNamespace(client=None, embed=AsyncMock(return_value=[1.0] + [0.0] * 767))
     async with await psycopg.AsyncConnection.connect(dsn, prepare_threshold=None) as conn:
-        await conn.execute((Path(__file__).parents[1] / "migrations/001_initial.sql").read_text())
+        for migration in migration_files():
+            await conn.execute(migration.read_text())
     try:
         await ingestion.ingest(doc, config, providers)
         async with await psycopg.AsyncConnection.connect(dsn) as conn:

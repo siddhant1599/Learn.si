@@ -40,7 +40,7 @@ type SendInput = {
   files: File[];
 };
 
-type Deletion = { kind: "document" | "conversation"; id: string; pending: boolean };
+type Deletion = { kind: "document" | "conversation" | "course"; id: string; pending: boolean };
 
 type ChatStore = {
   deletions: Deletion[];

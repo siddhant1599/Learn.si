@@ -2,7 +2,6 @@
 
 import asyncio
 import os
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
@@ -15,6 +14,7 @@ from app.deletions import delete_chat, delete_document, retry_documents, state
 from app.models import Document
 from app.storage import Conflict, NotFound, Storage
 from scripts.ingest import ingest
+from scripts.migrate import migration_files
 
 
 @pytest.mark.skipif(not os.getenv("TEST_DATABASE_URL"), reason="Dedicated test database required")
@@ -34,9 +34,8 @@ async def test_deletion_lifecycle_and_races():
     thread = None
     try:
         async with await psycopg.AsyncConnection.connect(dsn, prepare_threshold=None) as conn:
-            await conn.execute(
-                (Path(__file__).parents[1] / "migrations/001_initial.sql").read_text()
-            )
+            for migration in migration_files():
+                await conn.execute(migration.read_text())
         await ingest(doc, config, provider)
         await ingest(other, config, provider)
         thread, version, _ = await store.conversation(

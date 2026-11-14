@@ -13,11 +13,10 @@ async function proxy(
 ) {
   const { path } = await context.params;
   const endpoint = path.join("/");
-  if (
-    !/^(documents|documents\/upload|documents\/[0-9a-f-]+|deletions|query|health|conversations\/[0-9a-f-]+(?:\/messages)?)$/.test(
-      endpoint,
-    )
-  )
+  // Ask routes plus the Master-mode surface (#21): courses, lessons, quiz attempts, progress.
+  const allowed =
+    /^(documents|documents\/upload|documents\/[0-9a-f-]+|deletions|query|health|conversations\/[0-9a-f-]+(?:\/messages)?|courses|courses\/[0-9a-f-]+(?:\/events|\/progress)?|lessons\/[0-9a-f-]+(?:\/events|\/regenerate|\/quiz-attempts|\/your-turn|\/conversation|\/study-time)?|quiz-attempts\/[0-9a-f-]+\/submit|progress)$/;
+  if (!allowed.test(endpoint))
     return new Response("Not found", { status: 404 });
   const url = new URL(request.url);
   try {

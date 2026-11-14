@@ -21,6 +21,7 @@ from app.config import settings
 from app.models import Document
 from app.storage import Conflict, Storage
 from scripts.ingest import ingest
+from scripts.migrate import migration_files
 
 
 class SyntheticEmbeddings:
@@ -90,7 +91,8 @@ async def main():
 
     try:
         async with await psycopg.AsyncConnection.connect(test_dsn) as conn:
-            await conn.execute(Path("migrations/001_initial.sql").read_text())
+            for migration in migration_files():
+                await conn.execute(migration.read_text())
         # 1,000 independent passages and a second document with identical vectors.
         sections = [
             {

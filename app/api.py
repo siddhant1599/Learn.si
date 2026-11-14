@@ -20,6 +20,7 @@ from app.pinecone import PineconeVectors
 from app.privacy import safe_turn
 from app.providers import ProviderError, Providers
 from app.storage import Conflict, NotFound, Storage, recent_context
+from app.study.storage import StudyStorage
 from app.uploads import MAX_BYTES, extract_document
 from app.vector_cleanup import cleanup_loop
 from app.web_search import TavilySearch
@@ -37,6 +38,7 @@ async def lifespan(app):
     config = settings()
     app.state.runtime = capture_runtime(config)
     app.state.storage = None
+    app.state.study = None
     app.state.research_limiter = asyncio.Semaphore(config.research_service_concurrency)
     async with httpx.AsyncClient(timeout=45) as client:
         app.state.providers = Providers(config, client)
@@ -50,6 +52,12 @@ async def lifespan(app):
             store = Storage(config.database_url.get_secret_value(), vectors)
             await store.pool.open()
             app.state.storage = store
+            app.state.study = StudyStorage(store.pool)
+            try:
+                # No background plan generation survives a restart.
+                await app.state.study.mark_interrupted()
+            except Exception:
+                logger.warning("Study schema unavailable; run scripts.migrate before Master mode")
         cleanup_task = (asyncio.create_task(cleanup_loop(config, client))
                         if config.database_url.get_secret_value()
                         and config.vector_backend == "pinecone" else None)
@@ -124,6 +132,13 @@ def storage(request: Request):
     return store
 
 
+def study_storage(request: Request):
+    study = getattr(request.app.state, "study", None)
+    if study is None:
+        raise HTTPException(503, "DATABASE_URL is not configured")
+    return study
+
+
 @app.get("/health")
 async def health():
     return {
@@ -170,6 +185,14 @@ async def delete_document(document_id: UUID, store=Depends(storage)):
         raise HTTPException(409, str(exc)) from None
     except Exception:
         raise HTTPException(503, "Document deletion failed. Retry when the database is available.") from None
+
+
+@app.delete("/courses/{course_id}")
+async def delete_course(course_id: UUID, study=Depends(study_storage)):
+    try:
+        return await study.delete_course(course_id)
+    except Exception:
+        raise HTTPException(503, "Course deletion failed. Retry when the database is available.") from None
 
 
 @app.get("/conversations/{thread_id}/messages")

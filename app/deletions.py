@@ -2,6 +2,8 @@
 
 import asyncio
 
+from app.study.storage import tombstone_document_courses
+
 
 async def delete_chat(store, thread_id):
     async with store.pool.connection() as conn:
@@ -40,6 +42,8 @@ async def delete_document(store, config, document_id):
                 config.pinecone_namespace,
             ),
         )
+        # The course itself cascades with the document; browsers need its tombstone.
+        await tombstone_document_courses(conn, document_id)
         await conn.execute("DELETE FROM rag.documents WHERE id=%s", (document_id,))
     await retry_documents(store, config, document_id)
     async with store.pool.connection() as conn:

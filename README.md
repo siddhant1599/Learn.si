@@ -591,8 +591,28 @@ visible in Sources, manually retryable with the same DELETE, and retried by the
 API every 30 seconds. Apply `uv run python -m scripts.migrate` before restart.
 A live API with the matching index/namespace is required for retries.
 
-`GET /deletions` supplies ID-only tombstones and pending flags for browser
-reconciliation on startup, focus and every five seconds. Local cross-tab chat
+### Master mode storage (`study` schema)
+
+`migrations/002_study.sql` adds schema `study` for Master mode: `courses` (one
+per source document, `document_id` FK with `ON DELETE CASCADE`), `modules`,
+`lessons` (course-wide `position`, `source_section_ids`, cached `content`),
+`lesson_progress` (`locked`/`available`/`in_progress`/`completed`, passive
+`study_seconds`), `quiz_attempts` (server-only answer key inside `questions`;
+`open`/`submitted`/`abandoned`), `your_turn_attempts` and `lesson_conversations`
+(tutor chats bound to `rag.conversations`). `scripts.migrate` now applies every
+`migrations/*.sql` in order and is safe to re-run.
+
+Ownership rules: SQL is authoritative. Deleting a document cascades its course
+and records a `course` tombstone; deleting a course (`DELETE /courses/{id}`,
+200 `deleted`, idempotent) removes study data and bound tutor chats but never the
+source document or its chunks/vectors. The first lesson of a plan is `available`;
+completing a lesson unlocks exactly the next `position`. Courses left
+`generating` are marked `failed`/`interrupted` on restart. `app/study/storage.py`
+holds these operations; `app/study/models.py` holds the typed contracts.
+
+`GET /deletions` supplies ID-only tombstones (kinds `document`, `conversation`,
+`course`) and pending flags for browser reconciliation on startup, focus and
+every five seconds. Local cross-tab chat
 deletion also uses storage events. Tombstones must not be discarded: they prevent
 stale caches and indexing jobs from resurrecting deleted IDs. Final answer saves
 revalidate and lock document scope; deleting a source never silently rewrites a
