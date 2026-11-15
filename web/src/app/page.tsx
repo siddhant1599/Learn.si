@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { HowItWorks, TrustSection, ClosingCta } from "@/components/landing/product-sections";
 
 import { ConstellationSection } from "@/components/landing/constellation-section";
 import { Footer } from "@/components/landing/footer";
@@ -19,6 +20,9 @@ export default function LandingPage() {
         <RagExamples />
         <ConstellationSection />
         <WhatsNewSection />
+        <HowItWorks />
+        <TrustSection />
+        <ClosingCta />
       </main>
       <Footer />
     </div>

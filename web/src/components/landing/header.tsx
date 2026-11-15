@@ -35,7 +35,7 @@ export function Header({ className }: { className?: string }) {
         <div
           className="pointer-events-none absolute inset-0 z-0 h-full w-full rounded-full opacity-30 blur-2xl"
           style={{
-            background: "linear-gradient(90deg, #ff80b5 0%, #9089fc 100%)",
+            background: "linear-gradient(90deg, #e9c665 0%, #b89138 100%)",
             filter: "blur(16px)",
           }}
         />
@@ -46,7 +46,7 @@ export function Header({ className }: { className?: string }) {
           asChild
           className="group relative z-10"
         >
-          <Link href={site.repositoryUrl}>
+          <Link href={site.hero.ctaHref}>
             {site.header.ctaLabel}
             <ArrowRightIcon
               aria-hidden="true"

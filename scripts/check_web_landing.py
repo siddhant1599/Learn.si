@@ -127,6 +127,38 @@ def check_lesson_flow(page):
     assert page.evaluate("document.querySelector('[data-constellation-chip]').textContent") == "Lesson 5 · ≈ 5 min"
 
 
+def check_content(page):
+    for theme in ("light", "dark"):
+        for width in (1440, 390):
+            page.set_viewport_size({"width": width, "height": 900})
+            page.goto(BASE, wait_until="networkidle")
+            page.evaluate("theme => localStorage.setItem('theme', theme)", theme)
+            page.reload(wait_until="networkidle")
+            for name in ("Ask steps", "Master steps"):
+                expect(page.get_by_role("list", name=name).get_by_role("listitem")).to_have_count(3)
+            for img in page.locator("#how-it-works img").all():
+                img.scroll_into_view_if_needed()
+                expect(img).to_be_visible()
+                page.wait_for_function("img => img.complete && img.naturalWidth > 0", arg=img.element_handle())
+                assert img.get_attribute("width") == "1440" and img.get_attribute("height") == "1000"
+            expect(page.locator("#privacy")).to_contain_text("local does not mean offline")
+            expect(page.get_by_role("navigation", name="Footer").get_by_role("link")).to_have_count(4)
+            cta = page.get_by_role("link", name="Open your workspace", exact=True)
+            cta.focus()
+            cta.press("Enter")
+            expect(page).to_have_url(BASE + "/workspace")
+            page.go_back(wait_until="networkidle")
+            # Use the first demo tab regardless of editorial tab names.
+            first = page.get_by_role("tab").first
+            first.focus()
+            first.press("ArrowRight")
+            expect(page.get_by_role("tab").nth(1)).to_be_focused()
+            expect(page.get_by_role("tab").nth(1)).to_have_attribute("aria-selected", "true")
+            assert page.locator('a[href^="/workspace/"]').count() == 0
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    print("Landing content: screenshots, privacy, footer, chooser CTA and keyboard tabs; desktop/mobile, both themes passed")
+
+
 def check_reduced_motion(browser):
     ctx = browser.new_context(viewport={"width": 1440, "height": 900}, reduced_motion="reduce")
     page = ctx.new_page()
@@ -148,6 +180,7 @@ def main():
         check_stage(page, 1440, 900, errors)
         check_stage(page, 390, 844, errors)
         check_reduced_motion(browser)
+        check_content(page)
         browser.close()
 
 

@@ -11,7 +11,7 @@ const run=demoRuns[0]!;
 it('labels the runs as scripted and makes no network calls',()=>{
  vi.stubGlobal('fetch',vi.fn());
  render(<RagExamples/>);
- expect(screen.getByText(/Demo run · no model calls/)).toBeVisible();
+ expect(screen.getByText(/Scripted illustration · no model calls/)).toBeVisible();
  expect(fetch).not.toHaveBeenCalled();
 });
 it('first run is selected and associated with its panel',()=>{render(<RagExamples/>);const tab=screen.getByRole('tab',{name:run.label});expect(tab).toHaveAttribute('aria-selected','true');expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby',tab.id)});

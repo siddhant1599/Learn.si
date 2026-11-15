@@ -21,13 +21,14 @@ export function Hero({ className }: { className?: string }) {
       )}
     >
       <GalaxyBackdrop />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(10,10,10,0.7),transparent_75%)]" />
       <FlickeringGrid
         className="absolute inset-0 z-0 mask-size-[140.4vw] mask-center mask-no-repeat md:mask-size-[100.8vh]"
         style={{ maskImage: `url(${site.logoMaskUrl})` }}
         squareSize={4}
         gridGap={4}
         color={"white"}
-        maxOpacity={0.3}
+        maxOpacity={0.4}
         flickerChance={0.25}
       />
       <div className="container-md relative z-10 mx-auto flex min-h-[92svh] flex-col items-center justify-center px-4 pt-20 pb-14">
@@ -48,6 +49,7 @@ export function Hero({ className }: { className?: string }) {
             <ChevronRightIcon className="size-4" />
           </Button>
         </Link>
+        <a href="#examples" className="mt-10 text-xs tracking-widest text-white/60 uppercase hover:text-white">Explore the workspace ↓</a>
       </div>
     </div>
   );

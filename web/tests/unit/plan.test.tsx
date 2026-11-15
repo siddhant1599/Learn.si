@@ -25,6 +25,17 @@ function Unlock({id}:{id:string}){const {markUnlocked}=useStudyStore();return <b
 const mount=(view:CourseView)=>render(<ChatStoreProvider><StudyStoreProvider><Unlock id="l3"/><CoursePlan course={view}/></StudyStoreProvider></ChatStoreProvider>);
 
 describe('course plan',()=>{
+ it('offers Continue when the first lesson is already in progress',async()=>{
+  const view=course();
+  view.completed_lessons=0;
+  view.next_lesson_id='l1';
+  view.modules[0]!.lessons[0]!.status='in_progress';
+  vi.stubGlobal('fetch',vi.fn(async(url:string)=>url.endsWith('/progress')?json({...progress,completed_lessons:0,next_lesson_id:'l1'}):json([])));
+  mount(view);
+  expect(await screen.findByRole('link',{name:'Continue'})).toHaveAttribute('href','/workspace/courses/c1/lessons/l1');
+  expect(screen.queryByRole('link',{name:'Start the first lesson'})).not.toBeInTheDocument();
+ });
+
  it('renders the header, counts, estimates and the module holding the next lesson open',async()=>{
   mount(course());
   expect(await screen.findByText('Source: Guide.pdf · 2026')).toBeVisible();

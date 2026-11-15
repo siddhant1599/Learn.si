@@ -135,6 +135,7 @@ export function CoursePlan({ course }: { course: CourseView }) {
   const rows = new Map((progress?.lessons ?? []).map((row) => [row.id, row]));
   const moduleProgress = new Map((progress?.modules ?? []).map((m) => [m.id, m]));
   const next = progress?.next_lesson_id ?? course.next_lesson_id ?? null;
+  const nextStarted = course.modules.some((m) => m.lessons.some((l) => l.id === next && l.status === "in_progress"));
   const nextModule = course.modules.find((m) => m.lessons.some((l) => l.id === next))?.id ?? course.modules[0]?.id;
   const [open, setOpen] = useState<Set<string>>(() => new Set(nextModule ? [nextModule] : []));
   const completed = progress?.completed_lessons ?? course.completed_lessons;
@@ -182,7 +183,7 @@ export function CoursePlan({ course }: { course: CourseView }) {
           </p>
           {next && (
             <Button asChild size="sm">
-              <Link href={lessonHref(course.id, next)}>{completed ? "Continue" : "Start the first lesson"}</Link>
+              <Link href={lessonHref(course.id, next)}>{completed || nextStarted ? "Continue" : "Start the first lesson"}</Link>
             </Button>
           )}
         </div>

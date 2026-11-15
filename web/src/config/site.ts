@@ -22,8 +22,8 @@ export const site = {
   shortName: "SB",
   description:
     "Learn from your documents: ask questions with evidence, or master them lesson by lesson.",
-  /** The single landing entry point; the workspace lets you choose a mode. */
-  repositoryUrl: "/workspace",
+  /** Source repository; all learning CTAs still lead to the mode chooser. */
+  repositoryUrl: "https://github.com/code-bot-sid/Document-Lab",
   /** The SVG silhouette the landing hero's flickering grid is masked to. */
   logoMaskUrl: "/images/landing-logo-mask.svg",
 

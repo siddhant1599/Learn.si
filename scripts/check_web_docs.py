@@ -73,7 +73,8 @@ def check_landing(page):
         assert page.locator("#examples").count() == 1
         if width == 390:
             page.get_by_role("button", name="Open menu", exact=True).click()
-        docs = page.get_by_role("link", name="Docs", exact=True).filter(visible=True)
+        scope = page.get_by_role("dialog") if width == 390 else page.get_by_role("banner")
+        docs = scope.get_by_role("link", name="Docs", exact=True).filter(visible=True)
         expect(docs).to_have_attribute("href", "/docs")
         docs.click()
         expect(page.locator("h1")).to_have_text("Study Buddy Docs")
