@@ -34,7 +34,8 @@ export function Hero({ className }: { className?: string }) {
         <h1 className="text-center text-5xl leading-tight font-bold break-words md:text-6xl">
           {site.hero.title}
         </h1>
-        <div className="mt-3 flex w-full max-w-full min-w-0 items-center justify-center gap-x-2 text-center text-2xl font-semibold md:text-4xl">
+        {/* flex-wrap: on narrow screens the suffix drops under the phrase instead of splitting it. */}
+        <div className="mt-3 flex w-full max-w-full min-w-0 flex-wrap items-center justify-center gap-x-2 text-center text-2xl font-semibold md:text-4xl">
           <HeroWordRotate words={site.hero.rotatingWords} />
           <span className="whitespace-nowrap">{site.hero.rotatingSuffix}</span>
         </div>

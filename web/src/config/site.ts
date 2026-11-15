@@ -37,13 +37,14 @@ export const site = {
 
   hero: {
     title: "Study Buddy",
+    /** One phrase per capability, each read in front of the fixed noun below. */
     rotatingWords: [
-      "Ask anything",
-      "Understand deeply",
-      "Build mastery",
-      "Learn from your sources",
+      "Personal Learning",
+      "Document Research",
+      "Lesson Planning",
+      "Mastery Tracking",
     ],
-    rotatingSuffix: "",
+    rotatingSuffix: "SuperAgent",
     description:
       "A learning workspace with your documents. Ask a question and follow the answer back to its source, or turn a document into short lessons, quizzes and a path to mastery.",
     ctaLabel: "Start learning",
