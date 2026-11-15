@@ -23,7 +23,7 @@ import { Section } from "./section";
 const TICK_MS = 50;
 
 /**
- * Scripted Ask runs over the synthetic handbook, rendered through the product's
+ * Demo Ask runs over the handbook, rendered through the product's
  * real activity panel and citation style. No model calls; timings are illustrative.
  */
 export function RagExamples() {
@@ -61,7 +61,7 @@ export function RagExamples() {
     <Section
       id="examples"
       title="Watch a question become an answer"
-      subtitle="Three scripted runs over a synthetic handbook, shown through the same activity panel and citations you get in the workspace."
+      subtitle="Three demo runs over a handbook, shown through the same activity panel and citations you get in the workspace."
     >
       <div ref={ref} className="mx-auto mt-10 max-w-6xl">
         <div className="mb-6 flex flex-wrap justify-center gap-3" role="tablist" aria-label="Example questions">
@@ -106,7 +106,7 @@ export function RagExamples() {
           <div className="flex items-center justify-between gap-3 border-b border-white/10 px-6 py-4 text-sm">
             <span className="flex min-w-0 items-center gap-2">
               <span className="size-2 shrink-0 rounded-full bg-amber-200" /> Study Buddy{" "}
-              <span className="text-muted-foreground truncate">/ Ask · scripted run</span>
+              <span className="text-muted-foreground truncate">/ Ask · demo run</span>
             </span>
             <span className="flex items-center gap-2">
               <button
@@ -138,7 +138,7 @@ export function RagExamples() {
               </div>
               <div className="rounded-xl border border-white/10 bg-black/20 p-6">
                 <div className="text-muted-foreground mb-4 text-xs tracking-widest uppercase">
-                  Selected source · synthetic
+                  Selected source
                 </div>
                 <p className="font-serif text-lg leading-relaxed text-white/85 sm:text-xl">
                   {run.passages.map((passage) => {
@@ -207,7 +207,7 @@ export function RagExamples() {
             </div>
           </div>
           <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-6 py-4 text-xs">
-            <span>Scripted illustration · synthetic handbook · no model calls · timings are illustrative</span>
+            <span>Demo run · no model calls · timings are illustrative</span>
             <Link href="/workspace" className="flex items-center gap-2 text-white">
               Try your documents <ArrowRight size={14} />
             </Link>

@@ -1,5 +1,5 @@
 /**
- * Synthetic demo content for the landing: one lesson from the "Containers handbook"
+ * Demo content for the landing: one lesson from the "Containers handbook"
  * written to the Master-mode contracts (#23 lesson content, #24 quiz) so the preview
  * matches what the product will generate. Graded entirely in the browser.
  */
@@ -21,7 +21,7 @@ export const demoLesson = {
   title: "Pods",
   module: "Deploy",
   minutes: 5,
-  label: "Demo lesson · synthetic handbook · graded in your browser",
+  label: "Demo lesson · graded in your browser",
   objective:
     "Explain what a Pod is and why Kubernetes schedules Pods rather than containers.",
   explanation: [
@@ -177,7 +177,7 @@ export function gradeQuiz(bank: DemoQuizQuestion[], answers: Record<string, stri
   return { score, passed: score >= demoLesson.passScore };
 }
 
-/** A synthetic week of learning, as lessons completed by the end of each day. */
+/** An example week of learning, as lessons completed by the end of each day. */
 export const demoWeek = [
   { day: "Mon", completed: 1 },
   { day: "Tue", completed: 2 },
@@ -188,7 +188,7 @@ export const demoWeek = [
   { day: "Today", completed: 3 },
 ];
 
-/** Shape mirrors the planned GET /courses/{id}/progress (#26); numbers are synthetic. */
+/** Shape mirrors the planned GET /courses/{id}/progress (#26); numbers are examples. */
 export function demoProgress(completed: number, quizFirstTry: boolean | null) {
   const total = demoLesson.total;
   const perModule = 3;

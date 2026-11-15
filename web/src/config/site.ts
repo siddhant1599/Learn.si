@@ -51,9 +51,9 @@ export const site = {
     ctaHref: "/workspace",
   },
 
-  /** Scroll stage after the examples: a synthetic page becomes a map of lessons. */
+  /** Scroll stage after the examples: a handbook page becomes a map of lessons. */
   constellation: {
-    eyebrow: "Master mode · in development",
+    eyebrow: "Master mode",
     title: "From a page to a path",
     subtitle:
       "Scroll: a document's sentences become short lessons, grouped into modules, unlocked one quiz at a time.",

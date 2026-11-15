@@ -10,7 +10,7 @@ const GOLD = "#e9c665";
 
 /**
  * Progress as a small night sky plus the numbers the progress API (#26) will return.
- * `completed` is the live count; the scrubber replays a synthetic week up to today.
+ * `completed` is the live count; the scrubber replays an example week up to today.
  */
 export function ProgressPanel({
   completed,
