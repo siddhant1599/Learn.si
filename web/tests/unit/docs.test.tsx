@@ -59,3 +59,18 @@ it('shared landing navigation points to published docs and retains workspace',()
  expect(site.header.links).toContainEqual({href:'/workspace',label:'Workspace'});
  expect(site.header.links.some(link=>link.label==='Examples')).toBe(false);
 });
+it('Master mode is documented and searchable with valid destinations',()=>{
+ for(const slug of ['choose-a-mode','master-mode','lessons','quizzes','progress'])
+  expect(findDoc(slug)?.group).toBe('Master mode');
+ for(const query of ['mastery','quiz','Your turn','study time','lesson_id']){
+  const results=searchDocs(query);
+  expect(results.length,query).toBeGreaterThan(0);
+  for(const result of results){
+   const [path,anchor]=result.href.split('#');
+   expect(docs.some(d=>docHref(d.slug)===path&&d.sections.some(s=>s.id===anchor))).toBe(true);
+  }
+ }
+ expect(searchDocs('mastery').some(r=>r.href==='/docs/progress#mastery')).toBe(true);
+ // Estimates are never described as limits.
+ expect(findDoc('progress')!.sections.map(s=>s.paragraphs.join(' ')).join(' ')).toMatch(/never a countdown or a limit/);
+});

@@ -531,3 +531,25 @@ html.dark .shiki span {
 @media (prefers-reduced-motion: reduce) {
   .delete-action { transition: none; }
 }
+
+/* Progress charts (#31): roles from the validated dataviz palette.
+   Mastery is an ordinal blue ramp (validated --ordinal on both surfaces);
+   "not started" is a neutral, never a hue. Text never wears series color. */
+.viz-root {
+  --viz-mastery-not-started: #c3c2b7;
+  --viz-mastery-learning: #86b6ef;
+  --viz-mastery-developing: #5598e7;
+  --viz-mastery-proficient: #2a78d6;
+  --viz-mastery-mastered: #184f95;
+  --viz-series-1: #2a78d6;
+  --viz-track: #e1e0d9;
+}
+.dark .viz-root {
+  --viz-mastery-not-started: #4a4a46;
+  --viz-mastery-learning: #184f95;
+  --viz-mastery-developing: #256abf;
+  --viz-mastery-proficient: #3987e5;
+  --viz-mastery-mastered: #86b6ef;
+  --viz-series-1: #3987e5;
+  --viz-track: #2c2c2a;
+}

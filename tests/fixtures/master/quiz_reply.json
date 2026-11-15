@@ -1,0 +1,94 @@
+{
+  "questions": [
+    {
+      "stem": "Which part of an archive label is printed first?",
+      "options": [
+        {
+          "id": "a",
+          "text": "The collection code"
+        },
+        {
+          "id": "b",
+          "text": "The box number"
+        },
+        {
+          "id": "c",
+          "text": "The date range"
+        },
+        {
+          "id": "d",
+          "text": "The retention category"
+        }
+      ],
+      "correct_option_id": "a",
+      "explanations": {
+        "a": "Shelves are ordered by collection, so the code comes first.",
+        "b": "The box number follows the collection code.",
+        "c": "The date range comes after the box number.",
+        "d": "The category is the last part of the label."
+      },
+      "citation": 1,
+      "bloom_level": "recall"
+    },
+    {
+      "stem": "A box of standard records reaches its review date. What must happen before it can be destroyed?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Staff record the decision in the disposal log"
+        },
+        {
+          "id": "b",
+          "text": "The label is replaced with a new one"
+        },
+        {
+          "id": "c",
+          "text": "The box moves to the intake shelf"
+        },
+        {
+          "id": "d",
+          "text": "The box is relabelled as permanent"
+        }
+      ],
+      "correct_option_id": "a",
+      "explanations": {
+        "a": "No box is destroyed without a logged decision.",
+        "b": "Relabelling is for damaged labels, not disposal.",
+        "c": "The intake shelf holds unreadable boxes.",
+        "d": "Changing the category would not authorize destruction."
+      },
+      "citation": 2,
+      "bloom_level": "apply"
+    },
+    {
+      "stem": "Why does the handbook forbid mixing retention categories in one box?",
+      "options": [
+        {
+          "id": "a",
+          "text": "The whole box would follow the longest period"
+        },
+        {
+          "id": "b",
+          "text": "Labels have room for only one date range"
+        },
+        {
+          "id": "c",
+          "text": "Permanent records must be stored separately by law"
+        },
+        {
+          "id": "d",
+          "text": "Mixed boxes cannot be shelved by collection"
+        }
+      ],
+      "correct_option_id": "a",
+      "explanations": {
+        "a": "A mixed box keeps everything for the longest period, defeating shorter categories.",
+        "b": "The handbook gives a different reason.",
+        "c": "The handbook does not mention legal storage rules.",
+        "d": "Shelving is by collection code, not by category."
+      },
+      "citation": 2,
+      "bloom_level": "analyze"
+    }
+  ]
+}

@@ -62,18 +62,23 @@ function quizChip(row?: LessonProgressRow) {
   return "Retake needed";
 }
 
-/** Plan progress with a refetch on focus, so quiz results show without a reload. */
-function useCourseProgress(courseId: string) {
+/** Course progress with a refetch on focus, so quiz results show without a reload. */
+export function useCourseProgress(courseId: string) {
   const [progress, setProgress] = useState<CourseProgress | null>(null);
-  const load = useCallback(() => {
-    studyApi.progress(courseId).then(setProgress).catch(() => {});
+  const [error, setError] = useState("");
+  const reload = useCallback(() => {
+    studyApi.progress(courseId)
+      .then((value) => {
+        if (value && Array.isArray(value.lessons)) { setProgress(value); setError(""); }
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Cannot load progress."));
   }, [courseId]);
   useEffect(() => {
-    load();
-    window.addEventListener("focus", load);
-    return () => window.removeEventListener("focus", load);
-  }, [load]);
-  return progress;
+    reload();
+    window.addEventListener("focus", reload);
+    return () => window.removeEventListener("focus", reload);
+  }, [reload]);
+  return { progress, error, reload };
 }
 
 function LessonRow({
@@ -126,7 +131,7 @@ export function CoursePlan({ course }: { course: CourseView }) {
   const router = useRouter();
   const { documents } = useChatStore();
   const { remove, recentlyUnlocked, clearUnlocked } = useStudyStore();
-  const progress = useCourseProgress(course.id);
+  const { progress } = useCourseProgress(course.id);
   const rows = new Map((progress?.lessons ?? []).map((row) => [row.id, row]));
   const moduleProgress = new Map((progress?.modules ?? []).map((m) => [m.id, m]));
   const next = progress?.next_lesson_id ?? course.next_lesson_id ?? null;

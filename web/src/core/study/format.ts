@@ -59,3 +59,23 @@ export function quizHref(courseId: string, lessonId: string, attemptId?: string)
   const base = `${lessonHref(courseId, lessonId)}/quiz`;
   return attemptId ? `${base}?attempt=${encodeURIComponent(attemptId)}` : base;
 }
+
+/** Study time as "1 h 12 min"; informational only, never a limit. */
+export function formatDuration(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "0 min";
+  if (seconds < 60) return "< 1 min";
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60), rest = minutes % 60;
+  if (!hours) return `${minutes} min`;
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}
+
+export function formatRate(rate: number | null | undefined): string {
+  return rate === null || rate === undefined ? "—" : `${Math.round(rate * 100)}%`;
+}
+
+export function formatWhen(iso: string | null | undefined): string {
+  if (!iso) return "No activity yet";
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+}

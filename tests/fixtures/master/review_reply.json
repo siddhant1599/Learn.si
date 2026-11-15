@@ -1,0 +1,5 @@
+{
+  "verdict": "partial",
+  "feedback": "Close: you have the parts, but check the order. Which part do shelves sort by, so it has to come first [1]?",
+  "explanation": "Labels go collection code, box number, date range, retention category."
+}

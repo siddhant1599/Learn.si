@@ -1,10 +1,43 @@
 # Study Buddy
 
 Study Buddy is a learning workspace for your own documents. **Ask mode** answers
-questions with evidence from up to five selected sources. **Master mode** (in
-development; tracked in the Study Buddy epic) turns a document into short
-lessons, quizzes and a progress tracker. The landing page leads to a single
+questions with evidence from up to five selected sources. **Master mode** turns
+one document into a course: modules of short lessons (explanation, Insight
+callouts, a diagram, a Your turn exercise and a Socratic tutor), a three-question
+quiz per lesson that unlocks the next one, and a progress tracker with topic
+mastery and passive study time. Master mode uses document evidence only; it never
+searches the web, and nothing in it is timed. The landing page leads to a single
 workspace entry where you choose a mode.
+
+### Master mode at a glance
+
+| Piece | Where | API |
+|---|---|---|
+| Courses and plans | `app/study/planner.py`, `jobs.py` | `POST/GET /courses`, `GET /courses/{id}`, `/events`, `DELETE` |
+| Lessons | `app/study/lesson_writer.py` | `GET /lessons/{id}`, `/events`, `POST /regenerate` |
+| Quizzes | `app/study/quiz.py` | `POST/GET /lessons/{id}/quiz-attempts`, `GET /quiz-attempts/{id}`, `POST .../submit` |
+| Tutor and Your turn | `app/study/tutor.py`, `review.py` | `POST /query` with `lesson_id`, `GET /lessons/{id}/conversation`, `POST /lessons/{id}/your-turn` |
+| Progress and mastery | `app/study/progress.py` | `GET /progress`, `GET /courses/{id}/progress`, `POST /lessons/{id}/study-time` |
+
+Settings (all optional; defaults shown):
+
+```sh
+COURSE_GENERATION_CALL_LIMIT=32
+COURSE_GENERATION_TIMEOUT_SECONDS=300
+COURSE_WINDOW_CHARS=10000
+LESSON_GENERATION_CALL_LIMIT=2
+LESSON_GENERATION_TIMEOUT_SECONDS=180
+LESSON_EVIDENCE_CHARS=12000
+LESSON_REGENERATION_DAILY_LIMIT=5
+QUIZ_CALL_LIMIT=3
+QUIZ_TIMEOUT_SECONDS=90
+```
+
+Run `uv run python -m scripts.migrate` after pulling: Master mode needs
+`migrations/002_study.sql` and `003_lesson_content.sql`. Details for each piece
+are in the sections below and in the in-app docs (`/docs/choose-a-mode`).
+Not yet done: live quality review of generated lessons and quizzes (the golden
+pipeline, #11, remains independent).
 
 The backend is a focused reimplementation of `../Agentic_RAG-sample-project` using
 FastAPI, LangGraph, PostgreSQL, Pinecone, and OpenRouter for chat and embeddings. The original sample
@@ -225,7 +258,28 @@ uv run pytest -q
 uv run ruff check .
 uv run ruff format --check .
 node --test tests/frontend.test.mjs
+cd web && npm run typecheck && npm test && npm run build
 ```
+
+Headless browser checks run against the started frontend (production build on
+port 3001). They mock `/api/rag` at the browser, so they need no database,
+provider or credits:
+
+```sh
+uv run --with playwright python -m scripts.check_web_modes
+uv run --with playwright python -m scripts.check_web_master   # full Master learning loop
+uv run --with playwright python -m scripts.check_web_docs
+uv run --with playwright python -m scripts.check_web_streaming
+uv run --with playwright python -m scripts.check_web_research
+uv run --with playwright python -m scripts.check_web_deletions
+```
+
+`check_web_master` drives landing → chooser → course creation from an upload →
+generation progress → plan → lesson (all blocks, Mermaid) → Your turn → tutor →
+quiz fail → retake with new questions → pass → unlock → progress, at 1440 and
+390 px in light and dark, failing on console errors or horizontal overflow. Its
+fixture backend replays `tests/fixtures/master` through the app's own validators;
+`tests/test_study_quality.py` runs the same recorded outputs offline.
 
 Optional real database integration test: set `TEST_DATABASE_URL` in your shell
 to the local `rag_clone_test` connection string (same credentials as `DATABASE_URL`,

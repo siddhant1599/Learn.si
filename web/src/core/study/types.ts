@@ -190,3 +190,34 @@ export type CourseProgress = {
   modules: ModuleProgress[];
   lessons: LessonProgressRow[];
 };
+
+export type ProgressOverview = {
+  totals: {
+    courses: number;
+    lessons_completed: number;
+    lessons_total: number;
+    study_seconds: number;
+    quiz_attempts: number;
+    quizzes_passed: number;
+  };
+  courses: {
+    course_id: string;
+    title: string;
+    percent: number;
+    completed_lessons: number;
+    lesson_count: number;
+    study_seconds: number;
+    mastery_distribution: Record<Mastery, number>;
+    last_activity: string | null;
+    next_lesson_id: string | null;
+  }[];
+  recent: {
+    kind: "lesson_completed" | "quiz";
+    course_id: string;
+    lesson_id: string;
+    title: string;
+    score?: number;
+    passed?: boolean;
+    at: string | null;
+  }[];
+};

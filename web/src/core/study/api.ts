@@ -8,6 +8,7 @@ import type {
   CourseSummary,
   CourseView,
   LessonDetail,
+  ProgressOverview,
   QuizAttemptView,
   QuizHistoryItem,
   TutorHistory,
@@ -84,6 +85,7 @@ export const studyApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ document_id: documentId }),
     }, "Course creation failed. Please retry."),
+  overview: () => request<ProgressOverview>("progress", {}, "Cannot load progress."),
   progress: (id: string) =>
     request<CourseProgress>(`courses/${encodeURIComponent(id)}/progress`, {}, "Cannot load progress."),
   remove: (id: string) =>

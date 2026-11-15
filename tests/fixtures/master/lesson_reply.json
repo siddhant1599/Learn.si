@@ -1,0 +1,37 @@
+{
+  "objective": "Explain what an archive label must contain and why each part matters.",
+  "explanation": "Every archive box carries a printed label on its short side so staff can read it while the box stays on the shelf [1]. The label holds four facts in a fixed order: the collection code, the box number within that collection, the date range of the records inside and the retention category [1]. The collection code comes first because shelves are ordered by collection, and the box number follows so staff can go straight to the right box without opening its neighbours [1]. Labels are printed rather than handwritten because handwriting fades over time and is easily misread during retrieval, which sends people to the wrong box [1].\n\nThe date range and the retention category do different jobs. The date range tells a reader at a glance whether a box could hold the record they need, so nobody pulls boxes that cannot contain it [1]. The retention category decides when the box is reviewed for disposal: short records after two years, standard records after seven and permanent records never [2]. A missing category is costly, because the box is then never reviewed and the shelf space is wasted for good [1]. For the same reason a damaged label is replaced on the same day, and an unreadable box waits on the intake shelf until it is relabelled [1].",
+  "real_world_example": "A records clerk needs a 2019 invoice from collection FIN. The label FIN-042, 2018–2020, Standard sends her to the right shelf and box, and tells her the box is due for review in 2027 [1][2].",
+  "diagram": {
+    "kind": "mermaid",
+    "source": "flowchart LR\n  A[Collection code] --> B[Box number]\n  B --> C[Date range]\n  C --> D[Retention category]",
+    "caption": "The four parts of a label, in the order they are printed."
+  },
+  "code_example": null,
+  "insights": [
+    {
+      "kind": "why_it_matters",
+      "text": "Every part of the label saves a step: the code finds the shelf, the number finds the box and the category schedules its review [1]."
+    },
+    {
+      "kind": "misconception",
+      "text": "A label is not just a name. Without the retention category the box is never reviewed, even if everything else is correct [1]."
+    }
+  ],
+  "your_turn": {
+    "kind": "apply",
+    "prompt": "A box holds standard records from 2015 to 2016 in collection HR and is box 7. Write its label in the correct order.",
+    "reference_answer": "HR-007, 2015–2016, Standard"
+  },
+  "key_terms": [
+    {
+      "term": "Collection code",
+      "definition": "The code of the collection a box belongs to; shelves are ordered by it."
+    },
+    {
+      "term": "Retention category",
+      "definition": "Short, standard or permanent; it sets when the box is reviewed for disposal."
+    }
+  ],
+  "limited_coverage": false
+}

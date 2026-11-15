@@ -2,7 +2,7 @@ import {beforeEach,describe,it,expect,vi} from 'vitest';
 import {act,render,screen,fireEvent,within,waitFor} from '@testing-library/react';
 const nav=vi.hoisted(()=>({pathname:'/workspace/courses',push:vi.fn()}));
 vi.mock('next/link',()=>({default:({children,href,...props}:any)=><a href={href} {...props}>{children}</a>}));
-vi.mock('next/navigation',()=>({usePathname:()=>nav.pathname,useRouter:()=>({push:nav.push}),useParams:()=>({course_id:'c1'})}));
+vi.mock('next/navigation',()=>({usePathname:()=>nav.pathname,useRouter:()=>({push:nav.push,replace:vi.fn()}),useSearchParams:()=>new URLSearchParams(),useParams:()=>({course_id:'c1'})}));
 vi.mock('@/components/chat/workspace-sidebar-trigger',()=>({WorkspaceSidebarTrigger:()=>null}));
 vi.mock('sonner',()=>({toast:{error:vi.fn(),success:vi.fn(),message:vi.fn()}}));
 import {ChatStoreProvider} from '@/core/chat/store';

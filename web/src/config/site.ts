@@ -144,19 +144,19 @@ export const site = {
         label: "Master mode",
         title: "Learn deeply. Build mastery.",
         description:
-          "Turn a document into a lesson plan of modules and short lessons, each with an example, a diagram and a tutor that guides your thinking. In development.",
+          "Turn a document into a lesson plan of modules and short lessons, each with an example, a diagram, a Your turn exercise and a tutor that guides your thinking before giving answers.",
       },
       {
         label: "Quizzes",
         title: "Check understanding as you go",
         description:
-          "Every lesson ends with a short quiz that explains wrong answers. Passing unlocks the next lesson; retakes bring fresh questions. In development.",
+          "Every lesson ends with a three-question quiz that explains wrong answers. Two of three unlocks the next lesson; retakes bring fresh questions.",
       },
       {
         label: "Progress",
         title: "See your mastery grow",
         description:
-          "Follow course progress, lesson completion, quiz performance, topic mastery and study time in one place. In development.",
+          "Follow course progress, lesson completion, quiz performance, topic mastery and study time in one place. Estimates inform; nothing is timed.",
       },
     ],
   },

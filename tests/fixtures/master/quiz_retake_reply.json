@@ -1,0 +1,94 @@
+{
+  "questions": [
+    {
+      "stem": "Why are archive labels printed instead of handwritten?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Handwriting fades and is misread during retrieval"
+        },
+        {
+          "id": "b",
+          "text": "Printed labels are cheaper to make"
+        },
+        {
+          "id": "c",
+          "text": "Printers add the review date automatically"
+        },
+        {
+          "id": "d",
+          "text": "Handwritten labels cannot show box numbers"
+        }
+      ],
+      "correct_option_id": "a",
+      "explanations": {
+        "a": "That is the reason the handbook gives.",
+        "b": "Cost is not mentioned.",
+        "c": "The review date is not printed on the label.",
+        "d": "Any label can show a box number."
+      },
+      "citation": 1,
+      "bloom_level": "recall"
+    },
+    {
+      "stem": "A label is damaged and unreadable. What do staff do with the box?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Replace the label the same day or move the box to intake"
+        },
+        {
+          "id": "b",
+          "text": "Destroy the box after logging it"
+        },
+        {
+          "id": "c",
+          "text": "Leave it until the next review date"
+        },
+        {
+          "id": "d",
+          "text": "Change its retention category"
+        }
+      ],
+      "correct_option_id": "a",
+      "explanations": {
+        "a": "Damaged labels are replaced the same day; unreadable boxes wait on intake.",
+        "b": "Destruction needs a retention decision, not a damaged label.",
+        "c": "Waiting would leave the box unfindable.",
+        "d": "The category does not change because of damage."
+      },
+      "citation": 1,
+      "bloom_level": "apply"
+    },
+    {
+      "stem": "What happens to a box whose label has no retention category?",
+      "options": [
+        {
+          "id": "a",
+          "text": "It is never reviewed and its shelf space is wasted"
+        },
+        {
+          "id": "b",
+          "text": "It is treated as permanent and reviewed yearly"
+        },
+        {
+          "id": "c",
+          "text": "It is destroyed after two years by default"
+        },
+        {
+          "id": "d",
+          "text": "It is moved to another collection"
+        }
+      ],
+      "correct_option_id": "a",
+      "explanations": {
+        "a": "Without a category the box never enters review.",
+        "b": "There is no default to permanent.",
+        "c": "There is no default destruction.",
+        "d": "Collections do not change because of a missing category."
+      },
+      "citation": 1,
+      "bloom_level": "analyze"
+    }
+  ]
+}

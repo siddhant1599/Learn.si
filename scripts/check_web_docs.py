@@ -5,7 +5,8 @@ Run against the production frontend: uv run --with playwright python -m scripts.
 from playwright.sync_api import expect, sync_playwright
 
 BASE = "http://127.0.0.1:3001"
-SLUGS = ["", "getting-started", "evidence", "deletion", "local-setup", "architecture", "api", "evaluation", "troubleshooting"]
+SLUGS = ["", "getting-started", "choose-a-mode", "master-mode", "lessons", "quizzes", "progress",
+         "evidence", "deletion", "local-setup", "architecture", "api", "evaluation", "troubleshooting"]
 
 
 def check_docs(page):

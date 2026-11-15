@@ -201,6 +201,8 @@ def overview(entries: list[tuple[dict, list[dict]]]) -> dict:
             "lessons_completed": sum(c["completed_lessons"] for c in courses),
             "lessons_total": sum(c["lesson_count"] for c in courses),
             "study_seconds": sum(c["study_seconds"] for c in courses),
+            "quiz_attempts": sum(c["quiz"]["attempts"] for c in courses),
+            "quizzes_passed": sum(c["quiz"]["passed"] for c in courses),
         },
         "courses": [
             {"course_id": c["course_id"], "title": c["title"], "percent": c["percent"],

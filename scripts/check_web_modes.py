@@ -99,6 +99,12 @@ def main():
     with sync_playwright() as p:
         browser = p.chromium.launch(executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless=True)
         page = browser.new_page(viewport={"width": 1440, "height": 900})
+        # Deterministic, read-only Master data: no courses, an empty overview.
+        page.route("**/api/rag/courses", lambda route: route.fulfill(json=[]))
+        page.route("**/api/rag/progress", lambda route: route.fulfill(json={
+            "totals": {"courses": 0, "lessons_completed": 0, "lessons_total": 0, "study_seconds": 0,
+                       "quiz_attempts": 0, "quizzes_passed": 0},
+            "courses": [], "recent": []}))
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         check_desktop(page, errors)

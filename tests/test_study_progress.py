@@ -113,7 +113,8 @@ def test_overview_orders_by_activity_and_bounds_recent():
                        (newer, [attempt(f"l{i}", 1, 2, at=T0 + timedelta(days=1, minutes=i)) for i in range(1, 15)])])
     assert [c["course_id"] for c in result["courses"]] == ["b", "a"]
     assert result["totals"] == {"courses": 2, "lessons_completed": 15, "lessons_total": 15,
-                                "study_seconds": 60 + 60 * sum(range(1, 15))}
+                                "study_seconds": 60 + 60 * sum(range(1, 15)),
+                                "quiz_attempts": 15, "quizzes_passed": 15}
     assert len(result["recent"]) == 20
     stamps = [item["at"] for item in result["recent"]]
     assert stamps == sorted(stamps, reverse=True)
