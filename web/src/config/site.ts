@@ -42,7 +42,7 @@ export const site = {
       "Personal Learning",
       "Document Research",
       "Lesson Planning",
-      "Mastery Tracking",
+      "Quiz Coaching",
     ],
     rotatingSuffix: "SuperAgent",
     description:
