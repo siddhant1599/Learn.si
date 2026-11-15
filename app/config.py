@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     course_generation_call_limit: int = Field(default=32, ge=2, le=80)
     course_generation_timeout_seconds: int = Field(default=300, ge=30, le=900)
     course_window_chars: int = Field(default=10000, ge=2000, le=30000)
+    # Lesson content: one writer call plus one bounded retry per generation by default.
+    lesson_generation_call_limit: int = Field(default=2, ge=1, le=4)
+    lesson_generation_timeout_seconds: int = Field(default=180, ge=30, le=600)
+    lesson_evidence_chars: int = Field(default=12000, ge=2000, le=30000)
+    lesson_regeneration_daily_limit: int = Field(default=5, ge=0, le=50)
 
     @model_validator(mode="after")
     def free_chat_only(self):

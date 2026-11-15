@@ -20,7 +20,7 @@ from app.pinecone import PineconeVectors
 from app.privacy import safe_turn
 from app.providers import ProviderError, Providers
 from app.storage import Conflict, NotFound, Storage, recent_context
-from app.study.jobs import CourseJobs
+from app.study.jobs import CourseJobs, LessonJobs
 from app.study.models import CourseCreate
 from app.study.storage import StudyStorage
 from app.uploads import MAX_BYTES, extract_document
@@ -42,6 +42,7 @@ async def lifespan(app):
     app.state.storage = None
     app.state.study = None
     app.state.course_jobs = None
+    app.state.lesson_jobs = None
     app.state.research_limiter = asyncio.Semaphore(config.research_service_concurrency)
     async with httpx.AsyncClient(timeout=45) as client:
         app.state.providers = Providers(config, client)
@@ -57,8 +58,9 @@ async def lifespan(app):
             app.state.storage = store
             app.state.study = StudyStorage(store.pool)
             app.state.course_jobs = CourseJobs(app.state.study, app.state.providers, config)
+            app.state.lesson_jobs = LessonJobs(app.state.study, app.state.providers, config)
             try:
-                # No background plan generation survives a restart.
+                # No background plan or lesson generation survives a restart.
                 await app.state.study.mark_interrupted()
             except Exception:
                 logger.warning("Study schema unavailable; run scripts.migrate before Master mode")
@@ -70,8 +72,9 @@ async def lifespan(app):
         try:
             yield
         finally:
-            if getattr(app.state, "course_jobs", None):
-                await app.state.course_jobs.shutdown()
+            for name in ("course_jobs", "lesson_jobs"):
+                if getattr(app.state, name, None):
+                    await getattr(app.state, name).shutdown()
             if deletion_task:
                 deletion_task.cancel()
                 try:
@@ -147,6 +150,13 @@ def study_storage(request: Request):
 
 def course_jobs(request: Request):
     jobs = getattr(request.app.state, "course_jobs", None)
+    if jobs is None:
+        raise HTTPException(503, "DATABASE_URL is not configured")
+    return jobs
+
+
+def lesson_jobs(request: Request):
+    jobs = getattr(request.app.state, "lesson_jobs", None)
     if jobs is None:
         raise HTTPException(503, "DATABASE_URL is not configured")
     return jobs
@@ -262,6 +272,84 @@ async def delete_course(course_id: UUID, study=Depends(study_storage)):
         return await study.delete_course(course_id)
     except Exception:
         raise HTTPException(503, "Course deletion failed. Retry when the database is available.") from None
+
+
+async def _lesson(study, lesson_id: UUID):
+    try:
+        return await study.lesson(lesson_id)
+    except NotFound as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
+def _lesson_body(lesson, jobs):
+    """Client view only: server-only content fields never leave the API."""
+    locked = lesson.progress.status == "locked"
+    body = lesson.client_view(settings().lesson_regeneration_daily_limit, locked_content=locked)
+    return {**body, "generation_progress": jobs.snapshot(lesson.id)}
+
+
+@app.get("/lessons/{lesson_id}")
+async def get_lesson(lesson_id: UUID, study=Depends(study_storage), jobs=Depends(lesson_jobs)):
+    """Opening marks an available lesson in progress (never unlocks) and starts generation.
+
+    200 with content once ready (or failed, with failure code); 202 while generating.
+    Locked lessons return metadata only and generate nothing.
+    """
+    lesson = await _lesson(study, lesson_id)
+    if lesson.progress.status == "locked":
+        return JSONResponse(_lesson_body(lesson, jobs), status_code=200)
+    if lesson.progress.status == "available":
+        await study.open_lesson(lesson_id)
+    if lesson.content_status == "pending":
+        generation = uuid4()
+        if await study.begin_content(lesson_id, generation):
+            jobs.start(lesson_id, generation)
+    lesson = await _lesson(study, lesson_id)
+    if (lesson.content_status == "generating" and lesson.content_generation is not None
+            and not jobs.running(lesson_id)):
+        # Started by a concurrent open that has not launched yet, or orphaned in-process.
+        jobs.start(lesson_id, lesson.content_generation)
+    status = 202 if lesson.content_status == "generating" else 200
+    return JSONResponse(_lesson_body(lesson, jobs), status_code=status)
+
+
+@app.get("/lessons/{lesson_id}/events")
+async def lesson_events(lesson_id: UUID, study=Depends(study_storage), jobs=Depends(lesson_jobs)):
+    await _lesson(study, lesson_id)
+
+    async def stream():
+        async for item in jobs.subscribe(lesson_id):
+            yield event("progress", item)
+        final = await study.lesson(lesson_id)
+        yield event("status", {"content_status": final.content_status,
+                               "failure_code": final.content_failure_code})
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.post("/lessons/{lesson_id}/regenerate")
+async def regenerate_lesson(
+    lesson_id: UUID, study=Depends(study_storage), jobs=Depends(lesson_jobs)
+):
+    """Replace ready or failed content; attempts and progress are preserved."""
+    lesson = await _lesson(study, lesson_id)
+    if lesson.progress.status == "locked":
+        raise HTTPException(409, "Pass the previous quiz before opening this lesson.")
+    generation = uuid4()
+    result = await study.begin_regeneration(
+        lesson_id, generation, settings().lesson_regeneration_daily_limit
+    )
+    if result == "busy":
+        raise HTTPException(409, "This lesson is still being written.")
+    if result == "limit":
+        raise HTTPException(429, "Daily regeneration limit reached for this lesson.")
+    jobs.start(lesson_id, generation)
+    lesson = await _lesson(study, lesson_id)
+    return JSONResponse(_lesson_body(lesson, jobs), status_code=202)
 
 
 @app.get("/conversations/{thread_id}/messages")

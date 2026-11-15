@@ -44,3 +44,10 @@ it('maps course generation steps and window tasks onto the same step model',()=>
  expect(progressStep({...base,step:'estimate',id:'estimate',status:'failed',sequence:6,outcome:'timeout'})).toMatchObject({results:['Timed out']});
  expect(progressStep({...base,step:'topics',id:'topics:w1000',task:'w1000',status:'started',sequence:7})).toBeUndefined();
 });
+
+it('maps lesson content steps, retries and failure outcomes',()=>{
+ const base={type:'progress',version:1};
+ expect(progressStep({...base,attempt:0,step:'evidence',id:'evidence',status:'completed',sequence:2,count:3,outcome:'partial'})).toMatchObject({kind:'search',label:'Lesson sources gathered',results:['Partial evidence','3 source passages']});
+ expect(progressStep({...base,attempt:1,step:'write',id:'write',status:'started',sequence:6})).toMatchObject({kind:'write',label:'Writing the lesson',attempt:1});
+ expect(progressStep({...base,attempt:1,step:'validate',id:'validate',status:'failed',sequence:9,outcome:'ungrounded'})).toMatchObject({status:'failed',results:['Citations could not be verified']});
+});

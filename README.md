@@ -636,6 +636,44 @@ Malformed model output is retried once, then the course fails with a safe
 `failure_code` (`provider`, `budget`, `timeout`, `unreadable`); a restart marks
 unfinished courses `interrupted`. No prompts or document text are logged.
 
+### Lesson content
+
+`GET /lessons/{id}` returns a lesson's metadata, progress and content. Opening an
+`available` lesson marks it `in_progress` (opening never unlocks; a `locked`
+lesson returns metadata only and generates nothing). If content is `pending`,
+the first open starts one background job (concurrent opens share it) and answers
+202 `generating`; `GET /lessons/{id}/events` streams progress v1 events (steps
+`evidence`, `write`, `validate`; a retry carries `attempt: 1`) followed by a
+`status` event. `POST /lessons/{id}/regenerate` replaces `ready` or `failed`
+content atomically (409 while pending or generating, 429 past
+`LESSON_REGENERATION_DAILY_LIMIT`, default 5 per lesson per UTC day); previous
+content stays readable until the new version is written, and attempts and
+progress are untouched. `LessonJobs.prefetch(lesson_id)` prepares the lesson
+unlocked by a completion (#24), one prefetch at a time.
+
+The writer (`app/study/lesson_writer.py`) uses document evidence only (no web in
+Master mode): the lesson's sections, bounded by `LESSON_EVIDENCE_CHARS` (default
+12,000), numbered like chat evidence. The contract (`LessonContent` in
+`app/study/models.py`): one-sentence `objective`; a 200–250-word `explanation`
+in which every paragraph cites `[n]`; a `real_world_example` (≤120 words); an
+optional Mermaid `diagram` (flowchart, sequence, class, state or mindmap only;
+HTML, links, click handlers and init directives are dropped with a
+`diagram_dropped` warning); a `code_example` with a `TODO(you)` gap only when
+the sources are about code or an algorithm; 1–2 `insights` (why it matters,
+misconception, trade-off; ≤60 words); a `your_turn` exercise (`code_gap` only
+with a code example, otherwise `apply` or `fill_blank`; ≤80 words); up to five
+`key_terms`; and `citations` in the chat citation shape. Learner-visible text
+totals at most 650 words. Citations must resolve to the evidence. Budgets are
+validated, never truncated: one retry lists the problems, then the lesson fails
+`ungrounded` (citations) or `invalid` (format), alongside `provider`, `budget`,
+`timeout`, `unreadable` and `interrupted`. Thin sources produce a shorter lesson
+with a "Limited source coverage" note instead of invented material.
+`reference_solution` and `reference_answer` are stored for review (#25) but are
+never returned by any route or logged. Each generation is bounded by
+`LESSON_GENERATION_CALL_LIMIT` (default 2) and
+`LESSON_GENERATION_TIMEOUT_SECONDS` (default 180). `migrations/003_lesson_content.sql`
+adds the lesson job columns.
+
 `GET /deletions` supplies ID-only tombstones (kinds `document`, `conversation`,
 `course`) and pending flags for browser reconciliation on startup, focus and
 every five seconds. Local cross-tab chat

@@ -17,6 +17,8 @@ from app.study.models import (
 
 # scripts.ingest.chunks(size=2400, overlap=240): later chunks repeat the previous 240 chars.
 CHUNK_OVERLAP = 240
+# Regeneration limits count per UTC day, independent of the session time zone.
+TODAY = "(now() AT TIME ZONE 'UTC')::date"
 
 COURSE_SUMMARY = """
 SELECT c.id, c.document_id, c.title, c.status, c.failure_code, c.generation,
@@ -135,7 +137,13 @@ class StudyStorage:
                 "UPDATE study.courses SET status='failed', failure_code='interrupted', "
                 "updated_at=now() WHERE status='generating' RETURNING id"
             )
-            return len(await cur.fetchall())
+            courses = len(await cur.fetchall())
+            cur = await conn.execute(
+                "UPDATE study.lessons SET content_failure_code='interrupted', content_status="
+                "CASE WHEN content IS NULL THEN 'failed' ELSE 'ready' END "
+                "WHERE content_status='generating' RETURNING id"
+            )
+            return courses + len(await cur.fetchall())
 
     async def write_plan(self, course_id: UUID, generation: UUID, plan: LessonPlan) -> CourseView:
         """Replace the course outline atomically; only the active generation may write."""
@@ -235,11 +243,15 @@ class StudyStorage:
     # Lessons -----------------------------------------------------------------
 
     async def lesson(self, lesson_id: UUID) -> LessonView:
+        """Full row including server-only content fields; serialize via client_view only."""
         async with self.pool.connection() as conn:
             cur = await conn.execute(
                 "SELECT l.id, l.course_id, l.module_id, c.document_id, l.position, l.title, "
                 "l.objective, l.source_section_ids, l.estimated_minutes, l.content_status, "
-                "l.content_generated_at, l.content, p.status, p.opened_at, p.completed_at, "
+                "l.content_generated_at, l.content, l.content_failure_code, "
+                "l.content_generation, CASE WHEN l.regeneration_day=" + TODAY + " "
+                "THEN l.regeneration_count ELSE 0 END AS regenerations_today, "
+                "p.status, p.opened_at, p.completed_at, "
                 "p.study_seconds FROM study.lessons l JOIN study.courses c ON c.id=l.course_id "
                 "JOIN study.lesson_progress p ON p.lesson_id=l.id WHERE l.id=%s",
                 (lesson_id,),
@@ -249,24 +261,99 @@ class StudyStorage:
             raise NotFound("Lesson does not exist")
         return LessonView.model_validate({**row, "progress": row})
 
-    async def set_content_status(self, lesson_id: UUID, status: str) -> None:
+    async def lesson_evidence(self, lesson_id: UUID) -> tuple[dict, list[dict]]:
+        """The lesson and its source sections (full text, first page), in plan order."""
         async with self.pool.connection() as conn:
             cur = await conn.execute(
-                "UPDATE study.lessons SET content_status=%s WHERE id=%s RETURNING id",
-                (status, lesson_id),
+                "SELECT l.id, l.title, l.objective, l.source_section_ids, c.document_id, "
+                "d.title AS document_title, d.edition FROM study.lessons l "
+                "JOIN study.courses c ON c.id=l.course_id "
+                "JOIN rag.documents d ON d.id=c.document_id WHERE l.id=%s",
+                (lesson_id,),
             )
-            if not await cur.fetchone():
+            lesson = await cur.fetchone()
+            if not lesson:
                 raise NotFound("Lesson does not exist")
+            cur = await conn.execute(
+                "SELECT s.id, s.number, s.title, s.kind, min(c.page) AS page, "
+                "coalesce(string_agg(CASE WHEN c.chunk_index=0 THEN c.text "
+                "ELSE substr(c.text, %s+1) END, '' ORDER BY c.chunk_index), '') AS text "
+                "FROM rag.sections s LEFT JOIN rag.chunks c "
+                "ON c.document_id=s.document_id AND c.section_id=s.id "
+                "WHERE s.document_id=%s AND s.id = ANY(%s) "
+                "GROUP BY s.id, s.number, s.title, s.kind",
+                (CHUNK_OVERLAP, lesson["document_id"], lesson["source_section_ids"]),
+            )
+            rows = {row["id"]: row for row in await cur.fetchall()}
+        shared = {key: lesson[key] for key in ("document_id", "document_title", "edition")}
+        sections = [
+            {**rows[sid], **shared} for sid in lesson["source_section_ids"] if sid in rows
+        ]
+        return lesson, sections
 
-    async def set_content(self, lesson_id: UUID, content: dict) -> None:
+    async def begin_content(self, lesson_id: UUID, generation: UUID) -> bool:
+        """pending -> generating for exactly one caller; concurrent opens start one job."""
+        async with self.pool.connection() as conn:
+            cur = await conn.execute(
+                "UPDATE study.lessons SET content_status='generating', content_generation=%s, "
+                "content_failure_code=NULL WHERE id=%s AND content_status='pending' RETURNING id",
+                (generation, lesson_id),
+            )
+            return await cur.fetchone() is not None
+
+    async def begin_regeneration(self, lesson_id: UUID, generation: UUID, daily_limit: int) -> str:
+        """ready/failed -> generating within the per-lesson daily limit.
+
+        Returns started, busy (pending or already generating) or limit. Existing content
+        stays readable until the new generation replaces it.
+        """
+        async with self.pool.connection() as conn:
+            cur = await conn.execute(
+                "UPDATE study.lessons SET content_status='generating', content_generation=%s, "
+                "content_failure_code=NULL, regeneration_count=CASE WHEN regeneration_day="
+                + TODAY + " THEN regeneration_count+1 ELSE 1 END, regeneration_day=" + TODAY
+                + " WHERE id=%s AND content_status IN ('ready','failed') AND "
+                "(regeneration_day IS DISTINCT FROM " + TODAY + " OR regeneration_count < %s) "
+                "RETURNING id",
+                (generation, lesson_id, daily_limit),
+            )
+            if await cur.fetchone():
+                return "started"
+            cur = await conn.execute(
+                "SELECT content_status FROM study.lessons WHERE id=%s", (lesson_id,)
+            )
+            row = await cur.fetchone()
+        if not row:
+            raise NotFound("Lesson does not exist")
+        return "busy" if row["content_status"] in ("pending", "generating") else "limit"
+
+    async def write_content(self, lesson_id: UUID, generation: UUID, content: dict) -> None:
+        """Replace content atomically; only the active generation may write."""
         async with self.pool.connection() as conn:
             cur = await conn.execute(
                 "UPDATE study.lessons SET content=%s, content_status='ready', "
-                "content_generated_at=now() WHERE id=%s RETURNING id",
-                (Jsonb(content), lesson_id),
+                "content_failure_code=NULL, content_generated_at=now() "
+                "WHERE id=%s AND content_generation=%s AND content_status='generating' "
+                "RETURNING id",
+                (Jsonb(content), lesson_id, generation),
             )
+            if await cur.fetchone():
+                return
+            cur = await conn.execute("SELECT 1 FROM study.lessons WHERE id=%s", (lesson_id,))
             if not await cur.fetchone():
                 raise NotFound("Lesson does not exist")
+        raise Conflict("A newer generation owns this lesson")
+
+    async def fail_content(self, lesson_id: UUID, generation: UUID, code: str) -> bool:
+        """Record a failure; a failed regeneration keeps the previous content readable."""
+        async with self.pool.connection() as conn:
+            cur = await conn.execute(
+                "UPDATE study.lessons SET content_failure_code=%s, content_status=CASE WHEN "
+                "content IS NULL THEN 'failed' ELSE 'ready' END WHERE id=%s AND "
+                "content_generation=%s AND content_status='generating' RETURNING id",
+                (code, lesson_id, generation),
+            )
+            return await cur.fetchone() is not None
 
     async def open_lesson(self, lesson_id: UUID) -> str:
         """available -> in_progress. Never unlocks; returns the resulting status."""
