@@ -32,15 +32,14 @@ import { cn } from "@/lib/utils";
 
 import { CopyButton } from "./copy-button";
 import { MessageReasoning } from "./message-reasoning";
-import { useChatStore } from "@/core/chat/store";
-import { safeWebUrl } from "@/core/chat/privacy";
+import { CitationList } from "./citation-list";
 import { MessageSteps } from "./message-steps";
 import { StreamingIndicator } from "./streaming-indicator";
 
 const TOOLBAR_VISIBILITY =
   "z-20 opacity-0 transition-opacity delay-200 duration-300 group-hover/conversation-message:opacity-100 focus-within:opacity-100";
 
-function Markdown({
+export function Markdown({
   content,
   isLoading,
 }: {
@@ -113,7 +112,6 @@ function statusNote(status: AssistantMessage["status"]) {
 }
 
 function AssistantRow({ message }: { message: AssistantMessage }) {
-  const { deletions } = useChatStore();
   const isLoading = message.status === "streaming";
   const isEmpty =
     !message.reasoning && !message.text && message.steps.length === 0;
@@ -139,31 +137,7 @@ function AssistantRow({ message }: { message: AssistantMessage }) {
           <Markdown content={message.text} isLoading={isLoading} />
         )}
         {message.citations && message.citations.length > 0 && (
-          <div className="mt-5 flex flex-wrap gap-2" aria-label="Sources">
-            {message.citations.map((c) => c.source_type === "web" ? (
-              <div key={c.citation} className="bg-secondary/50 max-w-full rounded-lg border px-3 py-2 text-xs">
-                <span>Web · [{c.citation}] </span>
-                {safeWebUrl(c.url) ? <a href={c.url} target="_blank" rel="noopener noreferrer"
-                  className="underline break-all">{c.title} · {new URL(c.url).hostname}</a> : <span>Unavailable web link</span>}
-                {c.published_date && <p>Published: {c.published_date}</p>}
-                <p>Web links are not retained after reload.</p>
-              </div>
-            ) : (
-              <details
-                key={c.citation}
-                className="bg-secondary/50 max-w-full rounded-lg border px-3 py-2 text-xs"
-              >
-                <summary className="cursor-pointer break-words">
-                  [{c.citation}] {c.document_title}
-                  {c.page ? ` · Page ${c.page}` : ""}
-                  {deletions.some(d => d.kind === "document" && d.id === c.document_id) && " · Source unavailable (deleted)"}
-                </summary>
-                <p className="mt-2">
-                  {c.edition} · {c.kind} {c.number}
-                </p>
-              </details>
-            ))}
-          </div>
+          <CitationList citations={message.citations} />
         )}
         {message.warnings?.map((w) => (
           <p key={w} className="text-muted-foreground mt-2 text-sm">

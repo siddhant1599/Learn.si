@@ -6,14 +6,16 @@ import type { ChatStep } from "@/core/chat/types";
 import { failureReason } from "@/core/study/format";
 
 /** Plan generation in the chat activity panel's visual language. */
-export function GenerationProgress({ steps }: { steps: ChatStep[] }) {
+export function GenerationProgress({
+  steps,
+  title = "Preparing your lesson plan",
+  description = "Reading the document, finding topics and organizing lessons. This can take a few minutes; you can leave and come back.",
+}: { steps: ChatStep[]; title?: string; description?: string }) {
   return (
     <section aria-labelledby="generation-heading" className="space-y-3">
       <div className="space-y-1">
-        <h2 id="generation-heading" className="text-base font-medium">Preparing your lesson plan</h2>
-        <p className="text-sm text-muted-foreground">
-          Reading the document, finding topics and organizing lessons. This can take a few minutes; you can leave and come back.
-        </p>
+        <h2 id="generation-heading" className="text-base font-medium">{title}</h2>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
       {steps.length ? (
         <MessageSteps steps={steps} detailsLabel="Document parts" />

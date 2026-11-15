@@ -40,3 +40,22 @@ export function courseHref(id: string) {
 export function lessonHref(courseId: string, lessonId: string) {
   return `${courseHref(courseId)}/lessons/${encodeURIComponent(lessonId)}`;
 }
+
+const LESSON_FAILURES: Record<string, string> = {
+  provider: "The model could not write this lesson.",
+  budget: "Writing the lesson needed more model calls than allowed.",
+  timeout: "Writing the lesson took too long.",
+  unreadable: "The lesson's sections have no readable text.",
+  invalid: "The draft did not fit the lesson format.",
+  ungrounded: "The draft's citations could not be verified against the document.",
+  interrupted: "Writing was interrupted by a server restart.",
+};
+
+export function lessonFailureReason(code?: string | null): string {
+  return (code && LESSON_FAILURES[code]) || "The lesson could not be written.";
+}
+
+export function quizHref(courseId: string, lessonId: string, attemptId?: string) {
+  const base = `${lessonHref(courseId, lessonId)}/quiz`;
+  return attemptId ? `${base}?attempt=${encodeURIComponent(attemptId)}` : base;
+}

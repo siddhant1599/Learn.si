@@ -3,7 +3,13 @@ import { progressStep } from "@/core/chat/progress";
 import { mergeStep } from "@/core/chat/reducer";
 import type { ChatStep } from "@/core/chat/types";
 
-import type { CourseSummary, CourseView } from "./types";
+import type {
+  CourseSummary,
+  CourseView,
+  LessonDetail,
+  QuizAttemptView,
+  QuizHistoryItem,
+} from "./types";
 
 const BASE = "/api/rag";
 
@@ -33,6 +39,26 @@ async function request<T>(path: string, init: RequestInit = {}, fallback = "Requ
 
 export type CourseDetail = { course: CourseView; steps: ChatStep[] };
 
+/** Live job events; throws when the stream is unavailable. */
+async function* streamEvents(path: string, signal: AbortSignal): AsyncGenerator<
+  { type: "step"; step: ChatStep } | { type: "status" }
+> {
+  const response = await fetch(`${BASE}/${path}`, {
+    cache: "no-store",
+    headers: { Accept: "text/event-stream" },
+    signal,
+  });
+  if (!response.ok || !response.body) throw new StudyRequestError("Progress stream unavailable.", response.status);
+  for await (const frame of parseSSE(response.body)) {
+    if (frame.event === "progress") {
+      const step = progressStep(frame.data);
+      if (step) yield { type: "step", step };
+    } else if (frame.event === "status") {
+      yield { type: "status" };
+    }
+  }
+}
+
 export function stepsFrom(events: unknown, steps: ChatStep[] = []): ChatStep[] {
   if (!Array.isArray(events)) return steps;
   return events.reduce<ChatStep[]>((current, item) => {
@@ -58,30 +84,11 @@ export const studyApi = {
   remove: (id: string) =>
     request<{ status: string; id: string }>(`courses/${encodeURIComponent(id)}`, { method: "DELETE" },
       "Course deletion failed. Please retry."),
-  /** Live generation events; throws when the stream is unavailable. */
-  async *events(id: string, signal: AbortSignal): AsyncGenerator<
-    { type: "step"; step: ChatStep } | { type: "status"; status: string }
-  > {
-    const response = await fetch(`${BASE}/courses/${encodeURIComponent(id)}/events`, {
-      cache: "no-store",
-      headers: { Accept: "text/event-stream" },
-      signal,
-    });
-    if (!response.ok || !response.body) throw new StudyRequestError("Progress stream unavailable.", response.status);
-    for await (const frame of parseSSE(response.body)) {
-      if (frame.event === "progress") {
-        const step = progressStep(frame.data);
-        if (step) yield { type: "step", step };
-      } else if (frame.event === "status" && typeof frame.data?.status === "string") {
-        yield { type: "status", status: frame.data.status };
-      }
-    }
-  },
 };
 
-type FollowOptions = {
+type FollowOptions<T> = {
   signal: AbortSignal;
-  onUpdate: (detail: CourseDetail) => void;
+  onUpdate: (detail: T) => void;
   pollMs?: number;
   wait?: (ms: number, signal: AbortSignal) => Promise<void>;
 };
@@ -94,15 +101,21 @@ function delay(ms: number, signal: AbortSignal) {
 }
 
 /**
- * Follow a generating course until it settles: live SSE first, then polling
- * GET /courses/{id} when the stream errors or ends early. Resolves with the final detail.
+ * Follow a background job until it settles: live SSE first, then polling the
+ * detail endpoint when the stream errors or ends. Resolves with the final detail.
  */
-export async function followCourse(id: string, detail: CourseDetail, options: FollowOptions): Promise<CourseDetail> {
+async function followJob<T extends { steps: ChatStep[] }>(
+  eventsPath: string,
+  load: (signal: AbortSignal) => Promise<T>,
+  running: (detail: T) => boolean,
+  detail: T,
+  options: FollowOptions<T>,
+): Promise<T> {
   const { signal, onUpdate, pollMs = 3000, wait = delay } = options;
   let current = detail;
-  const publish = (next: CourseDetail) => { current = next; onUpdate(next); };
+  const publish = (next: T) => { current = next; onUpdate(next); };
   try {
-    for await (const event of studyApi.events(id, signal)) {
+    for await (const event of streamEvents(eventsPath, signal)) {
       if (event.type === "step") publish({ ...current, steps: mergeStep(current.steps, event.step) });
       else break;
     }
@@ -111,15 +124,62 @@ export async function followCourse(id: string, detail: CourseDetail, options: Fo
     // Fall through to polling: proxies and flaky networks may drop SSE.
   }
   while (!signal.aborted) {
-    const fresh = await studyApi.get(id, signal).catch((error) => {
+    const fresh = await load(signal).catch((error) => {
       if (signal.aborted) throw error;
       return null;
     });
     if (fresh) {
-      publish({ course: fresh.course, steps: fresh.steps.reduce(mergeStep, current.steps) });
-      if (fresh.course.status !== "generating") return current;
+      publish({ ...fresh, steps: fresh.steps.reduce(mergeStep, current.steps) });
+      if (!running(fresh)) return current;
     }
     await wait(pollMs, signal);
   }
   throw signal.reason;
 }
+
+export function followCourse(id: string, detail: CourseDetail, options: FollowOptions<CourseDetail>) {
+  return followJob(`courses/${encodeURIComponent(id)}/events`, (signal) => studyApi.get(id, signal),
+    (d) => d.course.status === "generating", detail, options);
+}
+
+export type LessonState = { lesson: LessonDetail; steps: ChatStep[]; generating: boolean };
+
+export function followLesson(id: string, detail: LessonState, options: FollowOptions<LessonState>) {
+  return followJob(`lessons/${encodeURIComponent(id)}/events`, (signal) => lessonApi.get(id, signal),
+    (d) => d.generating, detail, options);
+}
+
+const json = (body: unknown) => ({
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
+
+export const lessonApi = {
+  /** Opening marks the lesson in progress and starts generation when needed. */
+  async get(id: string, signal?: AbortSignal): Promise<LessonState> {
+    const { generation_progress, ...lesson } = await request<LessonDetail & { generation_progress?: unknown }>(
+      `lessons/${encodeURIComponent(id)}`, signal ? { signal } : {}, "Cannot load this lesson.",
+    );
+    return { lesson, steps: stepsFrom(generation_progress), generating: lesson.content_status === "generating" };
+  },
+  async regenerate(id: string): Promise<LessonState> {
+    const { generation_progress, ...lesson } = await request<LessonDetail & { generation_progress?: unknown }>(
+      `lessons/${encodeURIComponent(id)}/regenerate`, { method: "POST" }, "Regeneration failed. Please retry.",
+    );
+    return { lesson, steps: stepsFrom(generation_progress), generating: lesson.content_status === "generating" };
+  },
+};
+
+export const quizApi = {
+  start: (lessonId: string) =>
+    request<QuizAttemptView>(`lessons/${encodeURIComponent(lessonId)}/quiz-attempts`,
+      { method: "POST", signal: AbortSignal.timeout(120000) }, "The quiz could not be generated. Please retry."),
+  get: (attemptId: string) =>
+    request<QuizAttemptView>(`quiz-attempts/${encodeURIComponent(attemptId)}`, {}, "Cannot load this quiz attempt."),
+  submit: (attemptId: string, answers: Record<string, string>) =>
+    request<QuizAttemptView>(`quiz-attempts/${encodeURIComponent(attemptId)}/submit`, json({ answers }),
+      "Submission failed. Your answers are kept; please retry."),
+  history: (lessonId: string) =>
+    request<QuizHistoryItem[]>(`lessons/${encodeURIComponent(lessonId)}/quiz-attempts`, {}, "Cannot load attempts."),
+};

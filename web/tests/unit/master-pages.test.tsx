@@ -12,7 +12,7 @@ import LessonPage from '@/app/workspace/(shell)/courses/[course_id]/lessons/[les
 import ProgressPage from '@/app/workspace/(shell)/progress/page';
 import CoursesLoading from '@/app/workspace/(shell)/courses/loading';
 
-const respond=(url:string)=>url.includes('/courses/')?{ok:false,status:404,json:async()=>({detail:'Course does not exist'})}:{ok:true,status:200,json:async()=>[]};
+const respond=(url:string)=>url.includes('/courses/')||url.includes('/lessons/')?{ok:false,status:404,json:async()=>({detail:'Course does not exist'})}:{ok:true,status:200,json:async()=>[]};
 const withStores=(ui:React.ReactNode)=><ChatStoreProvider><StudyStoreProvider>{ui}</StudyStoreProvider></ChatStoreProvider>;
 beforeEach(()=>{vi.stubGlobal('fetch',vi.fn(async(url:string)=>respond(url)))});
 
@@ -28,8 +28,8 @@ it('course and lesson pages link back up the hierarchy',async()=>{
  const course=render(withStores(<CoursePage/>));
  expect(await screen.findByRole('link',{name:'Back to courses'})).toHaveAttribute('href','/workspace/courses');
  course.unmount();
- render(<LessonPage/>);
- expect(screen.getByRole('link',{name:'Back to the course'})).toHaveAttribute('href','/workspace/courses/c%201');
+ render(withStores(<LessonPage/>));
+ expect(await screen.findByRole('link',{name:'Back to the course'})).toHaveAttribute('href','/workspace/courses/c%201');
 });
 
 it('progress page explains what will be tracked',()=>{
