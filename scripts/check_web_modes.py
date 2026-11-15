@@ -55,9 +55,9 @@ def check_desktop(page, errors):
     for route in MASTER_ROUTES:
         response = page.goto(f"{BASE}{route}")
         assert response.status == 200, route
-        expect(page.locator("h1")).to_be_visible()
+        expect(page.get_by_role("heading", level=1)).to_be_visible()
         page.reload()
-        expect(page.locator("h1")).to_be_visible()
+        expect(page.get_by_role("heading", level=1)).to_be_visible()
         expect(mode_button(page, "Master")).to_have_attribute("aria-pressed", "true")
         no_overflow(page, route)
     expect(page.get_by_role("link", name="Go to courses")).to_be_visible()

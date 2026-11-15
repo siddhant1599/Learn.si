@@ -29,6 +29,10 @@ def _unique_nonblank(values: list[str], label: str) -> list[str]:
     return cleaned
 
 
+class CourseCreate(BaseModel):
+    document_id: UUID
+
+
 class PlannedLesson(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     objective: str = Field(default="", max_length=500)

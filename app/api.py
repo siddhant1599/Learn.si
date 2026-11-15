@@ -4,7 +4,7 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -20,6 +20,8 @@ from app.pinecone import PineconeVectors
 from app.privacy import safe_turn
 from app.providers import ProviderError, Providers
 from app.storage import Conflict, NotFound, Storage, recent_context
+from app.study.jobs import CourseJobs
+from app.study.models import CourseCreate
 from app.study.storage import StudyStorage
 from app.uploads import MAX_BYTES, extract_document
 from app.vector_cleanup import cleanup_loop
@@ -39,6 +41,7 @@ async def lifespan(app):
     app.state.runtime = capture_runtime(config)
     app.state.storage = None
     app.state.study = None
+    app.state.course_jobs = None
     app.state.research_limiter = asyncio.Semaphore(config.research_service_concurrency)
     async with httpx.AsyncClient(timeout=45) as client:
         app.state.providers = Providers(config, client)
@@ -53,6 +56,7 @@ async def lifespan(app):
             await store.pool.open()
             app.state.storage = store
             app.state.study = StudyStorage(store.pool)
+            app.state.course_jobs = CourseJobs(app.state.study, app.state.providers, config)
             try:
                 # No background plan generation survives a restart.
                 await app.state.study.mark_interrupted()
@@ -66,6 +70,8 @@ async def lifespan(app):
         try:
             yield
         finally:
+            if getattr(app.state, "course_jobs", None):
+                await app.state.course_jobs.shutdown()
             if deletion_task:
                 deletion_task.cancel()
                 try:
@@ -139,6 +145,13 @@ def study_storage(request: Request):
     return study
 
 
+def course_jobs(request: Request):
+    jobs = getattr(request.app.state, "course_jobs", None)
+    if jobs is None:
+        raise HTTPException(503, "DATABASE_URL is not configured")
+    return jobs
+
+
 @app.get("/health")
 async def health():
     return {
@@ -185,6 +198,62 @@ async def delete_document(document_id: UUID, store=Depends(storage)):
         raise HTTPException(409, str(exc)) from None
     except Exception:
         raise HTTPException(503, "Document deletion failed. Retry when the database is available.") from None
+
+
+@app.post("/courses")
+async def create_course(body: CourseCreate, study=Depends(study_storage), jobs=Depends(course_jobs)):
+    """Idempotent per document: 202 while generating, 200 once ready; failed courses restart."""
+    try:
+        course, created = await study.create_course(body.document_id, uuid4())
+    except NotFound as exc:
+        raise HTTPException(404, str(exc)) from exc
+    if course.status == "ready":
+        return JSONResponse(course.model_dump(mode="json"), status_code=200)
+    if course.status == "failed":
+        generation = uuid4()
+        if await study.begin_generation(course.id, generation):
+            course = (await study.create_course(body.document_id, generation))[0]
+            jobs.start(course.id, body.document_id, generation)
+    elif created or not jobs.running(course.id):
+        current = await study.course(course.id)
+        if current.generation is not None and current.status == "generating":
+            # Interrupted earlier in this process lifetime or just created: run it now.
+            jobs.start(course.id, body.document_id, current.generation)
+    return JSONResponse(course.model_dump(mode="json"), status_code=202)
+
+
+@app.get("/courses")
+async def list_courses(study=Depends(study_storage)):
+    return [course.model_dump(mode="json") for course in await study.courses()]
+
+
+@app.get("/courses/{course_id}")
+async def get_course(course_id: UUID, study=Depends(study_storage), jobs=Depends(course_jobs)):
+    try:
+        course = await study.course(course_id)
+    except NotFound as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return {**course.model_dump(mode="json"), "progress": jobs.snapshot(course_id)}
+
+
+@app.get("/courses/{course_id}/events")
+async def course_events(course_id: UUID, study=Depends(study_storage), jobs=Depends(course_jobs)):
+    try:
+        await study.course(course_id)
+    except NotFound as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+    async def stream():
+        async for item in jobs.subscribe(course_id):
+            yield event("progress", item)
+        final = await study.course(course_id)
+        yield event("status", {"status": final.status, "failure_code": final.failure_code})
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.delete("/courses/{course_id}")

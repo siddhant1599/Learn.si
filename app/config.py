@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     history_max_chars: int = Field(default=6000, ge=0, le=12000)
     upload_timeout_seconds: int = Field(default=1800, ge=1, le=1800)
     request_timeout_seconds: int = Field(default=220, ge=1, le=240)
+    # Master mode: lesson-plan generation runs as a background job with its own caps.
+    course_generation_call_limit: int = Field(default=32, ge=2, le=80)
+    course_generation_timeout_seconds: int = Field(default=300, ge=30, le=900)
+    course_window_chars: int = Field(default=10000, ge=2000, le=30000)
 
     @model_validator(mode="after")
     def free_chat_only(self):

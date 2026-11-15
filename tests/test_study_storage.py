@@ -49,8 +49,10 @@ async def test_study_lifecycle_gating_and_deletion():
     await apply_migrations(dsn)
     await apply_migrations(dsn)  # Idempotent re-run.
     provider = SimpleNamespace(embed=AsyncMock(return_value=[1.0] + [0.0] * 767))
+    long_text = " ".join(f"token{i}" for i in range(900))  # Spans several overlapping chunks.
     doc = Document(id=uuid4(), title="Study fixture", edition="test",
-                   sections=[{"id": "1", "number": "1", "text": "Synthetic evidence"}])
+                   sections=[{"id": "1", "number": "1", "text": "Synthetic evidence"},
+                             {"id": "2", "number": "2", "title": "Long", "text": long_text}])
     other = doc.model_copy(update={"id": uuid4(), "title": "Other fixture"})
     store = Storage(dsn)
     await store.pool.open()
@@ -59,6 +61,13 @@ async def test_study_lifecycle_gating_and_deletion():
     try:
         await ingest(doc, config, provider)
         await ingest(other, config, provider)
+        # Outline rebuilds each section's full text from its overlapping chunks.
+        outline = await study.document_outline(doc.id)
+        assert [o["id"] for o in outline] == ["1", "2"]
+        assert outline[0]["text"] == "Synthetic evidence" and outline[1]["text"] == long_text
+        assert outline[0]["document_title"] == "Study fixture"
+        with pytest.raises(NotFound):
+            await study.document_outline(uuid4())
         with pytest.raises(NotFound):
             await study.create_course(uuid4(), uuid4())
         # Concurrent creation yields one course.

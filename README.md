@@ -610,6 +610,32 @@ completing a lesson unlocks exactly the next `position`. Courses left
 `generating` are marked `failed`/`interrupted` on restart. `app/study/storage.py`
 holds these operations; `app/study/models.py` holds the typed contracts.
 
+### Lesson plans (course generation)
+
+`POST /courses {"document_id"}` creates one course per document and plans it in
+a background job (202 `generating`; 200 once `ready`; a `failed` course restarts
+with a new generation). `GET /courses` lists courses with counts and estimates,
+`GET /courses/{id}` returns modules → lessons with each lesson's status plus the
+latest progress snapshot, and `GET /courses/{id}/events` streams progress v1
+events (steps `outline`, `topics` with window tasks `w1..wN`, `structure`,
+`estimate`) until the job ends, followed by a `status` event.
+
+The planner (`app/study/planner.py`) reads section text rebuilt from chunks,
+groups sections into windows of `COURSE_WINDOW_CHARS` (default 10,000), asks the
+chat model for topics per window (section IDs are validated against the window),
+then for modules and lessons in document order, and finally sizes lessons: one
+concept each, split when a lesson exceeds ~1,500 words and sections allow,
+merged when under ~50 words. Estimated minutes are informational (words ÷ 200
+plus two minutes for the example, "Your turn" and quiz, clamped to 3–15); nothing
+is time-limited. Markdown and TXT uploads with two or more `#` headings are now
+ingested as hierarchical sections ("1", "1.1"), so lessons reference real units.
+
+Jobs run one at a time per process under `COURSE_GENERATION_CALL_LIMIT`
+(default 32 chat calls) and `COURSE_GENERATION_TIMEOUT_SECONDS` (default 300).
+Malformed model output is retried once, then the course fails with a safe
+`failure_code` (`provider`, `budget`, `timeout`, `unreadable`); a restart marks
+unfinished courses `interrupted`. No prompts or document text are logged.
+
 `GET /deletions` supplies ID-only tombstones (kinds `document`, `conversation`,
 `course`) and pending flags for browser reconciliation on startup, focus and
 every five seconds. Local cross-tab chat

@@ -15,6 +15,9 @@ from app.study.models import (
     QuizAttemptSummary,
 )
 
+# scripts.ingest.chunks(size=2400, overlap=240): later chunks repeat the previous 240 chars.
+CHUNK_OVERLAP = 240
+
 COURSE_SUMMARY = """
 SELECT c.id, c.document_id, c.title, c.status, c.failure_code, c.generation,
        c.estimated_minutes, c.created_at, c.updated_at,
@@ -62,6 +65,30 @@ async def _delete_bound_conversations(conn, select_sql, params):
 class StudyStorage:
     def __init__(self, pool):
         self.pool = pool
+
+    # Documents -----------------------------------------------------------------
+
+    async def document_outline(self, document_id: UUID) -> list[dict]:
+        """Sections with their full text rebuilt from chunks (overlap removed), in reading order."""
+        async with self.pool.connection() as conn:
+            cur = await conn.execute(
+                "SELECT title FROM rag.documents WHERE id=%s", (document_id,)
+            )
+            document = await cur.fetchone()
+            if not document:
+                raise NotFound("Document does not exist")
+            cur = await conn.execute(
+                "SELECT s.id, s.number, s.title, s.parent_id, s.kind, "
+                "coalesce(string_agg(CASE WHEN c.chunk_index=0 THEN c.text "
+                "ELSE substr(c.text, %s+1) END, '' ORDER BY c.chunk_index), '') AS text "
+                "FROM rag.sections s LEFT JOIN rag.chunks c "
+                "ON c.document_id=s.document_id AND c.section_id=s.id "
+                "WHERE s.document_id=%s GROUP BY s.id, s.number, s.title, s.parent_id, s.kind "
+                "ORDER BY min(c.id) NULLS LAST, s.number",
+                (CHUNK_OVERLAP, document_id),
+            )
+            rows = await cur.fetchall()
+        return [{**row, "document_title": document["title"]} for row in rows]
 
     # Courses -----------------------------------------------------------------
 

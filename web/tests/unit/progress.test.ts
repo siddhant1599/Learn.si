@@ -33,3 +33,14 @@ it('turn completion never invents stage success and persistence omits details',(
  expect(finishAssistantMessage(m,'complete',1).steps[0].status).toBe('stopped');
  expect((persistedThread(t).messages[0] as AssistantMessage).steps[0].results).toBeUndefined();
 });
+
+it('maps course generation steps and window tasks onto the same step model',()=>{
+ const base={type:'progress',version:1,attempt:0};
+ expect(progressStep({...base,step:'outline',id:'outline',status:'started',sequence:1})).toMatchObject({kind:'search',label:'Reading the document',status:'active'});
+ expect(progressStep({...base,step:'topics',id:'topics',status:'started',sequence:2,count:3})).toMatchObject({label:'Finding topics',results:['3 parts']});
+ expect(progressStep({...base,step:'topics',id:'topics:w2',task:'w2',status:'completed',sequence:3,count:4})).toMatchObject({label:'Topics in part 2',parent:'topics',results:['4 topics']});
+ expect(progressStep({...base,step:'structure',id:'structure',status:'completed',sequence:4,count:3})).toMatchObject({label:'Modules organized',results:['3 modules']});
+ expect(progressStep({...base,step:'estimate',id:'estimate',status:'failed',sequence:5,outcome:'budget'})).toMatchObject({status:'failed',results:['Skipped to preserve answer budget']});
+ expect(progressStep({...base,step:'estimate',id:'estimate',status:'failed',sequence:6,outcome:'timeout'})).toMatchObject({results:['Timed out']});
+ expect(progressStep({...base,step:'topics',id:'topics:w1000',task:'w1000',status:'started',sequence:7})).toBeUndefined();
+});

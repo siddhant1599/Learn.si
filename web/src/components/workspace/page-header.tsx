@@ -16,14 +16,18 @@ export function useDocumentTitle(title: string) {
 /** The compact top bar shared by non-chat workspace pages (matches ChatsPage). */
 export function WorkspacePageHeader({
   title,
+  heading = true,
   className,
   children,
 }: {
   title: string;
+  /** False for loading skeletons: the page, not its fallback, owns the h1. */
+  heading?: boolean;
   className?: string;
   children?: React.ReactNode;
 }) {
   useDocumentTitle(title);
+  const Title = heading ? "h1" : "p";
   return (
     <header
       className={cn(
@@ -32,7 +36,7 @@ export function WorkspacePageHeader({
       )}
     >
       <WorkspaceSidebarTrigger className="md:hidden" />
-      <h1 className="min-w-0 truncate text-sm font-medium">{title}</h1>
+      <Title className="min-w-0 truncate text-sm font-medium">{title}</Title>
       {children}
     </header>
   );

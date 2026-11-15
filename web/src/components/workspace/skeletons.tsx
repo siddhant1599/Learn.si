@@ -6,7 +6,7 @@ import { WorkspacePageHeader } from "./page-header";
 export function CourseGridSkeleton({ title = "Courses" }: { title?: string }) {
   return (
     <div className="flex size-full flex-col" aria-busy="true">
-      <WorkspacePageHeader title={title} />
+      <WorkspacePageHeader title={title} heading={false} />
       <div className="mx-auto grid w-full max-w-5xl gap-4 px-4 py-4 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 3 }, (_, index) => (
           <div key={index} className="space-y-3 rounded-xl border p-5">
@@ -24,7 +24,7 @@ export function CourseGridSkeleton({ title = "Courses" }: { title?: string }) {
 export function OutlineSkeleton({ title }: { title: string }) {
   return (
     <div className="flex size-full flex-col" aria-busy="true">
-      <WorkspacePageHeader title={title} />
+      <WorkspacePageHeader title={title} heading={false} />
       <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
         <Skeleton className="h-7 w-1/2" />
         <Skeleton className="h-2 w-full" />

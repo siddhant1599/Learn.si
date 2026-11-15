@@ -10,12 +10,19 @@ const stages: Record<string, [string,string]> = {
  web: ["Researching missing evidence on the web", "Web research finished"],
  answer: ["Preparing the answer", "Answer prepared"],
  error_handler: ["Checking recovery options", "Recovery handled"],
+ // Course generation (Master mode, #22) shares the v1 contract.
+ outline: ["Reading the document", "Document read"],
+ topics: ["Finding topics", "Topics found"],
+ structure: ["Organizing modules and lessons", "Modules organized"],
+ estimate: ["Estimating learning time", "Learning time estimated"],
 };
+const COURSE_STEPS = new Set(["outline","topics","structure","estimate"]);
 const outcomes: Record<string,string> = {
  sufficient:"Sufficient evidence",partial:"Partial evidence",none:"Missing evidence",assessment_error:"Assessment unavailable",
  retrieved:"Evidence retrieved",empty:"No evidence found",blocked:"Blocked by an earlier task",unavailable:"Unavailable",budget:"Skipped to preserve answer budget",
  greeting:"Conversational response",clarify:"Clarification needed",direct_retrieval:"Direct document search",complex_research:"Multi-question research",
  retry:"Retry or fallback selected",fallback:"Using the original question",search:"Web search",checking:"Checking web evidence",hints:"Retrieval hints",
+ provider:"Model output unusable",timeout:"Timed out",unreadable:"Too little readable text",interrupted:"Interrupted by a restart",
 };
 export function progressStep(data: unknown): ChatStep | undefined {
  if (!data || typeof data !== "object") return;
@@ -26,7 +33,7 @@ export function progressStep(data: unknown): ChatStep | undefined {
  if (d.version !== undefined && d.version !== 1) return;
  const modern = d.version === 1;
  if (modern && (!Number.isSafeInteger(d.attempt) || (d.attempt as number)<0 || !Number.isSafeInteger(d.sequence) || (d.sequence as number)<1)) return;
- const task = typeof d.task === "string" && /^(q[1-4]|wq[12]|check-wq[12])$/.test(d.task) ? d.task : undefined;
+ const task = typeof d.task === "string" && /^(q[1-4]|wq[12]|check-wq[12]|w\d{1,3})$/.test(d.task) ? d.task : undefined;
  if (modern && (d.task !== undefined && !task || d.id !== d.step + (task ? ':'+task : ''))) return;
  const results: string[] = [];
  let label = stages[d.step]![(modern ? status !== 'complete' : status === 'active') ? 0 : 1];
@@ -37,11 +44,11 @@ export function progressStep(data: unknown): ChatStep | undefined {
  }
  if (task) {
    const number = task.match(/\d+$/)![0];
-   label = d.step === 'web' ? (task.startsWith('q') ? `Web fallback for document task ${number}` : task.startsWith('check-') ? `Web evidence check ${number}` : `Web search ${number}`)
+   label = COURSE_STEPS.has(d.step) ? `Topics in part ${number}` : d.step === 'web' ? (task.startsWith('q') ? `Web fallback for document task ${number}` : task.startsWith('check-') ? `Web evidence check ${number}` : `Web search ${number}`)
      : `${d.step === 'assess' ? 'Document evidence check' : d.step === 'hyde' ? 'Retrieval hints for task' : 'Document search'} ${number}`;
  }
  if (typeof d.outcome === 'string' && outcomes[d.outcome]) results.push(outcomes[d.outcome]!);
- if (typeof d.count === 'number' && Number.isSafeInteger(d.count) && d.count>=0 && d.count<=1000) results.push(`${d.count} ${d.step === 'plan' ? 'research tasks' : d.step === 'hyde' ? 'retrieval hints' : 'evidence items'}`);
+ if (typeof d.count === 'number' && Number.isSafeInteger(d.count) && d.count>=0 && d.count<=1000) results.push(`${d.count} ${d.step === 'plan' ? 'research tasks' : d.step === 'hyde' ? 'retrieval hints' : d.step === 'outline' ? 'sections' : d.step === 'topics' ? (task || status === 'complete' ? 'topics' : 'parts') : d.step === 'structure' ? 'modules' : d.step === 'estimate' ? 'lessons' : 'evidence items'}`);
  return {id: d.step + (task ? ':'+task : ''), kind:d.step==='web'?'fetch':d.step==='answer'?'write':'search',label,status,
    ...(modern ? {progressVersion:1 as const,attempt:d.attempt as number,sequence:d.sequence as number,parent:task?d.step:undefined,results} : {})};
 }
