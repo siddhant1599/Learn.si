@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     lesson_generation_timeout_seconds: int = Field(default=180, ge=30, le=600)
     lesson_evidence_chars: int = Field(default=12000, ge=2000, le=30000)
     lesson_regeneration_daily_limit: int = Field(default=5, ge=0, le=50)
+    # Quiz attempts: one set call, one retry, one targeted replacement call at most.
+    quiz_call_limit: int = Field(default=3, ge=1, le=5)
+    quiz_timeout_seconds: int = Field(default=90, ge=10, le=300)
 
     @model_validator(mode="after")
     def free_chat_only(self):

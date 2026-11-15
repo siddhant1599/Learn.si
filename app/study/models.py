@@ -298,6 +298,10 @@ class CourseView(CourseSummary):
     modules: list[ModuleView]
 
 
+class QuizSubmit(BaseModel):
+    answers: dict[str, str] = Field(max_length=QUIZ_QUESTIONS * 2)
+
+
 class QuizAttemptSummary(BaseModel):
     id: UUID
     lesson_id: UUID

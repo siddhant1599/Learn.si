@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Stre
 from fastapi.staticfiles import StaticFiles
 
 from app import deletions
+from app.agents.budget import BudgetedProvider, BudgetExceeded, CallBudget, current_budget
 from app.config import settings
 from app.models import Query
 from app.pinecone import PineconeVectors
@@ -21,7 +22,9 @@ from app.privacy import safe_turn
 from app.providers import ProviderError, Providers
 from app.storage import Conflict, NotFound, Storage, recent_context
 from app.study.jobs import CourseJobs, LessonJobs
-from app.study.models import CourseCreate
+from app.study.lesson_writer import build_evidence
+from app.study.models import CourseCreate, QuizQuestion, QuizSubmit, client_content
+from app.study.quiz import QuizFailed, QuizWriter, answer_problem, grade
 from app.study.storage import StudyStorage
 from app.uploads import MAX_BYTES, extract_document
 from app.vector_cleanup import cleanup_loop
@@ -350,6 +353,123 @@ async def regenerate_lesson(
     jobs.start(lesson_id, generation)
     lesson = await _lesson(study, lesson_id)
     return JSONResponse(_lesson_body(lesson, jobs), status_code=202)
+
+
+QUIZ_FAILED = "The quiz could not be generated. Please retry."
+
+
+@app.post("/lessons/{lesson_id}/quiz-attempts")
+async def create_quiz_attempt(
+    lesson_id: UUID, request: Request, study=Depends(study_storage)
+):
+    """201 with client-safe questions; supersedes any open attempt for the lesson."""
+    config = settings()
+    lesson = await _lesson(study, lesson_id)
+    if lesson.content_status != "ready" or lesson.content is None:
+        raise HTTPException(409, "Open the lesson and let it finish before taking the quiz.")
+    if lesson.progress.status not in ("in_progress", "completed"):
+        raise HTTPException(409, "Open the lesson before taking its quiz.")
+    _, sections = await study.lesson_evidence(lesson_id)
+    evidence, sources, _ = build_evidence(sections, config.lesson_evidence_chars)
+    prior = await study.prior_stems(lesson_id)
+    attempt_number = len(await study.quiz_attempts(lesson_id)) + 1
+    token = current_budget.set(CallBudget(chat_limit=config.quiz_call_limit, embedding_limit=0))
+    try:
+        async with asyncio.timeout(config.quiz_timeout_seconds):
+            questions = await QuizWriter(BudgetedProvider(request.app.state.providers)).write(
+                {"title": lesson.title}, client_content(lesson.content) or {}, evidence,
+                sources, prior, attempt_number,
+            )
+    except (QuizFailed, BudgetExceeded):
+        raise HTTPException(502, QUIZ_FAILED) from None
+    except TimeoutError:
+        raise HTTPException(504, "Quiz generation timed out. Please retry.") from None
+    except Exception as exc:
+        logger.error("Quiz generation failed (%s)", type(exc).__name__)
+        raise HTTPException(502, QUIZ_FAILED) from None
+    finally:
+        current_budget.reset(token)
+    attempt = await study.create_quiz_attempt(
+        lesson_id, [question.model_dump(mode="json") for question in questions]
+    )
+    return JSONResponse({
+        "attempt_id": str(attempt.id),
+        "lesson_id": str(lesson_id),
+        "attempt_number": attempt.attempt_number,
+        "questions": [question.client_view() for question in questions],
+    }, status_code=201)
+
+
+@app.get("/lessons/{lesson_id}/quiz-attempts")
+async def quiz_history(lesson_id: UUID, study=Depends(study_storage)):
+    """Scores and timestamps only; never questions or keys."""
+    await _lesson(study, lesson_id)
+    return [attempt.model_dump(mode="json") for attempt in await study.quiz_attempts(lesson_id)]
+
+
+async def _attempt(study, attempt_id: UUID):
+    try:
+        return await study.quiz_attempt(attempt_id)
+    except NotFound as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
+def _attempt_head(row) -> dict:
+    return {
+        "attempt_id": str(row["id"]),
+        "lesson_id": str(row["lesson_id"]),
+        "attempt_number": row["attempt_number"],
+        "status": row["status"],
+    }
+
+
+@app.get("/quiz-attempts/{attempt_id}")
+async def get_quiz_attempt(attempt_id: UUID, study=Depends(study_storage)):
+    """Resume after refresh: open attempts return questions without keys; submitted
+    attempts return their graded results; abandoned attempts return status only."""
+    row = await _attempt(study, attempt_id)
+    head = _attempt_head(row)
+    if row["status"] == "open":
+        return {**head, "questions": [QuizQuestion.model_validate(q).client_view()
+                                      for q in row["questions"]]}
+    if row["status"] == "submitted":
+        score, passed, results = grade(row["questions"], row["answers"] or {})
+        return {**head, "score": score, "passed": passed, "questions_with_results": results}
+    return head
+
+
+@app.post("/quiz-attempts/{attempt_id}/submit")
+async def submit_quiz_attempt(
+    attempt_id: UUID, body: QuizSubmit, study=Depends(study_storage),
+    jobs=Depends(lesson_jobs),
+):
+    row = await _attempt(study, attempt_id)
+    if row["status"] != "open":
+        raise HTTPException(409, f"This attempt was already {row['status']}. Start a new attempt.")
+    problem = answer_problem(row["questions"], body.answers)
+    if problem:
+        raise HTTPException(422, problem)
+    score, passed, results = grade(row["questions"], body.answers)
+    try:
+        attempt, lesson_status, unlocked = await study.submit_quiz_attempt(
+            attempt_id, body.answers, score, passed
+        )
+    except Conflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+    if unlocked is not None:
+        try:
+            # Prepare the newly unlocked lesson in the background (#23).
+            await jobs.prefetch(unlocked)
+        except Exception as exc:
+            logger.warning("Lesson prefetch failed (%s)", type(exc).__name__)
+    return {
+        **_attempt_head({**row, "status": attempt.status}),
+        "score": score,
+        "passed": passed,
+        "questions_with_results": results,
+        "lesson_status": lesson_status,
+        "unlocked_lesson_id": str(unlocked) if unlocked else None,
+    }
 
 
 @app.get("/conversations/{thread_id}/messages")

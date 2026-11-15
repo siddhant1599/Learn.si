@@ -17,14 +17,14 @@ it('rejects non-allowlisted paths',async()=>{
  expect((await call('DELETE','admin')).status).toBe(404);
  expect((await call('GET','courses/../documents')).status).toBe(404);
  expect((await call('GET','lessons')).status).toBe(404);
- expect((await call('POST',`quiz-attempts/${ID}`)).status).toBe(404);
+ expect((await call('POST',`quiz-attempts/${ID}/grade`)).status).toBe(404);
  expect((await call('GET',`courses/${ID}/lessons`)).status).toBe(404);
  expect(mocks.fetch).not.toHaveBeenCalled();
 });
 it.each([
  ['GET','courses'],['POST','courses'],['GET',`courses/${ID}`],['DELETE',`courses/${ID}`],['GET',`courses/${ID}/events`],['GET',`courses/${ID}/progress`],
  ['GET',`lessons/${ID}`],['GET',`lessons/${ID}/events`],['POST',`lessons/${ID}/regenerate`],['POST',`lessons/${ID}/quiz-attempts`],['GET',`lessons/${ID}/quiz-attempts`],
- ['POST',`lessons/${ID}/your-turn`],['GET',`lessons/${ID}/conversation`],['POST',`lessons/${ID}/study-time`],['POST',`quiz-attempts/${ID}/submit`],['GET','progress'],
+ ['POST',`lessons/${ID}/your-turn`],['GET',`lessons/${ID}/conversation`],['POST',`lessons/${ID}/study-time`],['POST',`quiz-attempts/${ID}/submit`],['GET',`quiz-attempts/${ID}`],['GET','progress'],
 ] as const)('forwards Master-mode %s %s',async(method,path)=>{
  mocks.fetch.mockResolvedValue(new Response('{}',{status:200,headers:{'Content-Type':'application/json'}}));
  const response=await call(method,path);

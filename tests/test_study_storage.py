@@ -111,14 +111,28 @@ async def test_study_lifecycle_gating_and_deletion():
         assert (a1.attempt_number, a2.attempt_number) == (1, 2)
         with pytest.raises(Conflict, match="abandoned"):
             await study.submit_quiz_attempt(a1.id, {"q1": "a"}, 3, True)
-        submitted = await study.submit_quiz_attempt(a2.id, {"q1": "a"}, 2, True)
-        assert submitted.status == "submitted" and submitted.passed is True
+        # Failing leaves the lesson as it was and the next one locked.
+        failed, status, unlocked = await study.submit_quiz_attempt(a2.id, {"q1": "b"}, 1, False)
+        assert failed.passed is False and status == "available" and unlocked is None
+        assert (await study.lesson(third)).progress.status == "locked"
         with pytest.raises(Conflict, match="submitted"):
             await study.submit_quiz_attempt(a2.id, {"q1": "a"}, 2, True)
+        a3 = await study.create_quiz_attempt(second, [{"id": "q1", "stem": "Fresh stem"}])
+        assert await study.prior_stems(second) == ["Fresh stem"]
+        # Passing completes the lesson and unlocks exactly the next one, atomically.
+        submitted, status, unlocked = await study.submit_quiz_attempt(a3.id, {"q1": "a"}, 2, True)
+        assert submitted.status == "submitted" and submitted.passed is True
+        assert status == "completed" and unlocked == third
+        assert (await study.lesson(third)).progress.status == "available"
+        # A retake after passing changes neither completion nor the next lesson.
+        a4 = await study.create_quiz_attempt(second, questions)
+        _, status, unlocked = await study.submit_quiz_attempt(a4.id, {"q1": "b"}, 0, False)
+        assert status == "completed" and unlocked is None
+        assert (await study.lesson(third)).progress.status == "available"
         with pytest.raises(NotFound):
             await study.submit_quiz_attempt(uuid4(), {}, 0, False)
         history = await study.quiz_attempts(second)
-        assert [h.status for h in history] == ["abandoned", "submitted"]
+        assert [h.status for h in history] == ["abandoned", "submitted", "submitted", "submitted"]
         assert not any(hasattr(h, "questions") for h in history)
         assert (await study.quiz_attempt(a2.id))["questions"] == questions
         # Your turn and tutor binding.

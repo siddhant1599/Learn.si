@@ -50,6 +50,33 @@ async def tombstone_document_courses(conn, document_id):
     )
 
 
+async def _complete(conn, lesson_id):
+    """Inside a transaction: completed stays completed; only position+1 may unlock."""
+    cur = await conn.execute(
+        "SELECT l.course_id, l.position, p.status FROM study.lessons l "
+        "JOIN study.lesson_progress p ON p.lesson_id=l.id WHERE l.id=%s FOR UPDATE",
+        (lesson_id,),
+    )
+    row = await cur.fetchone()
+    if not row:
+        raise NotFound("Lesson does not exist")
+    if row["status"] == "locked":
+        raise Conflict("Pass the previous quiz before completing this lesson")
+    await conn.execute(
+        "UPDATE study.lesson_progress SET status='completed', "
+        "completed_at=COALESCE(completed_at, now()) WHERE lesson_id=%s",
+        (lesson_id,),
+    )
+    cur = await conn.execute(
+        "UPDATE study.lesson_progress SET status='available' WHERE status='locked' AND "
+        "lesson_id=(SELECT id FROM study.lessons WHERE course_id=%s AND position=%s) "
+        "RETURNING lesson_id",
+        (row["course_id"], row["position"] + 1),
+    )
+    unlocked = await cur.fetchone()
+    return unlocked["lesson_id"] if unlocked else None
+
+
 async def _delete_bound_conversations(conn, select_sql, params):
     cur = await conn.execute(select_sql, params)
     ids = [row["conversation_id"] for row in await cur.fetchall()]
@@ -374,29 +401,7 @@ class StudyStorage:
     async def complete_lesson(self, lesson_id: UUID) -> UUID | None:
         """Mark complete and unlock exactly the next lesson; returns its id when newly unlocked."""
         async with self.pool.connection() as conn:
-            cur = await conn.execute(
-                "SELECT l.course_id, l.position, p.status FROM study.lessons l "
-                "JOIN study.lesson_progress p ON p.lesson_id=l.id WHERE l.id=%s FOR UPDATE",
-                (lesson_id,),
-            )
-            row = await cur.fetchone()
-            if not row:
-                raise NotFound("Lesson does not exist")
-            if row["status"] == "locked":
-                raise Conflict("Pass the previous quiz before completing this lesson")
-            await conn.execute(
-                "UPDATE study.lesson_progress SET status='completed', "
-                "completed_at=COALESCE(completed_at, now()) WHERE lesson_id=%s",
-                (lesson_id,),
-            )
-            cur = await conn.execute(
-                "UPDATE study.lesson_progress SET status='available' WHERE status='locked' AND "
-                "lesson_id=(SELECT id FROM study.lessons WHERE course_id=%s AND position=%s) "
-                "RETURNING lesson_id",
-                (row["course_id"], row["position"] + 1),
-            )
-            unlocked = await cur.fetchone()
-        return unlocked["lesson_id"] if unlocked else None
+            return await _complete(conn, lesson_id)
 
     async def add_study_time(self, lesson_id: UUID, seconds: int, max_seconds: int = 60) -> int:
         """Bounded heartbeat: credits at most min(seconds, max, time since last beat)."""
@@ -448,6 +453,9 @@ class StudyStorage:
         return row
 
     async def submit_quiz_attempt(self, attempt_id: UUID, answers: dict, score: int, passed: bool):
+        """Grade-and-gate atomically: a passing submission completes the lesson and unlocks
+        exactly the next one in the same transaction. Returns (summary, lesson_status,
+        unlocked_lesson_id). Only an open attempt may be submitted."""
         async with self.pool.connection() as conn:
             cur = await conn.execute(
                 "UPDATE study.quiz_attempts SET answers=%s, score=%s, passed=%s, "
@@ -458,7 +466,13 @@ class StudyStorage:
             )
             row = await cur.fetchone()
             if row:
-                return QuizAttemptSummary.model_validate(row)
+                unlocked = await _complete(conn, row["lesson_id"]) if passed else None
+                cur = await conn.execute(
+                    "SELECT status FROM study.lesson_progress WHERE lesson_id=%s",
+                    (row["lesson_id"],),
+                )
+                lesson_status = (await cur.fetchone())["status"]
+                return QuizAttemptSummary.model_validate(row), lesson_status, unlocked
             cur = await conn.execute(
                 "SELECT status FROM study.quiz_attempts WHERE id=%s", (attempt_id,)
             )
@@ -466,6 +480,17 @@ class StudyStorage:
         if not existing:
             raise NotFound("Quiz attempt does not exist")
         raise Conflict(f"This attempt was already {existing['status']}. Start a new attempt.")
+
+    async def prior_stems(self, lesson_id: UUID) -> list[str]:
+        """Every stem this lesson has asked before, oldest first (retakes must differ)."""
+        async with self.pool.connection() as conn:
+            cur = await conn.execute(
+                "SELECT q->>'stem' AS stem FROM study.quiz_attempts a, "
+                "jsonb_array_elements(a.questions) q WHERE a.lesson_id=%s "
+                "ORDER BY a.attempt_number",
+                (lesson_id,),
+            )
+            return [row["stem"] for row in await cur.fetchall() if row["stem"]]
 
     async def quiz_attempts(self, lesson_id: UUID) -> list[QuizAttemptSummary]:
         async with self.pool.connection() as conn:

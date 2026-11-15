@@ -674,6 +674,33 @@ never returned by any route or logged. Each generation is bounded by
 `LESSON_GENERATION_TIMEOUT_SECONDS` (default 180). `migrations/003_lesson_content.sql`
 adds the lesson job columns.
 
+### Quizzes and unlocking
+
+`POST /lessons/{id}/quiz-attempts` (lesson content `ready`, status `in_progress`
+or `completed`) returns 201 `{attempt_id, attempt_number, questions}` with three
+four-option questions and no answer key, explanations or citations; any open
+attempt for the lesson is marked `abandoned`. `GET /quiz-attempts/{id}` resumes
+an open attempt (still without keys) or shows a submitted one's results.
+`POST /quiz-attempts/{id}/submit {"answers": {question_id: option_id}}` grades
+on the server: every question must be answered (422 otherwise), and a submitted
+or abandoned attempt returns 409. The response holds `score`, `passed`,
+`questions_with_results` (chosen and correct option, the explanation for a
+wrong choice and for the correct answer, the citation), `lesson_status` and
+`unlocked_lesson_id`. Two of three pass: the lesson becomes `completed` and
+exactly the next lesson by position becomes `available`, in the same
+transaction; failing changes nothing; retaking a passed lesson never re-locks
+or re-unlocks anything. A newly unlocked lesson's content is prefetched.
+`GET /lessons/{id}/quiz-attempts` lists history (scores and timestamps only).
+
+`app/study/quiz.py` writes questions from the lesson's content and document
+evidence, validates them (distinct options, one key, explanations for every
+wrong option, resolvable citation, stems ≤40 words, options ≤25, explanations
+≤50), shuffles options so the key is never positional, rotates the Bloom
+emphasis (recall, apply, analyze) across attempts, and rejects stems that
+repeat any earlier attempt (token-set similarity ≥ 0.75). One call, one retry
+for the whole set, then one call for only the questions that still repeat;
+bounded by `QUIZ_CALL_LIMIT` (default 3) and `QUIZ_TIMEOUT_SECONDS` (default 90).
+
 `GET /deletions` supplies ID-only tombstones (kinds `document`, `conversation`,
 `course`) and pending flags for browser reconciliation on startup, focus and
 every five seconds. Local cross-tab chat
