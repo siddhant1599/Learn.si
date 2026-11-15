@@ -181,7 +181,7 @@ describe('course page',()=>{
   });
   let polled=0;
   render(withStores(<CourseDetail courseId="c1"/>));
-  expect(await screen.findByRole('heading',{level:2,name:'1. Basics'})).toBeVisible();
+  expect(await screen.findByRole('button',{name:/^1\. Basics/})).toHaveAttribute('aria-expanded','true');
   expect(screen.getByRole('link',{name:'Continue'})).toHaveAttribute('href','/workspace/courses/c1/lessons/l2');
   expect(screen.getByText('Colors')).toBeVisible();
   expect(screen.queryByRole('link',{name:'Colors'})).not.toBeInTheDocument();

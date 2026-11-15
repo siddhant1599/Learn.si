@@ -53,6 +53,9 @@ class FakeStudy:
     async def courses(self):
         return list(self.rows.values())
 
+    async def progress_data(self, course_ids=None):
+        return []
+
     async def delete_course(self, course_id):
         if self.fail:
             raise RuntimeError("private database detail")

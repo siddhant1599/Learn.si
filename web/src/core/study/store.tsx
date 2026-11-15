@@ -29,6 +29,10 @@ type StudyStore = {
   remove: (id: string) => Promise<void>;
   /** Record a fresher server view of one course (from its detail page). */
   upsert: (course: CourseSummary) => void;
+  /** Lessons unlocked by a quiz in this session; the plan highlights them once. */
+  recentlyUnlocked: ReadonlySet<string>;
+  markUnlocked: (lessonId: string) => void;
+  clearUnlocked: (lessonId: string) => void;
 };
 
 const StudyStoreContext = createContext<StudyStore | null>(null);
@@ -119,9 +123,22 @@ export function StudyStoreProvider({ children }: { children: ReactNode }) {
     setCourses((current) => current.filter((c) => c.id !== id));
   }, []);
 
+  const [recentlyUnlocked, setUnlocked] = useState<ReadonlySet<string>>(new Set());
+  const markUnlocked = useCallback((id: string) => {
+    setUnlocked((current) => new Set(current).add(id));
+  }, []);
+  const clearUnlocked = useCallback((id: string) => {
+    setUnlocked((current) => {
+      if (!current.has(id)) return current;
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+
   const value = useMemo(
-    () => ({ courses, loading, error, refresh, create, remove, upsert }),
-    [courses, loading, error, refresh, create, remove, upsert],
+    () => ({ courses, loading, error, refresh, create, remove, upsert, recentlyUnlocked, markUnlocked, clearUnlocked }),
+    [courses, loading, error, refresh, create, remove, upsert, recentlyUnlocked, markUnlocked, clearUnlocked],
   );
   return <StudyStoreContext.Provider value={value}>{children}</StudyStoreContext.Provider>;
 }

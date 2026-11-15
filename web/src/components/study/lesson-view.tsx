@@ -61,6 +61,7 @@ import type {
   YourTurnVerdict,
 } from "@/core/study/types";
 import { useLesson } from "@/core/study/use-lesson";
+import { useStudyTime } from "@/core/study/use-study-time";
 import { cn } from "@/lib/utils";
 
 import { GenerationProgress } from "./generation-progress";
@@ -329,6 +330,9 @@ function RegenerateMenu({ left, busy, onConfirm }: { left: number; busy: boolean
 export function LessonView({ courseId, lessonId }: { courseId: string; lessonId: string }) {
   const { data, loading, error, notFound, regenerate, regenerating, reload } = useLesson(lessonId);
   const course = useOutline(courseId);
+  const studying = !!data && data.lesson.content_status === "ready" &&
+    ["in_progress", "completed"].includes(data.lesson.progress.status);
+  useStudyTime(lessonId, studying);
   if (loading) return <OutlineSkeleton title="Lesson" />;
   if (notFound || (data && data.lesson.course_id !== courseId))
     return (

@@ -128,7 +128,7 @@ export function QuizView({ courseId, lessonId }: { courseId: string; lessonId: s
   const router = useRouter();
   const params = useSearchParams();
   const attemptParam = params.get("attempt");
-  const { refresh } = useStudyStore();
+  const { refresh, markUnlocked } = useStudyStore();
   const [lesson, setLesson] = useState<LessonDetail | null>(null);
   const [attempt, setAttempt] = useState<QuizAttemptView | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -197,6 +197,7 @@ export function QuizView({ courseId, lessonId }: { courseId: string; lessonId: s
     try {
       const result = await quizApi.submit(attempt.attempt_id, answers);
       setAttempt({ ...result, status: "submitted" });
+      if (result.unlocked_lesson_id) markUnlocked(result.unlocked_lesson_id);
       loadHistory();
       void refresh();  // Library and sidebar reflect completion and the unlock.
       requestAnimationFrame(() => summary.current?.focus());

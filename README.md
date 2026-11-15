@@ -707,6 +707,44 @@ holds the reference and a short explanation only when the learner asks
 on their third attempt. Attempts are stored in `your_turn_attempts`, deleted
 with the lesson, and never logged; failed reviews are not counted.
 
+### Progress, mastery and study time
+
+`GET /courses/{id}/progress` returns course percentage (`completed / total`,
+rounded), counts, `estimated_minutes_remaining` (informational), total
+`study_seconds`, `next_lesson_id`, `last_activity`, a mastery distribution, quiz
+performance, per-module rows and per-lesson rows (status, attempts, first-try
+pass, best and last score, mastery). `GET /progress` returns totals across
+courses, course cards ordered by last activity and up to 20 recent events
+(completed lessons and quiz results). `GET /courses` embeds a compact `progress`
+block per course. Responses carry IDs, titles, counts, scores and timestamps
+only: never lesson text, answers or keys. Everything is derived on read in
+`app/study/progress.py`; nothing is stored.
+
+Quiz performance: submitted attempts, passes, pass rate, first-try pass rate
+(share of lessons whose first submitted attempt passed), average score, and a
+Bloom breakdown (recall, apply, analyze) graded server-side.
+
+Mastery per lesson, lowest to highest:
+
+| Level | Rule |
+|---|---|
+| `not_started` | never opened |
+| `learning` | opened or quiz attempted, not passed yet |
+| `developing` | passed, but not on the first submitted attempt |
+| `proficient` | passed on the first submitted attempt |
+| `mastered` | first attempt 3/3 and a "Your turn" `correct` within its first two attempts |
+
+Per module: once every lesson is completed, the lowest lesson level (the
+floor); before that `developing` if any lesson is completed, `learning` if any
+was opened, otherwise `not_started`.
+
+Study time is passive. While a lesson is open, visible and focused, the page
+sends `POST /lessons/{id}/study-time {"seconds": 1..60}` every 30 s (and once
+when the tab hides); the server credits at most `min(seconds, 60, time since
+the last beat)`, so rapid or oversized beats cannot inflate it. Only
+`in_progress` or `completed` lessons accept beats (409 otherwise). Nothing
+counts down and nothing limits learning time.
+
 ### Quizzes and unlocking
 
 `POST /lessons/{id}/quiz-attempts` (lesson content `ready`, status `in_progress`

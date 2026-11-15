@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi import Query as QueryParam
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -28,9 +29,11 @@ from app.study.models import (
     LessonContent,
     QuizQuestion,
     QuizSubmit,
+    StudyTime,
     YourTurnSubmit,
     client_content,
 )
+from app.study.progress import course_progress, overview, summary
 from app.study.quiz import QuizFailed, QuizWriter, answer_problem, grade
 from app.study.review import REVEAL_AFTER, ReviewFailed, YourTurnReviewer
 from app.study.storage import StudyStorage
@@ -244,9 +247,44 @@ async def create_course(body: CourseCreate, study=Depends(study_storage), jobs=D
     return JSONResponse(course.model_dump(mode="json"), status_code=202)
 
 
+def _progress(entry) -> dict:
+    return course_progress(entry["course"], entry["lessons"], entry["attempts"],
+                           entry["your_turn"])
+
+
 @app.get("/courses")
 async def list_courses(study=Depends(study_storage)):
-    return [course.model_dump(mode="json") for course in await study.courses()]
+    """Library cards: each course with a compact progress summary (#26)."""
+    courses = await study.courses()
+    progress = {e["course"]["id"]: summary(_progress(e)) for e in await study.progress_data()}
+    return [{**course.model_dump(mode="json"),
+             "progress": jsonable_encoder(progress.get(course.id))} for course in courses]
+
+
+@app.get("/progress")
+async def progress_overview(study=Depends(study_storage)):
+    """Totals, per-course cards and recent activity across every course."""
+    entries = await study.progress_data()
+    return jsonable_encoder(overview([(_progress(e), e["attempts"]) for e in entries]))
+
+
+@app.get("/courses/{course_id}/progress")
+async def get_course_progress(course_id: UUID, study=Depends(study_storage)):
+    entries = await study.progress_data([course_id])
+    if not entries:
+        raise HTTPException(404, "Course does not exist")
+    return jsonable_encoder(_progress(entries[0]))
+
+
+@app.post("/lessons/{lesson_id}/study-time")
+async def study_time(lesson_id: UUID, body: StudyTime, study=Depends(study_storage)):
+    """Passive heartbeat: credits at most min(seconds, 60, time since the last beat)."""
+    await _lesson(study, lesson_id)
+    try:
+        total = await study.add_study_time(lesson_id, body.seconds, 60)
+    except Conflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return {"study_seconds": total}
 
 
 @app.get("/courses/{course_id}")

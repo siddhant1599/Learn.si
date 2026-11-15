@@ -422,6 +422,59 @@ class StudyStorage:
             raise Conflict("Open the lesson before recording study time")
         return row["study_seconds"]
 
+    # Progress ----------------------------------------------------------------
+
+    async def progress_data(self, course_ids: list[UUID] | None = None) -> list[dict]:
+        """Rows for app.study.progress, per course: course, lessons (position order),
+        submitted attempts (keys stay server-side for grading the Bloom breakdown) and
+        Your turn verdicts (oldest first). course_ids=None means every course."""
+        async with self.pool.connection() as conn:
+            cur = await conn.execute(
+                "SELECT id, title, status, updated_at FROM study.courses "
+                "WHERE %s::uuid[] IS NULL OR id = ANY(%s::uuid[]) ORDER BY updated_at DESC",
+                (course_ids, course_ids),
+            )
+            courses = await cur.fetchall()
+            ids = [c["id"] for c in courses]
+            cur = await conn.execute(
+                "SELECT l.id, l.course_id, l.module_id, m.title AS module_title, "
+                "m.position AS module_position, l.position, l.title, l.estimated_minutes, "
+                "p.status, p.opened_at, p.completed_at, p.study_seconds, p.last_study_at "
+                "FROM study.lessons l JOIN study.modules m ON m.id=l.module_id "
+                "JOIN study.lesson_progress p ON p.lesson_id=l.id "
+                "WHERE l.course_id = ANY(%s) ORDER BY l.course_id, l.position",
+                (ids,),
+            )
+            lessons = await cur.fetchall()
+            cur = await conn.execute(
+                "SELECT a.id, a.lesson_id, l.course_id, a.attempt_number, a.score, a.passed, "
+                "a.submitted_at, a.questions, a.answers FROM study.quiz_attempts a "
+                "JOIN study.lessons l ON l.id=a.lesson_id "
+                "WHERE a.status='submitted' AND l.course_id = ANY(%s) ORDER BY a.attempt_number",
+                (ids,),
+            )
+            attempts = await cur.fetchall()
+            cur = await conn.execute(
+                "SELECT y.lesson_id, l.course_id, y.verdict FROM study.your_turn_attempts y "
+                "JOIN study.lessons l ON l.id=y.lesson_id WHERE l.course_id = ANY(%s) "
+                "ORDER BY y.created_at, y.id",
+                (ids,),
+            )
+            verdicts = await cur.fetchall()
+        result = []
+        for course in courses:
+            turn: dict = {}
+            for row in verdicts:
+                if row["course_id"] == course["id"]:
+                    turn.setdefault(row["lesson_id"], []).append(row["verdict"])
+            result.append({
+                "course": course,
+                "lessons": [row for row in lessons if row["course_id"] == course["id"]],
+                "attempts": [row for row in attempts if row["course_id"] == course["id"]],
+                "your_turn": turn,
+            })
+        return result
+
     # Quizzes -----------------------------------------------------------------
 
     async def create_quiz_attempt(self, lesson_id: UUID, questions: list[dict]):

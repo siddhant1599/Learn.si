@@ -4,6 +4,7 @@ import { mergeStep } from "@/core/chat/reducer";
 import type { ChatStep } from "@/core/chat/types";
 
 import type {
+  CourseProgress,
   CourseSummary,
   CourseView,
   LessonDetail,
@@ -83,6 +84,8 @@ export const studyApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ document_id: documentId }),
     }, "Course creation failed. Please retry."),
+  progress: (id: string) =>
+    request<CourseProgress>(`courses/${encodeURIComponent(id)}/progress`, {}, "Cannot load progress."),
   remove: (id: string) =>
     request<{ status: string; id: string }>(`courses/${encodeURIComponent(id)}`, { method: "DELETE" },
       "Course deletion failed. Please retry."),
@@ -172,6 +175,16 @@ export const lessonApi = {
     return { lesson, steps: stepsFrom(generation_progress), generating: lesson.content_status === "generating" };
   },
 };
+
+/** Passive study-time heartbeat; keepalive so a beat on page hide still lands. */
+export function sendStudyTime(lessonId: string, seconds: number) {
+  return fetch(`${BASE}/lessons/${encodeURIComponent(lessonId)}/study-time`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seconds }),
+    keepalive: true,
+  }).catch(() => undefined);
+}
 
 export const tutorApi = {
   yourTurn: (lessonId: string, answer: string, reveal = false) =>

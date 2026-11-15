@@ -135,3 +135,58 @@ export type TutorHistory = {
   thread_id: string | null;
   messages: { id: number; role: "user" | "assistant"; content: string; citations: unknown[] }[];
 };
+
+export type Mastery = "not_started" | "learning" | "developing" | "proficient" | "mastered";
+
+export type QuizPerformance = {
+  attempts: number;
+  passed: number;
+  pass_rate: number | null;
+  first_try_pass_rate: number | null;
+  average_score: number | null;
+  bloom: Record<"recall" | "apply" | "analyze", { questions: number; correct: number }>;
+};
+
+export type LessonProgressRow = {
+  id: string;
+  module_id: string;
+  position: number;
+  title: string;
+  status: LessonStatus;
+  estimated_minutes: number;
+  completed_at: string | null;
+  study_seconds: number;
+  quiz_attempts: number;
+  first_try_pass: boolean | null;
+  best_score: number | null;
+  last_score: number | null;
+  passed: boolean;
+  mastery: Mastery;
+};
+
+export type ModuleProgress = {
+  id: string;
+  title: string;
+  position: number;
+  completed_lessons: number;
+  lesson_count: number;
+  percent: number;
+  mastery: Mastery;
+  quiz: QuizPerformance;
+};
+
+export type CourseProgress = {
+  course_id: string;
+  title: string;
+  percent: number;
+  completed_lessons: number;
+  lesson_count: number;
+  estimated_minutes_remaining: number;
+  study_seconds: number;
+  next_lesson_id: string | null;
+  last_activity: string | null;
+  mastery_distribution: Record<Mastery, number>;
+  quiz: QuizPerformance;
+  modules: ModuleProgress[];
+  lessons: LessonProgressRow[];
+};

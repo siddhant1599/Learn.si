@@ -300,6 +300,10 @@ class CourseView(CourseSummary):
     modules: list[ModuleView]
 
 
+class StudyTime(BaseModel):
+    seconds: int = Field(ge=1, le=60)
+
+
 class YourTurnSubmit(BaseModel):
     answer: str = Field(default="", max_length=4000)
     reveal: bool = False

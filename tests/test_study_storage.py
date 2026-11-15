@@ -137,9 +137,18 @@ async def test_study_lifecycle_gating_and_deletion():
         assert [h.status for h in history] == ["abandoned", "submitted", "submitted", "submitted"]
         assert not any(hasattr(h, "questions") for h in history)
         assert (await study.quiz_attempt(a2.id))["questions"] == questions
+        # Progress rows: lessons in order, submitted attempts only, verdicts per lesson.
+        assert await study.record_your_turn(second, "first try", "partial", "Re-read", False) == 1
+        [entry] = await study.progress_data([course.id])
+        assert entry["course"]["id"] == course.id
+        assert [row["position"] for row in entry["lessons"]] == [1, 2, 3]
+        assert entry["lessons"][0]["module_title"] == "Basics"
+        assert len(entry["attempts"]) == 3 and all(a["score"] is not None for a in entry["attempts"])
+        assert entry["your_turn"][second] == ["partial"]
+        assert any(e["course"]["id"] == course.id for e in await study.progress_data())
         # Your turn and tutor binding.
-        assert await study.record_your_turn(second, "my answer", "partial", "Re-read 1", False) == 1
-        assert await study.your_turn_count(second) == 1
+        assert await study.record_your_turn(second, "my answer", "partial", "Re-read 1", False) == 2
+        assert await study.your_turn_count(second) == 2
         thread, version, _ = await store.conversation(None, [doc.id], config.embedding_signature, 4)
         await store.save_turn(thread, version, "q", "a", [])
         await study.bind_conversation(second, thread)
@@ -187,6 +196,7 @@ async def test_study_lifecycle_gating_and_deletion():
                 )
         # Deleting the course keeps the document and removes bound tutor chats.
         assert (await study.delete_course(course.id))["status"] == "deleted"
+        assert await study.progress_data([course.id]) == []  # No contribution after deletion.
         assert doc.id in {d["id"] for d in await store.documents()}
         with pytest.raises(NotFound):
             await study.course(course.id)
