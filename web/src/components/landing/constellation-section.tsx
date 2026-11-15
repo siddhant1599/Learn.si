@@ -138,7 +138,7 @@ export function ConstellationSection({ className }: { className?: string }) {
           </p>
           <h3 className="mt-2 font-serif text-2xl text-white sm:text-3xl">Open the next lesson</h3>
           <p className="mt-2 text-sm text-white/70 sm:text-base">
-            Read it, complete the TODO(you), then pass the quiz: Pods turns gold on the map and
+            Read it, put the steps in order, then pass the quiz: Pods turns gold on the map and
             Deployments opens.
           </p>
         </div>

@@ -13,7 +13,7 @@ export type DemoQuizQuestion = {
   explanations: Record<string, string>;
 };
 
-export type GapVerdict = "correct" | "partial" | "incorrect";
+export type OrderVerdict = "correct" | "partial" | "incorrect";
 
 export const demoLesson = {
   number: 4,
@@ -25,9 +25,9 @@ export const demoLesson = {
   objective:
     "Explain what a Pod is and why Kubernetes schedules Pods rather than containers.",
   explanation: [
-    "A Pod is the smallest thing Kubernetes schedules. It wraps one or more containers that must run together: they start on the same node, share one network namespace, and can reach each other over localhost. Each Pod gets its own IP address inside the cluster. Most Pods hold a single container; a second one appears when something must sit beside the main process, such as a log shipper, a proxy or a config reloader.",
-    "Because the Pod is the unit, Kubernetes never schedules a bare container. You describe the Pod, which images to run, which ports to expose, which volumes to mount, and the scheduler finds a node with room for the whole set. If the node dies, the Pod dies with it; keeping replicas alive is the job of a Deployment, which is the next lesson.",
-    "Two habits keep Pods predictable. Pin every image to a tag so each node pulls the same bytes, and keep containers stateless, mounting a volume for anything that must outlive a restart.",
+    "A Pod is the smallest thing Kubernetes schedules. It wraps one or more containers that run together on one node, share a network namespace and reach each other over localhost.",
+    "Kubernetes never schedules a bare container. You describe the Pod, its images, ports and volumes, and the scheduler finds a node with room for the whole set. If the node dies, the Pod dies with it.",
+    "Most Pods hold one container; add a second only for a helper that must live beside the main process, like a log shipper. Keep containers stateless and mount a volume for data that must persist.",
   ],
   insight: {
     kind: "Common misconception",
@@ -38,20 +38,21 @@ export const demoLesson = {
     "Tag images with a version before you push them.",
     "Keep containers stateless; mount volumes for data.",
   ],
-  code: {
-    language: "yaml",
-    before: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: web\nspec:\n  containers:\n    - name: web\n      image: ",
-    after: "\n      ports:\n        - containerPort: 80",
-    placeholder: "TODO(you)",
-    instruction: "Fill in the image for the web container. Use a tagged image.",
-  },
-  yourTurn: {
-    correct: "Tagged image: every node pulls exactly that version.",
-    partial:
-      "That is an image, but without a tag Kubernetes pulls :latest, which can differ between nodes. Add a tag.",
-    incorrect:
-      "The value should be an image reference such as name:tag. Re-read the paragraph on pinning images.",
-    reveal: "nginx:1.27",
+  order: {
+    prompt: "Put these in the order they happen when a Pod starts.",
+    /** Correct order. The card first shows them in `start` order. */
+    steps: [
+      { id: "describe", text: "You describe the Pod: images, ports, volumes." },
+      { id: "schedule", text: "The scheduler places the whole Pod on one node." },
+      { id: "start", text: "The node pulls the images and starts the containers together." },
+      { id: "network", text: "Once running, the containers talk over localhost using their shared network namespace." },
+    ],
+    start: ["start", "network", "describe", "schedule"],
+    feedback: {
+      correct: "That is the order: describe, schedule, start, then communicate over localhost.",
+      partial: "Some steps are in place. Scheduling happens before anything is pulled or started.",
+      incorrect: "Start from what you do: you describe the Pod before Kubernetes does anything with it.",
+    },
   },
   quizBanks: [
     [
@@ -164,12 +165,13 @@ export const demoLesson = {
   passScore: 2,
 };
 
-/** Image reference checks for the TODO(you) gap. */
-export function gradeImage(value: string): GapVerdict {
-  const trimmed = value.trim();
-  if (/^(?:[a-z0-9.-]+(?::\d+)?\/)?[a-z0-9._/-]+:[\w.-]+$/i.test(trimmed)) return "correct";
-  if (/^(?:[a-z0-9.-]+(?::\d+)?\/)?[a-z0-9._/-]+$/i.test(trimmed)) return "partial";
-  return "incorrect";
+/** Positions that match the correct order decide the verdict. */
+export function gradeOrder(order: string[]): { verdict: OrderVerdict; correctPositions: number } {
+  const correct = demoLesson.order.steps.map((step) => step.id);
+  const correctPositions = order.filter((id, index) => id === correct[index]).length;
+  const verdict: OrderVerdict =
+    order.length === correct.length && correctPositions === correct.length ? "correct" : correctPositions >= 2 ? "partial" : "incorrect";
+  return { verdict, correctPositions };
 }
 
 export function gradeQuiz(bank: DemoQuizQuestion[], answers: Record<string, string>) {

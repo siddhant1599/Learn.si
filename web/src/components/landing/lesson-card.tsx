@@ -1,14 +1,14 @@
 "use client";
 
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, LightbulbIcon, XIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon, CheckIcon, LightbulbIcon, XIcon } from "lucide-react";
 import { useId, useState } from "react";
 
 import {
   demoLesson,
-  gradeImage,
+  gradeOrder,
   gradeQuiz,
   type DemoQuizQuestion,
-  type GapVerdict,
+  type OrderVerdict,
 } from "@/content/landing-demo";
 import { usePrefersReducedMotion } from "@/core/dom/render-activity";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,7 @@ const GOLD = "text-[#e9c665]";
 
 /**
  * Flippable preview of one Master-mode lesson: front teaches with an Insight
- * callout and a TODO(you) gap; back is a 3-question quiz. Passing calls onPass.
+ * callout and an ordering exercise; back is a 3-question quiz. Passing calls onPass.
  */
 export function LessonCard({
   onPass,
@@ -67,15 +67,7 @@ function Face({ children, hidden, back }: { children: React.ReactNode; hidden: b
 }
 
 function LessonFront({ onQuiz }: { onQuiz: () => void }) {
-  const [value, setValue] = useState("");
-  const [verdict, setVerdict] = useState<GapVerdict | null>(null);
-  const [tries, setTries] = useState(0);
-  const inputId = useId();
   const lesson = demoLesson;
-  const check = () => {
-    setVerdict(gradeImage(value));
-    setTries((n) => n + 1);
-  };
   return (
     <article>
       <header className="mb-5">
@@ -107,63 +99,7 @@ function LessonFront({ onQuiz }: { onQuiz: () => void }) {
           <p className="mt-1 text-sm leading-6 text-white/85">{lesson.insight.text}</p>
         </div>
       </aside>
-      <section className="mt-6" aria-labelledby={`${inputId}-label`}>
-        <p id={`${inputId}-label`} className={cn("text-[11px] font-semibold tracking-widest uppercase", GOLD)}>
-          Your turn · TODO(you)
-        </p>
-        <p className="mt-1 text-sm text-white/70">{lesson.code.instruction}</p>
-        <pre className="mt-3 overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-4 font-mono text-[13px] leading-6 text-white/85">
-          <code>
-            {lesson.code.before}
-            <input
-              id={inputId}
-              aria-label="Image for the web container"
-              value={value}
-              onChange={(event) => {
-                setValue(event.target.value);
-                setVerdict(null);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") check();
-              }}
-              placeholder={lesson.code.placeholder}
-              spellCheck={false}
-              className="mx-0.5 inline-block w-40 rounded border border-[#e9c665]/50 bg-[#e9c665]/10 px-2 font-mono text-[13px] text-white outline-none placeholder:text-[#e9c665]/70 focus-visible:ring-2 focus-visible:ring-[#e9c665]/60"
-            />
-            {lesson.code.after}
-          </code>
-        </pre>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={check}
-            className="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-black transition-colors hover:bg-white/90"
-          >
-            Check
-          </button>
-          {tries >= 2 && verdict !== "correct" && (
-            <button
-              type="button"
-              onClick={() => {
-                setValue(lesson.yourTurn.reveal);
-                setVerdict("correct");
-              }}
-              className="text-sm text-white/60 underline underline-offset-4 hover:text-white"
-            >
-              Show the answer
-            </button>
-          )}
-        </div>
-        <p role="status" aria-live="polite" className="mt-3 min-h-6 text-sm" data-gap-verdict={verdict ?? ""}>
-          {verdict === "correct" && (
-            <span className="flex items-center gap-2 text-emerald-300">
-              <CheckIcon aria-hidden="true" className="size-4" /> {lesson.yourTurn.correct}
-            </span>
-          )}
-          {verdict === "partial" && <span className={GOLD}>{lesson.yourTurn.partial}</span>}
-          {verdict === "incorrect" && <span className="text-rose-300">{lesson.yourTurn.incorrect}</span>}
-        </p>
-      </section>
+      <OrderExercise />
       <footer className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
         <p className="text-xs text-white/50">
           Grounded in: {lesson.sources.map((s) => `“${s}”`).join(" · ")}
@@ -177,6 +113,117 @@ function LessonFront({ onQuiz }: { onQuiz: () => void }) {
         </button>
       </footer>
     </article>
+  );
+}
+
+/** "Your turn": put four steps in order with keyboard-friendly move buttons. */
+function OrderExercise() {
+  const { order } = demoLesson;
+  const byId = new Map(order.steps.map((step) => [step.id, step]));
+  const [ids, setIds] = useState<string[]>(order.start);
+  const [verdict, setVerdict] = useState<OrderVerdict | null>(null);
+  const [tries, setTries] = useState(0);
+  const headingId = useId();
+  const correctIds = order.steps.map((step) => step.id);
+  const solved = verdict === "correct";
+  const move = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= ids.length) return;
+    const next = [...ids];
+    [next[index], next[target]] = [next[target]!, next[index]!];
+    setIds(next);
+    setVerdict(null);
+  };
+  const check = () => {
+    setVerdict(gradeOrder(ids).verdict);
+    setTries((n) => n + 1);
+  };
+  return (
+    <section className="mt-6" aria-labelledby={headingId} data-order-exercise>
+      <p id={headingId} className={cn("text-[11px] font-semibold tracking-widest uppercase", GOLD)}>
+        Your turn · set the order
+      </p>
+      <p className="mt-1 text-sm text-white/70">{order.prompt}</p>
+      <ol className="mt-3 space-y-2" aria-label="Steps in your order">
+        {ids.map((id, index) => {
+          const step = byId.get(id)!;
+          const placed = verdict !== null && correctIds[index] === id;
+          const misplaced = verdict !== null && correctIds[index] !== id;
+          return (
+            <li
+              key={id}
+              data-order-item={id}
+              data-placed={verdict === null ? undefined : placed}
+              className={cn(
+                "flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors",
+                verdict === null && "border-white/10 bg-white/[0.03]",
+                placed && "border-emerald-400/50 bg-emerald-400/10",
+                misplaced && "border-rose-400/40 bg-rose-400/[0.08]",
+              )}
+            >
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-white/20 text-xs text-white/70">
+                {index + 1}
+              </span>
+              <span className="flex-1 text-white/85">{step.text}</span>
+              {placed && (
+                <CheckIcon aria-label="In the right place" className="size-4 shrink-0 text-emerald-300" />
+              )}
+              <span className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  aria-label={`Move up: ${step.text}`}
+                  disabled={index === 0 || solved}
+                  onClick={() => move(index, -1)}
+                  className="rounded-md border border-white/15 p-1.5 text-white/70 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e9c665] disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  <ArrowUpIcon aria-hidden="true" className="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Move down: ${step.text}`}
+                  disabled={index === ids.length - 1 || solved}
+                  onClick={() => move(index, 1)}
+                  className="rounded-md border border-white/15 p-1.5 text-white/70 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e9c665] disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  <ArrowDownIcon aria-hidden="true" className="size-3.5" />
+                </button>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={check}
+          disabled={solved}
+          className="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-black transition-colors hover:bg-white/90 disabled:opacity-60"
+        >
+          Check order
+        </button>
+        {tries >= 2 && !solved && (
+          <button
+            type="button"
+            onClick={() => {
+              setIds(correctIds);
+              setVerdict("correct");
+            }}
+            className="text-sm text-white/60 underline underline-offset-4 hover:text-white"
+          >
+            Show the order
+          </button>
+        )}
+      </div>
+      <p role="status" aria-live="polite" className="mt-3 min-h-6 text-sm" data-order-verdict={verdict ?? ""}>
+        {verdict === "correct" && (
+          <span className="flex items-center gap-2 text-emerald-300">
+            <CheckIcon aria-hidden="true" className="size-4" /> {order.feedback.correct}
+          </span>
+        )}
+        {verdict === "partial" && <span className={GOLD}>{order.feedback.partial}</span>}
+        {verdict === "incorrect" && <span className="text-rose-300">{order.feedback.incorrect}</span>}
+      </p>
+    </section>
   );
 }
 

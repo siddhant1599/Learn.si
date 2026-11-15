@@ -82,17 +82,24 @@ def check_ask_demo(page):
 
 
 def check_lesson_flow(page):
-    """TODO(you) gap, a failed first quiz, a retake with new questions, then the map updates."""
+    """Order exercise, a failed first quiz, a retake with new questions, then the map updates."""
     card = page.locator("[data-lesson-card]")
     card.scroll_into_view_if_needed()
-    gap = page.get_by_label("Image for the web container")
-    gap.fill("nginx")
-    # The examples panel also has a "Check" chip; stay inside the card.
-    card.get_by_role("button", name="Check", exact=True).click()
-    expect(page.locator("[data-gap-verdict]")).to_have_attribute("data-gap-verdict", "partial")
-    gap.fill("nginx:1.27")
-    card.get_by_role("button", name="Check", exact=True).click()
-    expect(page.locator("[data-gap-verdict]")).to_have_attribute("data-gap-verdict", "correct")
+    assert "TODO(you)" not in page.locator("#path").inner_text()
+    check = card.get_by_role("button", name="Check order", exact=True)
+    check.click()
+    expect(page.locator("[data-order-verdict]")).to_have_attribute("data-order-verdict", "incorrect")
+    describe = "You describe the Pod: images, ports, volumes."
+    schedule = "The scheduler places the whole Pod on one node."
+    for _ in range(2):
+        move = card.get_by_role("button", name=f"Move up: {describe}")
+        move.focus()
+        move.press("Enter")
+    for _ in range(2):
+        card.get_by_role("button", name=f"Move up: {schedule}").click()
+    check.click()
+    expect(page.locator("[data-order-verdict]")).to_have_attribute("data-order-verdict", "correct")
+    assert page.locator('[data-placed="true"]').count() == 4
     card.get_by_role("button", name="Take the quiz").click()
     expect(card).to_have_attribute("data-side", "quiz")
     page.wait_for_timeout(800)  # Let the 3D flip finish before clicking inside the back face.
