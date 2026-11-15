@@ -11,7 +11,8 @@ export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen w-full overflow-x-clip bg-[#0a0a0a]">
+    // The landing is always dark; scope the theme tokens so light-mode visitors get dark values too.
+    <div className="dark min-h-screen w-full overflow-x-clip bg-[#0a0a0a] text-white">
       <Header />
       <main className="flex w-full flex-col">
         <Hero />

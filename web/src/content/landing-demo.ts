@@ -206,3 +206,134 @@ export function demoProgress(completed: number, quizFirstTry: boolean | null) {
     modules,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Scripted Ask runs over the same handbook. Step labels and outcomes are the
+// product's own (core/chat/progress.ts); timings are illustrative. No model calls.
+
+import type { ChatStep } from "@/core/chat/types";
+
+export type DemoRun = {
+  label: string;
+  question: string;
+  passages: { text: string; module: string; cite?: number }[];
+  timeline: { at: number; step: ChatStep }[];
+  answerAt: number;
+  /** Answer text with [n] citation markers. */
+  answer: string;
+  citations: { n: number; passage: string; module: string }[];
+};
+
+const step = (
+  id: string,
+  kind: ChatStep["kind"],
+  label: string,
+  status: ChatStep["status"],
+  results?: string[],
+  parent?: string,
+): ChatStep => ({ id, kind, label, status, results, parent });
+
+export const DEMO_SOURCE = "Containers handbook.pdf";
+export const ANSWER_CHAR_MS = 14;
+
+export const demoRuns: DemoRun[] = [
+  {
+    label: "Ask a definition",
+    question: "What is a Pod?",
+    passages: [
+      { text: "A Pod runs one or more containers together.", module: "Deploy", cite: 1 },
+      { text: "Tag images with a version before you push them.", module: "Build" },
+      { text: "Keep containers stateless; mount volumes for data.", module: "Build", cite: 2 },
+    ],
+    timeline: [
+      { at: 0, step: step("triage", "search", "Choosing how to handle your question", "active") },
+      { at: 650, step: step("triage", "search", "Request routed", "complete", ["Direct document search"]) },
+      { at: 700, step: step("retrieve", "search", "Searching selected documents", "active") },
+      { at: 1600, step: step("retrieve", "search", "Document search finished", "complete", ["Evidence retrieved", "2 evidence items"]) },
+      { at: 1650, step: step("assess", "search", "Checking document evidence coverage", "active") },
+      { at: 2400, step: step("assess", "search", "Document evidence checked", "complete", ["Sufficient evidence"]) },
+      { at: 2450, step: step("answer", "write", "Preparing the answer", "active") },
+    ],
+    answerAt: 2700,
+    answer:
+      "A Pod is the unit Kubernetes schedules: one or more containers that run together on the same node and share networking [1]. Keep those containers stateless and mount a volume for anything that must persist [2].",
+    citations: [
+      { n: 1, passage: "A Pod runs one or more containers together.", module: "Deploy" },
+      { n: 2, passage: "Keep containers stateless; mount volumes for data.", module: "Build" },
+    ],
+  },
+  {
+    label: "Connect two ideas",
+    question: "Why do my Pods disappear when a node fails?",
+    passages: [
+      { text: "A Pod runs one or more containers together.", module: "Deploy" },
+      { text: "Deployments keep the desired replica count running.", module: "Deploy", cite: 1 },
+      { text: "Services give Pods a stable network address.", module: "Deploy", cite: 2 },
+    ],
+    timeline: [
+      { at: 0, step: step("triage", "search", "Choosing how to handle your question", "active") },
+      { at: 650, step: step("triage", "search", "Request routed", "complete", ["Multi-question research"]) },
+      { at: 700, step: step("plan", "search", "Preparing research questions", "active") },
+      { at: 1450, step: step("plan", "search", "Search planned", "complete", ["2 research tasks"]) },
+      { at: 1500, step: step("retrieve", "search", "Searching selected documents", "active") },
+      { at: 1500, step: step("retrieve:q1", "search", "Document search 1", "active", undefined, "retrieve") },
+      { at: 1550, step: step("retrieve:q2", "search", "Document search 2", "active", undefined, "retrieve") },
+      { at: 2300, step: step("retrieve:q1", "search", "Document search 1", "complete", ["Evidence retrieved", "1 evidence items"], "retrieve") },
+      { at: 2500, step: step("retrieve:q2", "search", "Document search 2", "complete", ["Evidence retrieved", "1 evidence items"], "retrieve") },
+      { at: 2550, step: step("retrieve", "search", "Document search finished", "complete") },
+      { at: 2600, step: step("assess", "search", "Checking document evidence coverage", "active") },
+      { at: 3300, step: step("assess", "search", "Document evidence checked", "complete", ["Sufficient evidence"]) },
+      { at: 3350, step: step("answer", "write", "Preparing the answer", "active") },
+    ],
+    answerAt: 3600,
+    answer:
+      "On its own, a Pod is not replaced when its node fails. Put it under a Deployment, which keeps the desired replica count running by creating new Pods [1], and front them with a Service so the replacements keep a stable address [2].",
+    citations: [
+      { n: 1, passage: "Deployments keep the desired replica count running.", module: "Deploy" },
+      { n: 2, passage: "Services give Pods a stable network address.", module: "Deploy" },
+    ],
+  },
+  {
+    label: "Know what's missing",
+    question: "How much CPU should I request?",
+    passages: [
+      { text: "Set resource requests and limits on every container.", module: "Operate", cite: 1 },
+      { text: "Readiness probes gate traffic until the app is up.", module: "Operate" },
+      { text: "Roll back a failed rollout with kubectl rollout undo.", module: "Operate" },
+    ],
+    timeline: [
+      { at: 0, step: step("triage", "search", "Choosing how to handle your question", "active") },
+      { at: 650, step: step("triage", "search", "Request routed", "complete", ["Direct document search"]) },
+      { at: 700, step: step("retrieve", "search", "Searching selected documents", "active") },
+      { at: 1600, step: step("retrieve", "search", "Document search finished", "complete", ["Evidence retrieved", "1 evidence items"]) },
+      { at: 1650, step: step("assess", "search", "Checking document evidence coverage", "active") },
+      { at: 2400, step: step("assess", "search", "Document evidence checked", "complete", ["Partial evidence"]) },
+      { at: 2450, step: step("web", "fetch", "Web research finished", "complete", ["Unavailable"]) },
+      { at: 2500, step: step("answer", "write", "Preparing the answer", "active") },
+    ],
+    answerAt: 2750,
+    answer:
+      "The handbook says to set resource requests and limits on every container [1], but it gives no figures. Nothing in the selected pages supports a specific value; measure usage under a readiness-gated rollout and tune from there.",
+    citations: [
+      { n: 1, passage: "Set resource requests and limits on every container.", module: "Operate" },
+    ],
+  },
+];
+
+/** Steps visible at `elapsed` ms; the answer step completes once its text has streamed. */
+export function stepsAt(run: DemoRun, elapsed: number): ChatStep[] {
+  const byId = new Map<string, ChatStep>();
+  for (const entry of run.timeline) if (entry.at <= elapsed) byId.set(entry.step.id, entry.step);
+  if (answerCharsAt(run, elapsed) >= run.answer.length) {
+    byId.set("answer", step("answer", "write", "Answer prepared", "complete"));
+  }
+  return [...byId.values()];
+}
+
+export function answerCharsAt(run: DemoRun, elapsed: number): number {
+  return Math.max(0, Math.min(run.answer.length, Math.floor((elapsed - run.answerAt) / ANSWER_CHAR_MS)));
+}
+
+export function runDurationMs(run: DemoRun): number {
+  return run.answerAt + run.answer.length * ANSWER_CHAR_MS + 400;
+}

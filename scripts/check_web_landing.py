@@ -59,8 +59,26 @@ def check_stage(page, width, height, errors):
     for left, top, right, bottom in boxes:
         assert 0 <= left and right <= width and 0 <= top and bottom <= height, (left, top, right, bottom)
     check_lesson_flow(page)
+    check_ask_demo(page)
     assert not errors, errors
     print(f"{width}x{height}: static hero; stage 0 → {mid:.2f} → 1; 9 stars travel, labels, lines, module one gold, legend and chip; lesson + quiz light Pods")
+
+
+def check_ask_demo(page):
+    """Scripted Ask run: real activity labels, streamed answer with citations, highlighted passages."""
+    panel = page.locator("#examples")
+    panel.scroll_into_view_if_needed()
+    page.get_by_role("tab", name="Connect two ideas").click()
+    expect(page.get_by_text("Why do my Pods disappear when a node fails?")).to_be_visible()
+    expect(page.get_by_text("Request routed")).to_be_visible(timeout=5000)
+    expect(page.get_by_text("Search planned")).to_be_visible(timeout=5000)
+    expect(page.get_by_role("button", name="Citation 2")).to_be_visible(timeout=15000)
+    expect(page.get_by_text("Answer prepared")).to_be_visible(timeout=15000)
+    assert page.locator("[data-cited]").count() == 2
+    page.get_by_role("button", name="Citation 1").hover()
+    expect(page.locator('[data-cited="focus"]')).to_have_text("Deployments keep the desired replica count running.")
+    assert page.locator("#examples a[href='/workspace']").count() == 1
+    assert "no model calls" in page.locator("#examples").inner_text()
 
 
 def check_lesson_flow(page):
