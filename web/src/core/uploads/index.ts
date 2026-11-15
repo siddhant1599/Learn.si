@@ -39,3 +39,29 @@ export function splitUnsupportedUploadFiles(fileList: File[] | FileList) {
     message: rejected.length > 0 ? MACOS_APP_BUNDLE_UPLOAD_MESSAGE : undefined,
   };
 }
+
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+export const UPLOAD_SIZE_MESSAGE = "Choose a nonempty file no larger than 10 MB.";
+export const UPLOAD_ACCEPT = ".pdf,.txt,.md";
+export const UPLOAD_LIMITS =
+  "PDF, TXT, Markdown. 10 MB, 100 pages, 1 million characters, 600 chunks. Scanned PDFs need OCR. Indexing can take up to 30 minutes.";
+
+export type UploadedDocument = { id: string; title: string; edition: string; chunks: number };
+
+/** Raw-bytes upload shared by Ask and Master; surfaces the backend's own message. */
+export async function uploadDocument(file: File, signal?: AbortSignal): Promise<UploadedDocument> {
+  if (file.size > MAX_UPLOAD_BYTES || !file.size) throw new Error(UPLOAD_SIZE_MESSAGE);
+  const response = await fetch(
+    "/api/rag/documents/upload?filename=" + encodeURIComponent(file.name),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream" },
+      body: file,
+      signal: signal ?? AbortSignal.timeout(1830000),
+    },
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok)
+    throw new Error(typeof data.detail === "string" ? data.detail : "Upload failed.");
+  return data as UploadedDocument;
+}

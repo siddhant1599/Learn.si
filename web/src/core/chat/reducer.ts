@@ -1,4 +1,22 @@
-import type { AssistantMessage, ChatEvent, ChatThread } from "./types";
+import type { AssistantMessage, ChatEvent, ChatStep, ChatThread } from "./types";
+
+/**
+ * Upserts a progress step by id. Version 1 events never regress: an older attempt,
+ * a stale sequence, or a restart of a settled step without a new attempt is ignored.
+ * Returns the same array when nothing changed.
+ */
+export function mergeStep(steps: ChatStep[], step: ChatStep): ChatStep[] {
+  const previous = steps.find((item) => item.id === step.id);
+  if (previous?.progressVersion === 1) {
+    if (step.progressVersion !== 1) return steps;
+    const before = previous.attempt ?? 0, after = step.attempt ?? 0;
+    if (after < before || (after === before && ((step.sequence ?? 0) <= (previous.sequence ?? 0)
+      || previous.status !== "active" && step.status === "active"))) return steps;
+  }
+  return previous
+    ? steps.map((item) => (item.id === step.id ? step : item))
+    : [...steps, step];
+}
 
 /** Applies one event to the thread's trailing assistant message. */
 export function applyChatEvent(
@@ -31,22 +49,12 @@ export function applyChatEvent(
       case "text":
         return { ...message, text: message.text + event.delta };
       case "step": {
-        const previous = message.steps.find(step => step.id === event.step.id);
-        if (previous?.progressVersion === 1) {
-          if (event.step.progressVersion !== 1) return message;
-          const before = previous.attempt ?? 0, after = event.step.attempt ?? 0;
-          if (after < before || (after === before && ((event.step.sequence ?? 0) <= (previous.sequence ?? 0)
-            || previous.status !== "active" && event.step.status === "active"))) return message;
-        }
-        const exists = !!previous;
+        const steps = mergeStep(message.steps, event.step);
+        if (steps === message.steps) return message;
         return {
           ...message,
           webRequested: message.webRequested || (event.step.id === "web" || event.step.parent === "web"),
-          steps: exists
-            ? message.steps.map((step) =>
-                step.id === event.step.id ? event.step : step,
-              )
-            : [...message.steps, event.step],
+          steps,
         };
       }
     }

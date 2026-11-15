@@ -26,7 +26,10 @@ SELECT c.id, c.document_id, c.title, c.status, c.failure_code, c.generation,
        (SELECT count(*) FROM study.modules m WHERE m.course_id=c.id)::int AS module_count,
        (SELECT count(*) FROM study.lessons l WHERE l.course_id=c.id)::int AS lesson_count,
        (SELECT count(*) FROM study.lessons l JOIN study.lesson_progress p ON p.lesson_id=l.id
-         WHERE l.course_id=c.id AND p.status='completed')::int AS completed_lessons
+         WHERE l.course_id=c.id AND p.status='completed')::int AS completed_lessons,
+       (SELECT l.id FROM study.lessons l JOIN study.lesson_progress p ON p.lesson_id=l.id
+         WHERE l.course_id=c.id AND p.status IN ('available','in_progress')
+         ORDER BY l.position LIMIT 1) AS next_lesson_id
 FROM study.courses c
 """
 
