@@ -1,10 +1,10 @@
-"""Typed contracts for Master mode. Lesson content itself is finalized in #23."""
+"""Typed contracts for Master mode, including the lesson content contract (#23)."""
 
 from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 CourseStatus = Literal["generating", "ready", "failed"]
 ContentStatus = Literal["pending", "generating", "ready", "failed"]
@@ -125,6 +125,103 @@ class QuizSet(BaseModel):
         return value
 
 
+InsightKind = Literal["why_it_matters", "misconception", "trade_off"]
+YourTurnKind = Literal["code_gap", "apply", "fill_blank"]
+TODO_MARKER = "TODO(you)"
+
+
+class _Content(BaseModel):
+    model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
+
+
+class Diagram(_Content):
+    kind: Literal["mermaid"] = "mermaid"
+    source: str = Field(min_length=1, max_length=3000)
+    caption: str = Field(default="", max_length=300)
+
+
+class CodeTodo(_Content):
+    marker: Literal["TODO(you)"] = TODO_MARKER
+    instruction: str = Field(min_length=1, max_length=600)
+    # Server-only: never serialized to a client (see LessonContent.client_view).
+    reference_solution: str = Field(min_length=1, max_length=3000)
+
+
+class CodeExample(_Content):
+    language: str = Field(pattern=r"^[A-Za-z0-9+#._-]{1,20}$")
+    code: str = Field(min_length=1, max_length=4000)
+    explanation: str = Field(min_length=1, max_length=800)
+    todo: CodeTodo | None = None
+
+    @model_validator(mode="after")
+    def marked(self):
+        if self.todo is not None and TODO_MARKER not in self.code:
+            raise ValueError(f"The code must contain the {TODO_MARKER} marker")
+        return self
+
+
+class Insight(_Content):
+    kind: InsightKind
+    text: str = Field(min_length=1, max_length=600)
+
+
+class YourTurn(_Content):
+    kind: YourTurnKind
+    prompt: str = Field(min_length=1, max_length=800)
+    # Server-only: used by the review in #25, never serialized to a client.
+    reference_answer: str = Field(min_length=1, max_length=3000)
+
+
+class KeyTerm(_Content):
+    term: str = Field(min_length=1, max_length=80)
+    definition: str = Field(min_length=1, max_length=300)
+
+
+class LessonContent(_Content):
+    """Stored lesson content. Word budgets are enforced by app.study.lesson_writer."""
+
+    version: Literal[1] = 1
+    objective: str = Field(min_length=1, max_length=400)
+    explanation: str = Field(min_length=1, max_length=4000)
+    real_world_example: str = Field(min_length=1, max_length=1500)
+    diagram: Diagram | None = None
+    code_example: CodeExample | None = None
+    insights: list[Insight] = Field(min_length=1, max_length=2)
+    your_turn: YourTurn
+    key_terms: list[KeyTerm] = Field(default_factory=list, max_length=5)
+    # Sources referenced by citation markers, in the chat citation shape.
+    citations: list[dict[str, Any]] = Field(default_factory=list, max_length=40)
+    coverage_note: str | None = Field(default=None, max_length=300)
+    # Codes only (e.g. diagram_dropped); never model text.
+    warnings: list[str] = Field(default_factory=list, max_length=10)
+
+    @model_validator(mode="after")
+    def code_gap_needs_code(self):
+        if self.your_turn.kind == "code_gap" and (
+            self.code_example is None or self.code_example.todo is None
+        ):
+            raise ValueError("A code_gap exercise needs a code example with a TODO(you) gap")
+        return self
+
+    def client_view(self) -> dict[str, Any]:
+        """What a learner may see: never reference_solution or reference_answer."""
+        view = self.model_dump(mode="json", exclude={"your_turn": {"reference_answer"}})
+        todo = (view.get("code_example") or {}).get("todo")
+        if todo is not None:
+            todo.pop("reference_solution", None)
+        return view
+
+
+def client_content(content: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Strip server-only fields from stored content; unreadable content is withheld."""
+    if not content:
+        return None
+    try:
+        return LessonContent.model_validate(content).client_view()
+    except ValueError:
+        return None
+
+
 class LessonProgressView(BaseModel):
     status: LessonStatus
     opened_at: datetime | None = None
@@ -144,9 +241,20 @@ class LessonView(BaseModel):
     estimated_minutes: int
     content_status: ContentStatus
     content_generated_at: datetime | None = None
-    # Shape finalized in #23; server-only fields are stripped by the API layer.
+    content_failure_code: str | None = None
+    content_generation: UUID | None = None
+    regenerations_today: int = 0
+    # Stored LessonContent including server-only fields: serialize via client_view only.
     content: dict[str, Any] | None = None
     progress: LessonProgressView
+
+    def client_view(self, regeneration_limit: int, locked_content: bool = False) -> dict[str, Any]:
+        """The GET /lessons/{id} body: no server-only fields, no job internals."""
+        view = self.model_dump(mode="json", exclude={"content", "content_generation"})
+        view["content"] = None if locked_content else client_content(self.content)
+        view.pop("regenerations_today")
+        view["regenerations_left"] = max(0, regeneration_limit - self.regenerations_today)
+        return view
 
 
 class LessonOutline(BaseModel):
@@ -188,6 +296,10 @@ class CourseSummary(BaseModel):
 class CourseView(CourseSummary):
     generation: UUID | None = None
     modules: list[ModuleView]
+
+
+class QuizSubmit(BaseModel):
+    answers: dict[str, str] = Field(max_length=QUIZ_QUESTIONS * 2)
 
 
 class QuizAttemptSummary(BaseModel):

@@ -15,6 +15,10 @@ const stages: Record<string, [string,string]> = {
  topics: ["Finding topics", "Topics found"],
  structure: ["Organizing modules and lessons", "Modules organized"],
  estimate: ["Estimating learning time", "Learning time estimated"],
+ // Lesson content generation (#23).
+ evidence: ["Gathering the lesson's sources", "Lesson sources gathered"],
+ write: ["Writing the lesson", "Lesson drafted"],
+ validate: ["Checking citations and length", "Lesson checked"],
 };
 const COURSE_STEPS = new Set(["outline","topics","structure","estimate"]);
 const outcomes: Record<string,string> = {
@@ -23,6 +27,7 @@ const outcomes: Record<string,string> = {
  greeting:"Conversational response",clarify:"Clarification needed",direct_retrieval:"Direct document search",complex_research:"Multi-question research",
  retry:"Retry or fallback selected",fallback:"Using the original question",search:"Web search",checking:"Checking web evidence",hints:"Retrieval hints",
  provider:"Model output unusable",timeout:"Timed out",unreadable:"Too little readable text",interrupted:"Interrupted by a restart",
+ ungrounded:"Citations could not be verified",invalid:"Lesson did not fit the format",
 };
 export function progressStep(data: unknown): ChatStep | undefined {
  if (!data || typeof data !== "object") return;
@@ -48,7 +53,7 @@ export function progressStep(data: unknown): ChatStep | undefined {
      : `${d.step === 'assess' ? 'Document evidence check' : d.step === 'hyde' ? 'Retrieval hints for task' : 'Document search'} ${number}`;
  }
  if (typeof d.outcome === 'string' && outcomes[d.outcome]) results.push(outcomes[d.outcome]!);
- if (typeof d.count === 'number' && Number.isSafeInteger(d.count) && d.count>=0 && d.count<=1000) results.push(`${d.count} ${d.step === 'plan' ? 'research tasks' : d.step === 'hyde' ? 'retrieval hints' : d.step === 'outline' ? 'sections' : d.step === 'topics' ? (task || status === 'complete' ? 'topics' : 'parts') : d.step === 'structure' ? 'modules' : d.step === 'estimate' ? 'lessons' : 'evidence items'}`);
- return {id: d.step + (task ? ':'+task : ''), kind:d.step==='web'?'fetch':d.step==='answer'?'write':'search',label,status,
+ if (typeof d.count === 'number' && Number.isSafeInteger(d.count) && d.count>=0 && d.count<=1000) results.push(`${d.count} ${d.step === 'plan' ? 'research tasks' : d.step === 'hyde' ? 'retrieval hints' : d.step === 'outline' ? 'sections' : d.step === 'topics' ? (task || status === 'complete' ? 'topics' : 'parts') : d.step === 'structure' ? 'modules' : d.step === 'estimate' ? 'lessons' : d.step === 'evidence' ? 'source passages' : 'evidence items'}`);
+ return {id: d.step + (task ? ':'+task : ''), kind:d.step==='web'?'fetch':d.step==='answer'||d.step==='write'?'write':'search',label,status,
    ...(modern ? {progressVersion:1 as const,attempt:d.attempt as number,sequence:d.sequence as number,parent:task?d.step:undefined,results} : {})};
 }

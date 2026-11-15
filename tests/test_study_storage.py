@@ -45,7 +45,9 @@ async def apply_migrations(dsn):
 async def test_study_lifecycle_gating_and_deletion():
     dsn = os.environ["TEST_DATABASE_URL"]
     config = Settings(_env_file=None, database_url=dsn)
-    assert [p.name for p in migration_files()] == ["001_initial.sql", "002_study.sql"]
+    assert [p.name for p in migration_files()] == [
+        "001_initial.sql", "002_study.sql", "003_lesson_content.sql"
+    ]
     await apply_migrations(dsn)
     await apply_migrations(dsn)  # Idempotent re-run.
     provider = SimpleNamespace(embed=AsyncMock(return_value=[1.0] + [0.0] * 767))
@@ -109,14 +111,28 @@ async def test_study_lifecycle_gating_and_deletion():
         assert (a1.attempt_number, a2.attempt_number) == (1, 2)
         with pytest.raises(Conflict, match="abandoned"):
             await study.submit_quiz_attempt(a1.id, {"q1": "a"}, 3, True)
-        submitted = await study.submit_quiz_attempt(a2.id, {"q1": "a"}, 2, True)
-        assert submitted.status == "submitted" and submitted.passed is True
+        # Failing leaves the lesson as it was and the next one locked.
+        failed, status, unlocked = await study.submit_quiz_attempt(a2.id, {"q1": "b"}, 1, False)
+        assert failed.passed is False and status == "available" and unlocked is None
+        assert (await study.lesson(third)).progress.status == "locked"
         with pytest.raises(Conflict, match="submitted"):
             await study.submit_quiz_attempt(a2.id, {"q1": "a"}, 2, True)
+        a3 = await study.create_quiz_attempt(second, [{"id": "q1", "stem": "Fresh stem"}])
+        assert await study.prior_stems(second) == ["Fresh stem"]
+        # Passing completes the lesson and unlocks exactly the next one, atomically.
+        submitted, status, unlocked = await study.submit_quiz_attempt(a3.id, {"q1": "a"}, 2, True)
+        assert submitted.status == "submitted" and submitted.passed is True
+        assert status == "completed" and unlocked == third
+        assert (await study.lesson(third)).progress.status == "available"
+        # A retake after passing changes neither completion nor the next lesson.
+        a4 = await study.create_quiz_attempt(second, questions)
+        _, status, unlocked = await study.submit_quiz_attempt(a4.id, {"q1": "b"}, 0, False)
+        assert status == "completed" and unlocked is None
+        assert (await study.lesson(third)).progress.status == "available"
         with pytest.raises(NotFound):
             await study.submit_quiz_attempt(uuid4(), {}, 0, False)
         history = await study.quiz_attempts(second)
-        assert [h.status for h in history] == ["abandoned", "submitted"]
+        assert [h.status for h in history] == ["abandoned", "submitted", "submitted", "submitted"]
         assert not any(hasattr(h, "questions") for h in history)
         assert (await study.quiz_attempt(a2.id))["questions"] == questions
         # Your turn and tutor binding.
@@ -126,9 +142,39 @@ async def test_study_lifecycle_gating_and_deletion():
         await store.save_turn(thread, version, "q", "a", [])
         await study.bind_conversation(second, thread)
         assert await study.lesson_conversation(second) == thread
-        await study.set_content_status(third, "generating")
-        await study.set_content(third, {"objective": "x"})
-        assert (await study.lesson(third)).content_status == "ready"
+        # Lesson content: evidence in plan order, one generation per open, guarded writes.
+        lesson_row, evidence = await study.lesson_evidence(third)
+        assert lesson_row["document_id"] == doc.id and [s["id"] for s in evidence] == ["1"]
+        assert evidence[0]["text"] == "Synthetic evidence" and evidence[0]["edition"] == "test"
+        generation = uuid4()
+        opened = await asyncio.gather(*(study.begin_content(third, g) for g in
+                                         (generation, uuid4(), uuid4())))
+        assert opened.count(True) == 1 and opened[0]
+        assert await study.begin_regeneration(third, uuid4(), 5) == "busy"
+        with pytest.raises(Conflict):
+            await study.write_content(third, uuid4(), {"objective": "stale"})
+        await study.write_content(third, generation, {"objective": "x"})
+        stored = await study.lesson(third)
+        assert stored.content_status == "ready" and stored.content == {"objective": "x"}
+        assert stored.regenerations_today == 0
+        # Regeneration: bounded per day; a failed attempt keeps the previous content.
+        regeneration = uuid4()
+        assert await study.begin_regeneration(third, regeneration, 1) == "started"
+        assert (await study.lesson(third)).content == {"objective": "x"}
+        assert await study.fail_content(third, regeneration, "provider")
+        failed = await study.lesson(third)
+        assert (failed.content_status, failed.content_failure_code) == ("ready", "provider")
+        assert failed.regenerations_today == 1
+        assert await study.begin_regeneration(third, uuid4(), 1) == "limit"
+        fresh = await study.begin_regeneration(second, uuid4(), 1)
+        assert fresh == "busy"  # Pending content is generated by opening, not regenerating.
+        with pytest.raises(NotFound):
+            await study.begin_regeneration(uuid4(), uuid4(), 1)
+        assert await study.begin_content(second, uuid4())
+        assert await study.mark_interrupted() >= 1  # Restart: nothing is still generating.
+        after = await study.lesson(second)
+        assert (after.content_status, after.content_failure_code) == ("failed", "interrupted")
+        assert await study.begin_regeneration(second, uuid4(), 1) == "started"  # Retryable.
         # Status transitions are generation-guarded.
         assert not await study.begin_generation(course.id, uuid4())  # Ready: untouched.
         assert not await study.fail_course(course.id, uuid4(), "provider")
