@@ -33,8 +33,10 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function TableFrame({ children }: { children: React.ReactNode }) {
-  // Tables scroll inside their own frame; the page never scrolls sideways.
-  return <div className="max-w-full overflow-x-auto rounded-xl border">{children}</div>;
+  // Tables scroll inside their own frame; the page never scrolls sideways. `relative`
+  // makes the frame the containing block for absolutely positioned screen-reader text
+  // in cells, so it is clipped with the table instead of widening the page.
+  return <div className="relative max-w-full overflow-x-auto rounded-xl border">{children}</div>;
 }
 
 export function CourseProgressView({ course }: { course: CourseView }) {

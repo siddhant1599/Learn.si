@@ -38,14 +38,15 @@ def main():
         assert page.locator("canvas").count() >= 2
         checks.append("WebGL hero and masked canvas mount")
         page.screenshot(path=".local/web-landing-desktop.png")
-        page.get_by_role("tab", name="Connect the details").click()
-        page.get_by_role("button", name="Answer", exact=True).click()
-        page.get_by_text(
-            "Complete orientation and obtain your team lead’s approval", exact=False
-        ).wait_for()
+        # Example tabs follow web/src/content/landing-demo.ts (scripted Ask demo runs).
+        page.get_by_role("tab", name="Connect two ideas").click()
+        panel = page.get_by_role("tabpanel")
+        panel.get_by_text("Why do my Pods disappear when a node fails?").wait_for()
+        panel.get_by_role("button", name="Pause preview", exact=True).click()
+        panel.get_by_role("button", name="Play preview", exact=True).wait_for()
         page.wait_for_timeout(400)
         page.screenshot(path=".local/web-examples-desktop.png")
-        checks.append("Interactive example tabs, stage selection and pause")
+        checks.append("Interactive example tabs, question and pause")
         page.goto(BASE + "/workspace/chats/new", wait_until="networkidle")
         page.locator("input[type=checkbox]").first.wait_for()
         assert page.get_by_role("button", name="Send", exact=True).is_disabled()
@@ -115,9 +116,8 @@ def main():
         reduced = browser.new_page(reduced_motion="reduce", viewport={"width": 1200, "height": 900})
         reduced.goto(BASE, wait_until="networkidle")
         reduced.locator("#examples").scroll_into_view_if_needed()
-        reduced.get_by_text(
-            "Include the document title and edition on every archive label.", exact=False
-        ).wait_for()
+        # Reduced motion shows the first demo run's finished answer (landing-demo.ts).
+        reduced.get_by_text("A Pod is the unit Kubernetes schedules", exact=False).wait_for()
         assert reduced.locator(".galaxy-container canvas").count() == 0
         checks.append("Reduced motion removes WebGL and leaves example answers readable")
         assert not errors, errors

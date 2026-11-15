@@ -284,10 +284,12 @@ def answer_quiz(page, backend, attempt_index, correct_count, keyboard=False):
             i for i, t in enumerate(texts) if t != right[index])
         if keyboard and index == 0:
             # Arrow keys move the selection within a radio group.
+            # Keyboard only: arrows move between options, Space selects.
             radios.nth(0).focus()
-            page.keyboard.press("Space")
-            for _ in range(target):
+            for step in range(1, target + 1):
                 page.keyboard.press("ArrowDown")
+                expect(radios.nth(step)).to_be_focused()
+            page.keyboard.press("Space")
             expect(radios.nth(target)).to_be_checked()
         else:
             radios.nth(target).click()
@@ -339,7 +341,9 @@ def run(page, backend, errors):
     for name in ("Explanation", "Real-world example", "Diagram", "Key terms", "Your turn"):
         expect(page.get_by_role("heading", level=2, name=name)).to_be_visible(timeout=10000)
     expect(page.get_by_role("note", name="Why it matters")).to_be_visible()
-    expect(page.locator("figure svg[aria-roledescription]")).to_have_count(1, timeout=15000)
+    # Mermaid renders lazily once the diagram scrolls into view.
+    page.get_by_role("heading", level=2, name="Diagram").scroll_into_view_if_needed()
+    expect(page.locator('figure svg[aria-roledescription="flowchart-v2"]')).to_have_count(1, timeout=15000)
     expect(page.get_by_label("Sources").first).to_contain_text("Archive Handbook")
     no_overflow(page, "lesson")
 
@@ -367,7 +371,7 @@ def run(page, backend, errors):
     answer_quiz(page, backend, 0, 1, keyboard=True)
     expect(submit).to_be_enabled()
     submit.click()
-    expect(page.get_by_text("1/3 · Not passed")).to_be_visible()
+    expect(page.get_by_text("1/3 · Not passed", exact=True)).to_be_visible()
     expect(page.get_by_role("link", name="Next lesson")).to_have_count(0)
     assert backend.status[LESSONS[1][0]] == "locked"
     page.get_by_role("button", name="Retake with new questions").click()
@@ -377,7 +381,7 @@ def run(page, backend, errors):
     assert not set(first_stems) & set(second_stems), (first_stems, second_stems)
     answer_quiz(page, backend, 1, 2)
     page.get_by_role("button", name="Submit answers").click()
-    expect(page.get_by_text("2/3 · Passed")).to_be_visible()
+    expect(page.get_by_text("2/3 · Passed", exact=True)).to_be_visible()
     no_overflow(page, "quiz results")
     page.get_by_role("link", name="Next lesson").click()
     expect(page).to_have_url(f"{BASE}/workspace/courses/{COURSE}/lessons/{LESSONS[1][0]}")

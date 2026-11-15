@@ -63,7 +63,7 @@ def check_docs(page):
     assert response.status == 404
     expect(page.get_by_role("heading", name="Documentation not found")).to_be_visible()
     assert not errors, errors
-    print("Docs: 9 routes, anchors, refresh/history, search keyboard/focus, themes, mobile and 404 passed")
+    print(f"Docs: {len(SLUGS)} routes, anchors, refresh/history, search keyboard/focus, themes, mobile and 404 passed")
 
 
 def check_landing(page):
