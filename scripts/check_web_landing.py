@@ -58,8 +58,48 @@ def check_stage(page, width, height, errors):
     boxes = page.evaluate("(() => { const b = document.querySelector('[data-constellation]').getBoundingClientRect(); return [...document.querySelectorAll('[data-constellation-star], [data-constellation-label]')].map(s => s.getBoundingClientRect()).map(r => [r.left - b.left, r.top - b.top, r.right - b.left, r.bottom - b.top]); })()")
     for left, top, right, bottom in boxes:
         assert 0 <= left and right <= width and 0 <= top and bottom <= height, (left, top, right, bottom)
+    check_lesson_flow(page)
     assert not errors, errors
-    print(f"{width}x{height}: static hero; stage 0 → {mid:.2f} → 1; 9 stars travel, labels, lines, module one gold, legend and chip")
+    print(f"{width}x{height}: static hero; stage 0 → {mid:.2f} → 1; 9 stars travel, labels, lines, module one gold, legend and chip; lesson + quiz light Pods")
+
+
+def check_lesson_flow(page):
+    """TODO(you) gap, a failed first quiz, a retake with new questions, then the map updates."""
+    card = page.locator("[data-lesson-card]")
+    card.scroll_into_view_if_needed()
+    gap = page.get_by_label("Image for the web container")
+    gap.fill("nginx")
+    # The examples panel also has a "Check" chip; stay inside the card.
+    card.get_by_role("button", name="Check", exact=True).click()
+    expect(page.locator("[data-gap-verdict]")).to_have_attribute("data-gap-verdict", "partial")
+    gap.fill("nginx:1.27")
+    card.get_by_role("button", name="Check", exact=True).click()
+    expect(page.locator("[data-gap-verdict]")).to_have_attribute("data-gap-verdict", "correct")
+    card.get_by_role("button", name="Take the quiz").click()
+    expect(card).to_have_attribute("data-side", "quiz")
+    page.wait_for_timeout(800)  # Let the 3D flip finish before clicking inside the back face.
+    submit = page.get_by_role("button", name="Submit answers")
+    expect(submit).to_be_disabled()
+    # Bank one keys: b, b, a. Choose all wrong.
+    for qid, wrong in (("a1", "a"), ("a2", "c"), ("a3", "b")):
+        page.locator(f'[data-question="{qid}"] input[value="{wrong}"]').check()
+    submit.click()
+    expect(page.locator("[data-quiz-result]")).to_have_attribute("data-quiz-result", "failed")
+    stems_before = page.locator("[data-question] legend").all_inner_texts()
+    page.get_by_role("button", name="Retake with new questions").click()
+    expect(page.locator("[data-quiz]")).to_have_attribute("data-attempt", "2")
+    assert page.locator("[data-question] legend").all_inner_texts() != stems_before
+    for qid, right in (("b1", "b"), ("b2", "a"), ("b3", "b")):
+        page.locator(f'[data-question="{qid}"] input[value="{right}"]').check()
+    page.get_by_role("button", name="Submit answers").click()
+    expect(page.locator("[data-quiz-result]")).to_have_attribute("data-quiz-result", "passed")
+    expect(page.locator("[data-progress-panel]")).to_have_attribute("data-completed", "4")
+    mini = page.evaluate("[...document.querySelectorAll('[data-mini-sky] g[data-state]')].map(g => g.dataset.state)")
+    assert mini.count("mastered") == 4 and mini[4] == "next", mini
+    scroll_stage_to(page, 1)
+    states = page.evaluate("[...document.querySelectorAll('[data-constellation-star]')].map(s => s.dataset.state)")
+    assert states.count("mastered") == 4 and states[4] == "next", states
+    assert page.evaluate("document.querySelector('[data-constellation-chip]').textContent") == "Lesson 5 · ≈ 5 min"
 
 
 def check_reduced_motion(browser):

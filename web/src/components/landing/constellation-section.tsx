@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { site } from "@/config/site";
 import { usePrefersReducedMotion } from "@/core/dom/render-activity";
 import { cn } from "@/lib/utils";
 
 import { ConstellationScene, type ConstellationHandle } from "./constellation-scene";
+import { LessonCard } from "./lesson-card";
+import { ProgressPanel } from "./progress-panel";
+
+const INITIAL_COMPLETED = 3; // Module one mastered when the visitor arrives.
 
 /**
  * A 220svh scroll stage with a sticky viewport placed after the examples. The
@@ -17,6 +21,13 @@ export function ConstellationSection({ className }: { className?: string }) {
   const reduced = usePrefersReducedMotion();
   const stage = useRef<HTMLDivElement>(null);
   const scene = useRef<ConstellationHandle>(null);
+  const [completed, setCompleted] = useState(INITIAL_COMPLETED);
+  const [quizFirstTry, setQuizFirstTry] = useState<boolean | null>(null);
+  const pass = (firstTry: boolean) => {
+    setCompleted((count) => Math.max(count, INITIAL_COMPLETED + 1));
+    setQuizFirstTry((value) => value ?? firstTry);
+    scene.current?.setCompleted(INITIAL_COMPLETED + 1);
+  };
 
   useEffect(() => {
     let last = -1;
@@ -117,6 +128,27 @@ export function ConstellationSection({ className }: { className?: string }) {
               Scroll
             </div>
           )}
+        </div>
+      </div>
+      {/* The next lesson, playable: passing its quiz lights Pods on the map above. */}
+      <div className="mx-auto mt-10 w-full max-w-6xl px-4">
+        <div className="mb-6 max-w-2xl">
+          <p className="text-[11px] font-semibold tracking-widest text-[#e9c665] uppercase">
+            Try it · nothing leaves your browser
+          </p>
+          <h3 className="mt-2 font-serif text-2xl text-white sm:text-3xl">Open the next lesson</h3>
+          <p className="mt-2 text-sm text-white/70 sm:text-base">
+            Read it, complete the TODO(you), then pass the quiz: Pods turns gold on the map and
+            Deployments opens.
+          </p>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+          <LessonCard onPass={pass} passed={completed > INITIAL_COMPLETED} />
+          <ProgressPanel
+            completed={completed}
+            quizFirstTry={quizFirstTry}
+            className="lg:sticky lg:top-24"
+          />
         </div>
       </div>
     </section>

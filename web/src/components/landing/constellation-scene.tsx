@@ -20,12 +20,15 @@ import { site } from "@/config/site";
  * Stars, labels and titles are HTML layers moved with translate3d so each frame is
  * compositor work only; the SVG holds just the lines. React renders this tree once.
  */
-export type ConstellationHandle = { update: (progress: number) => void };
+export type ConstellationHandle = {
+  update: (progress: number) => void;
+  /** Lessons completed in course order; drives mastered / next / locked states. */
+  setCompleted: (count: number) => void;
+};
 
 const { stars: STARS, modules: MODULES } = site.constellation;
 const GOLD = "#e9c665";
-const MASTERED_MODULE = 0;
-const NEXT_STAR = STARS.findIndex((star) => star.module === MASTERED_MODULE + 1);
+const INITIAL_COMPLETED = STARS.filter((star) => star.module === 0).length;
 const STAR_BOX = 36; // px; the glow's diameter and the layer's size
 
 // Consecutive stars inside a module; the last of one module bridges (dashed) to the next.
@@ -79,6 +82,7 @@ export const ConstellationScene = forwardRef<
   const ends = useRef<[number, number][]>([]);
   const current = useRef<[number, number][]>([]);
   const progress = useRef(0);
+  const completed = useRef(INITIAL_COMPLETED);
 
   const measure = useCallback(() => {
     const bounds = stage.current?.getBoundingClientRect();
@@ -107,8 +111,8 @@ export const ConstellationScene = forwardRef<
       const x = lerp(ox, tx, t);
       const y = lerp(oy, ty, t);
       const node = starNodes.current[index];
-      const mastered = star.module === MASTERED_MODULE;
-      const next = index === NEXT_STAR;
+      const mastered = index < completed.current;
+      const next = index === completed.current;
       const locked = !mastered && !next;
       if (node) {
         const scale = 0.4 + 0.6 * t + (mastered ? 0.35 * path : next ? 0.2 * path : 0);
@@ -139,7 +143,7 @@ export const ConstellationScene = forwardRef<
         const leftSide = point[0] < width / 2;
         node.style.transform = `translate3d(${point[0] + (leftSide ? -14 : 14)}px, ${point[1]}px, 0) translate(${leftSide ? "-100%" : "0"}, -50%)`;
       }
-      const locked = STARS[index]!.module !== MASTERED_MODULE && index !== NEXT_STAR;
+      const locked = index > completed.current;
       node.style.opacity = String(reveal * (locked ? 1 - 0.45 * path : 1));
     });
     moduleNodes.current.forEach((node, moduleIndex) => {
@@ -151,9 +155,12 @@ export const ConstellationScene = forwardRef<
       node.style.transform = `translate3d(${x}px, ${top - 44}px, 0) translate(-50%, 0)`;
       node.style.opacity = String(reveal);
     });
-    const nextPoint = current.current[NEXT_STAR];
-    if (chip.current && nextPoint) {
-      chip.current.style.transform = `translate3d(${nextPoint[0]}px, ${nextPoint[1] + (narrow ? 30 : 14)}px, 0) translate(-50%, 0)`;
+    const nextPoint = current.current[completed.current];
+    if (chip.current) {
+      const text = nextPoint ? `Lesson ${completed.current + 1} · ≈ 5 min` : "Course complete";
+      if (chip.current.textContent !== text) chip.current.textContent = text;
+      const anchor = nextPoint ?? current.current[current.current.length - 1]!;
+      chip.current.style.transform = `translate3d(${anchor[0]}px, ${anchor[1] + (narrow ? 30 : 14)}px, 0) translate(-50%, 0)`;
       chip.current.style.opacity = String(path);
     }
     if (legend.current) legend.current.style.opacity = String(path);
@@ -164,7 +171,17 @@ export const ConstellationScene = forwardRef<
     }
   }, [measure]);
 
-  useImperativeHandle(ref, () => ({ update }), [update]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      update,
+      setCompleted: (count: number) => {
+        completed.current = Math.max(0, Math.min(STARS.length, count));
+        update(progress.current);
+      },
+    }),
+    [update],
+  );
 
   useEffect(() => {
     measure();
@@ -179,6 +196,7 @@ export const ConstellationScene = forwardRef<
   }, [measure, update]);
 
   const { source, states, nextLesson } = site.constellation;
+  // Unused `star` in the module-title loop is intentional: titles come from MODULES.
   return (
     <div ref={stage} className={className} aria-hidden="true" data-constellation>
       <div

@@ -45,7 +45,7 @@ export const site = {
     ],
     rotatingSuffix: "",
     description:
-      "A learning workspace for your documents. Ask a question and follow the answer back to its source, or turn a document into short lessons, quizzes and a path to mastery.",
+      "A learning workspace with your documents. Ask a question and follow the answer back to its source, or turn a document into short lessons, quizzes and a path to mastery.",
     ctaLabel: "Start learning",
     ctaHref: "/workspace",
   },

@@ -12,10 +12,12 @@ it('renders the section heading, nine sentences, nine stars, three modules and t
  expect(screen.getByRole('heading',{level:2,name:site.constellation.title})).toBeInTheDocument();
  expect(screen.getByText(site.constellation.eyebrow)).toBeInTheDocument();
  expect(site.constellation.stars).toHaveLength(9);
+ const sentences=[...document.querySelectorAll('[data-constellation-sentence]')].map(n=>n.textContent?.trim());
  for(const star of site.constellation.stars){
-  expect(screen.getByText(new RegExp(escape(star.sentence)))).toBeInTheDocument();
+  expect(sentences).toContain(star.sentence);
   expect(screen.getByText(star.label)).toBeInTheDocument();
  }
+ expect(escape(site.constellation.stars[0]!.sentence)).toContain('Dockerfile');
  for(const title of site.constellation.modules)expect(screen.getByText(title)).toHaveClass('uppercase');
  expect(document.querySelectorAll('[data-constellation-star]')).toHaveLength(9);
  expect(screen.getByText(site.constellation.nextLesson)).toBeInTheDocument();
