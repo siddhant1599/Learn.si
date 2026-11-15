@@ -25,6 +25,9 @@ class ResearchQuestion(TypedDict):
 
 
 class State(TypedDict, total=False):
+    # Lesson-scoped tutoring (#25): a learner-safe summary and an explicit answer request.
+    lesson_context: str
+    answer_requested: bool
     web_requested: bool
     web_queries: list[str]
     web_results: list[dict]

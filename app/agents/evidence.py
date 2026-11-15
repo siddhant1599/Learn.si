@@ -42,7 +42,7 @@ def prepare_evidence(hits, max_chars=18000):
     return "\n\n".join(blocks), sources
 
 
-def grounded_citations(answer, sources):
+def grounded_citations(answer, sources, allow_uncited=False):
     # Some models emit native source citations despite the [number] prompt.
     # Our catalog has page-level sources, not line anchors. Discard model-supplied
     # line ranges rather than presenting them as verified locations; validate
@@ -52,6 +52,9 @@ def grounded_citations(answer, sources):
         return "The selected documents do not contain enough evidence to answer this question.", []
     numbers = references(answer)
     valid = {s["citation"] for s in sources}
+    # A tutor hint or guiding question may cite nothing; any citation it has must resolve.
+    if allow_uncited and not numbers and not malformed_citations(answer):
+        return answer, []
     # Do not return unsupported numbered citations as a seemingly grounded answer.
     if (not numbers or not numbers.issubset(valid)
             or malformed_citations(answer)):

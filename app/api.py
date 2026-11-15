@@ -23,9 +23,18 @@ from app.providers import ProviderError, Providers
 from app.storage import Conflict, NotFound, Storage, recent_context
 from app.study.jobs import CourseJobs, LessonJobs
 from app.study.lesson_writer import build_evidence
-from app.study.models import CourseCreate, QuizQuestion, QuizSubmit, client_content
+from app.study.models import (
+    CourseCreate,
+    LessonContent,
+    QuizQuestion,
+    QuizSubmit,
+    YourTurnSubmit,
+    client_content,
+)
 from app.study.quiz import QuizFailed, QuizWriter, answer_problem, grade
+from app.study.review import REVEAL_AFTER, ReviewFailed, YourTurnReviewer
 from app.study.storage import StudyStorage
+from app.study.tutor import asked_for_answer, lesson_summary, tutor_context
 from app.uploads import MAX_BYTES, extract_document
 from app.vector_cleanup import cleanup_loop
 from app.web_search import TavilySearch
@@ -355,6 +364,84 @@ async def regenerate_lesson(
     return JSONResponse(_lesson_body(lesson, jobs), status_code=202)
 
 
+@app.get("/lessons/{lesson_id}/conversation")
+async def lesson_conversation(
+    lesson_id: UUID,
+    before: int = QueryParam(default=2**63 - 1, ge=1),
+    limit: int = QueryParam(default=20, ge=1, le=50),
+    study=Depends(study_storage),
+    store=Depends(storage),
+):
+    """The lesson's bound tutor chat (or none yet), paged like Ask-mode history."""
+    await _lesson(study, lesson_id)
+    thread_id = await study.lesson_conversation(lesson_id)
+    if thread_id is None:
+        return {"thread_id": None, "messages": []}
+    try:
+        messages = await store.history(thread_id, before, limit)
+    except NotFound:
+        return {"thread_id": None, "messages": []}
+    return {"thread_id": str(thread_id), "messages": messages}
+
+
+REVIEW_FAILED = "Your answer could not be reviewed. Please retry."
+REVEALED_BLANK = "Here is the answer. Compare it with the lesson, then try the next exercise."
+
+
+@app.post("/lessons/{lesson_id}/your-turn")
+async def your_turn(
+    lesson_id: UUID, body: YourTurnSubmit, request: Request, study=Depends(study_storage)
+):
+    """Verdict and guidance; the reference appears only on request or the third attempt."""
+    config = settings()
+    lesson = await _lesson(study, lesson_id)
+    if lesson.progress.status == "locked":
+        raise HTTPException(409, "Pass the previous quiz before opening this lesson.")
+    if lesson.content_status != "ready" or lesson.content is None:
+        raise HTTPException(409, "The lesson is not ready yet.")
+    content = LessonContent.model_validate(lesson.content)
+    turn = content.your_turn
+    code_gap = turn.kind == "code_gap" and content.code_example and content.code_example.todo
+    reference = code_gap.reference_solution if code_gap else turn.reference_answer
+    attempt_number = await study.your_turn_count(lesson_id) + 1
+    reveal = body.reveal or attempt_number >= REVEAL_AFTER
+    answer = body.answer.strip()
+    if not answer:
+        if not body.reveal:
+            raise HTTPException(422, "Write an answer first, or ask to see the answer.")
+        verdict, feedback, explanation = None, REVEALED_BLANK, ""
+    else:
+        _, sections = await study.lesson_evidence(lesson_id)
+        evidence, _, _ = build_evidence(sections, min(config.lesson_evidence_chars, 6000))
+        token = current_budget.set(CallBudget(chat_limit=1, embedding_limit=0))
+        try:
+            async with asyncio.timeout(config.quiz_timeout_seconds):
+                result = await YourTurnReviewer(BudgetedProvider(request.app.state.providers)).review(
+                    kind=turn.kind, prompt=turn.prompt, answer=answer, reference=reference,
+                    lesson={"objective": content.objective, "explanation": content.explanation},
+                    evidence=evidence, reveal=reveal,
+                )
+        except (ReviewFailed, BudgetExceeded):
+            raise HTTPException(502, REVIEW_FAILED) from None
+        except TimeoutError:
+            raise HTTPException(504, "The review timed out. Please retry.") from None
+        except Exception as exc:
+            logger.error("Your turn review failed (%s)", type(exc).__name__)
+            raise HTTPException(502, REVIEW_FAILED) from None
+        finally:
+            current_budget.reset(token)
+        verdict, feedback, explanation = result["verdict"], result["feedback"], result["explanation"]
+    count = await study.record_your_turn(
+        lesson_id, answer, verdict or "incorrect", feedback, reveal
+    )
+    return {
+        "verdict": verdict,
+        "feedback": feedback,
+        "attempt_number": count,
+        "reveal": {"answer": reference, "explanation": explanation} if reveal else None,
+    }
+
+
 QUIZ_FAILED = "The quiz could not be generated. Please retry."
 
 
@@ -492,9 +579,24 @@ def event(name, data):
 @app.post("/query")
 async def query(body: Query, request: Request, store=Depends(storage)):
     config = settings()
+    lesson, thread_param = None, body.thread_id
+    if body.lesson_id is not None:
+        study = getattr(request.app.state, "study", None)
+        if study is None:
+            raise HTTPException(503, "DATABASE_URL is not configured")
+        lesson = await _lesson(study, body.lesson_id)
+        if lesson.progress.status == "locked":
+            raise HTTPException(409, "Pass the previous quiz before opening this lesson.")
+        if set(body.document_ids) != {lesson.document_id}:
+            raise HTTPException(409, "Lesson questions use the course's document only.")
+        bound = await study.lesson_conversation(body.lesson_id)
+        if thread_param is None:
+            thread_param = bound
+        elif bound != thread_param:
+            raise HTTPException(409, "This chat does not belong to the lesson.")
     try:
         thread_id, version, history = await store.conversation(
-            body.thread_id,
+            thread_param,
             body.document_ids,
             config.embedding_signature,
             config.history_exchanges * 2,
@@ -503,6 +605,18 @@ async def query(body: Query, request: Request, store=Depends(storage)):
         raise HTTPException(404, str(exc)) from exc
     except Conflict as exc:
         raise HTTPException(409, str(exc)) from exc
+    tutor = {}
+    history_text = recent_context(history, config.history_max_chars)
+    if lesson is not None:
+        if thread_param is None:
+            await request.app.state.study.bind_conversation(body.lesson_id, thread_id)
+        summary, history_text = tutor_context(
+            lesson_summary(lesson.title, client_content(lesson.content)),
+            history_text,
+            config.history_max_chars,
+        )
+        tutor = {"lesson_context": summary,
+                 "answer_requested": asked_for_answer(body.user_query)}
 
     async def stream():
         runtime_id = str(request.app.state.runtime.instance_id)
@@ -511,7 +625,8 @@ async def query(body: Query, request: Request, store=Depends(storage)):
             request.app.state.providers,
             store,
             stream_answer=True,
-            web_client=getattr(request.app.state, "web_search", None),
+            # Master mode never searches the web.
+            web_client=None if lesson else getattr(request.app.state, "web_search", None),
             timeout_seconds=config.request_timeout_seconds,
             max_sub_questions=config.max_sub_questions,
             hyde_enabled=config.hyde_enabled,
@@ -519,6 +634,7 @@ async def query(body: Query, request: Request, store=Depends(storage)):
             research_limiter=request.app.state.research_limiter,
             chat_call_limit=config.chat_call_limit,
             embedding_call_limit=config.embedding_call_limit,
+            boost_sections=frozenset(lesson.source_section_ids) if lesson else frozenset(),
         )
         final = {}
         try:
@@ -528,7 +644,8 @@ async def query(body: Query, request: Request, store=Depends(storage)):
                         "deadline": time.monotonic() + config.request_timeout_seconds,
                         "question": body.user_query,
                         "document_ids": body.document_ids,
-                        "history": recent_context(history, config.history_max_chars),
+                        "history": history_text,
+                        **tutor,
                     },
                     stream_mode=["updates", "custom"],
                 ):
@@ -597,7 +714,7 @@ async def query(body: Query, request: Request, store=Depends(storage)):
         finally:
             # A disconnected first request may never deliver its server ID to the
             # browser. Remove only the empty draft, never a completed conversation.
-            if not completed and body.thread_id is None and hasattr(store, "discard_empty"):
+            if not completed and thread_param is None and hasattr(store, "discard_empty"):
                 try:
                     await asyncio.shield(store.discard_empty(thread_id))
                 except Exception:

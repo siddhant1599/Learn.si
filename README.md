@@ -674,6 +674,39 @@ never returned by any route or logged. Each generation is bounded by
 `LESSON_GENERATION_TIMEOUT_SECONDS` (default 180). `migrations/003_lesson_content.sql`
 adds the lesson job columns.
 
+### Lesson tutor and "Your turn" review
+
+`POST /query` accepts an optional `lesson_id`. A lesson-scoped turn must use
+exactly the lesson's course document (409 otherwise; locked lessons are 409),
+never searches the web (no web steps or citations), ranks the lesson's own
+`source_section_ids` first while still allowing the rest of the document, and
+adds a learner-safe lesson summary (objective, explanation, key terms, exercise
+prompt; never reference answers) that shares `HISTORY_MAX_CHARS` with recent
+history. The tutor answers Socratically: a short hint pointing to the lesson or a
+cited excerpt plus one guiding question, and the direct cited answer when the
+learner asks for it ("just tell me", "what's the answer") or asks about the same
+point again. Guidance may carry no citation; any citation must still resolve.
+Ask-mode queries are unchanged.
+
+The first lesson turn creates a conversation and binds it to the lesson; later
+turns reuse it (a different `thread_id` is 409). `GET /lessons/{id}/conversation`
+returns the bound thread and its messages, paged like Ask history. Lesson chats
+live on the server only: they never appear in Ask's chat list or browser
+storage. Deleting the lesson's course or document deletes the binding and the
+conversation; deleting the conversation through `DELETE /conversations/{id}`
+removes only the binding, and the next question starts a fresh lesson chat.
+
+`POST /lessons/{id}/your-turn {"answer", "reveal"}` makes one bounded review
+call comparing the answer with the server-only reference (`reference_solution`
+for code gaps, otherwise `reference_answer`) and the lesson evidence, and
+returns `{verdict: correct|partial|incorrect, feedback (≤120 words, whole
+sentences), attempt_number, reveal}`. Feedback guides without revealing the
+reference; feedback that quotes it is replaced with neutral guidance. `reveal`
+holds the reference and a short explanation only when the learner asks
+(`reveal: true`, also allowed with a blank answer, which skips the review) or
+on their third attempt. Attempts are stored in `your_turn_attempts`, deleted
+with the lesson, and never logged; failed reviews are not counted.
+
 ### Quizzes and unlocking
 
 `POST /lessons/{id}/quiz-attempts` (lesson content `ready`, status `in_progress`

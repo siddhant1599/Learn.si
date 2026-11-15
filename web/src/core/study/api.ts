@@ -9,6 +9,8 @@ import type {
   LessonDetail,
   QuizAttemptView,
   QuizHistoryItem,
+  TutorHistory,
+  YourTurnResult,
 } from "./types";
 
 const BASE = "/api/rag";
@@ -169,6 +171,16 @@ export const lessonApi = {
     );
     return { lesson, steps: stepsFrom(generation_progress), generating: lesson.content_status === "generating" };
   },
+};
+
+export const tutorApi = {
+  yourTurn: (lessonId: string, answer: string, reveal = false) =>
+    request<YourTurnResult>(`lessons/${encodeURIComponent(lessonId)}/your-turn`,
+      { ...json({ answer, reveal }), signal: AbortSignal.timeout(120000) },
+      "Your answer could not be reviewed. Please retry."),
+  history: (lessonId: string) =>
+    request<TutorHistory>(`lessons/${encodeURIComponent(lessonId)}/conversation?limit=50`, {},
+      "Cannot load the tutor chat."),
 };
 
 export const quizApi = {

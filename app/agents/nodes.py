@@ -24,6 +24,9 @@ from .synthesis import AnsweringAgent as AnsweringAgent
 class SearchService:
     providers: Provider
     storage: SearchStorage
+    # Lesson-scoped tutoring ranks the lesson's own sections first, then the rest
+    # of the same document.
+    boost_sections: frozenset[str] = frozenset()
 
     async def search(self, queries: list[str], document_ids: list) -> tuple[list[dict], list[str]]:
         hits, warnings = {}, []
@@ -35,7 +38,10 @@ class SearchService:
                 warnings.append("Embedding service unavailable; used exact/full-text retrieval.")
             for hit in await self.storage.search(query, document_ids, embedding):
                 hits.setdefault(hit["id"], hit)
-        return list(hits.values())[:12], warnings
+        ranked = list(hits.values())
+        if self.boost_sections:
+            ranked.sort(key=lambda hit: hit.get("section_id") not in self.boost_sections)
+        return ranked[:12], warnings
 
 
 @dataclass(frozen=True)

@@ -103,6 +103,8 @@ export type ChatRequest = {
   /** The browser files attached to the new user message. */
   files: File[];
   settings: ChatSettings;
+  /** Master-mode tutor turns: scoped to one lesson, document-only, Socratic. */
+  lessonId?: string;
 };
 
 /**

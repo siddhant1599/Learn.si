@@ -300,6 +300,11 @@ class CourseView(CourseSummary):
     modules: list[ModuleView]
 
 
+class YourTurnSubmit(BaseModel):
+    answer: str = Field(default="", max_length=4000)
+    reveal: bool = False
+
+
 class QuizSubmit(BaseModel):
     answers: dict[str, str] = Field(max_length=QUIZ_QUESTIONS * 2)
 

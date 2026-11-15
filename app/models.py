@@ -8,6 +8,8 @@ class Query(BaseModel):
     user_query: str = Field(min_length=1, max_length=4000)
     document_ids: list[UUID] = Field(min_length=1, max_length=5)
     thread_id: UUID | None = None
+    # Lesson-scoped tutoring (#25): document-only, Socratic, bound to the lesson's chat.
+    lesson_id: UUID | None = None
 
     @field_validator("user_query")
     @classmethod

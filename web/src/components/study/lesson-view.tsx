@@ -3,19 +3,21 @@
 import {
   ArrowLeftIcon,
   BookOpenIcon,
+  CheckIcon,
   CircleAlertIcon,
+  CircleDotIcon,
   CodeIcon,
   GlobeIcon,
   LightbulbIcon,
   Loader2,
   LockIcon,
-  MessageCircleQuestionIcon,
   MoreHorizontalIcon,
   NotebookPenIcon,
   RefreshCwIcon,
   ScaleIcon,
   TriangleAlertIcon,
   WorkflowIcon,
+  XIcon,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -42,7 +44,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MasterEmptyPage } from "@/components/workspace/master-empty";
 import { WorkspacePageHeader } from "@/components/workspace/page-header";
 import { OutlineSkeleton } from "@/components/workspace/skeletons";
-import { studyApi } from "@/core/study/api";
+import { studyApi, tutorApi } from "@/core/study/api";
 import {
   courseHref,
   formatMinutes,
@@ -50,11 +52,19 @@ import {
   lessonHref,
   quizHref,
 } from "@/core/study/format";
-import type { CourseView, InsightKind, LessonContent, LessonDetail } from "@/core/study/types";
+import type {
+  CourseView,
+  InsightKind,
+  LessonContent,
+  LessonDetail,
+  YourTurnResult,
+  YourTurnVerdict,
+} from "@/core/study/types";
 import { useLesson } from "@/core/study/use-lesson";
 import { cn } from "@/lib/utils";
 
 import { GenerationProgress } from "./generation-progress";
+import { LessonTutor } from "./lesson-tutor";
 
 const INSIGHTS: Record<InsightKind, { label: string; icon: LucideIcon }> = {
   why_it_matters: { label: "Why it matters", icon: LightbulbIcon },
@@ -71,7 +81,9 @@ function useOutline(courseId: string) {
   const [course, setCourse] = useState<CourseView | null>(null);
   useEffect(() => {
     let live = true;
-    studyApi.get(courseId).then((d) => { if (live) setCourse(d.course); }).catch(() => {});
+    studyApi.get(courseId)
+      .then((d) => { if (live && Array.isArray(d.course?.modules)) setCourse(d.course); })
+      .catch(() => {});
     return () => { live = false; };
   }, [courseId]);
   return course;
@@ -115,9 +127,34 @@ function CodeWithGap({ code, language, marker }: { code: string; language: strin
   );
 }
 
-function YourTurn({ turn }: { turn: LessonContent["your_turn"] }) {
+const VERDICTS: Record<YourTurnVerdict, { label: string; icon: LucideIcon; tone: string }> = {
+  correct: { label: "Correct", icon: CheckIcon, tone: "text-emerald-600 dark:text-emerald-400" },
+  partial: { label: "Partly right", icon: CircleDotIcon, tone: "text-amber-600 dark:text-amber-300" },
+  incorrect: { label: "Not yet", icon: XIcon, tone: "text-destructive" },
+};
+
+function YourTurn({ lessonId, turn }: { lessonId: string; turn: LessonContent["your_turn"] }) {
   const id = useId();
   const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<YourTurnResult | null>(null);
+  const code = turn.kind === "code_gap";
+
+  async function check(reveal = false) {
+    if (busy || (!reveal && !draft.trim())) return;
+    setBusy(true);
+    setError("");
+    try {
+      setResult(await tutorApi.yourTurn(lessonId, draft, reveal));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Your answer could not be reviewed. Please retry.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const verdict = result?.verdict ? VERDICTS[result.verdict] : null;
   return (
     <Block title="Your turn" icon={NotebookPenIcon} className="border-primary/40">
       <div className="space-y-3">
@@ -126,14 +163,48 @@ function YourTurn({ turn }: { turn: LessonContent["your_turn"] }) {
         <Textarea
           id={id}
           value={draft}
+          maxLength={4000}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={turn.kind === "code_gap" ? "Write the code for the TODO(you) line…" : "Write your answer…"}
-          className={cn("min-h-24", turn.kind === "code_gap" && "font-mono text-[13px]")}
-          aria-describedby={`${id}-note`}
+          placeholder={code ? "Write the code for the TODO(you) line…" : "Write your answer…"}
+          className={cn("min-h-24", code && "font-mono text-[13px]")}
         />
-        <p id={`${id}-note`} className="text-xs text-muted-foreground">
-          Answer checking and the tutor are coming soon. Work it out here, then confirm your understanding with the quiz.
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button size="sm" disabled={busy || !draft.trim()} onClick={() => void check()}>
+            {busy && <Loader2 aria-hidden="true" className="size-4 animate-spin" />}
+            Check my answer
+          </Button>
+          {!result?.reveal && (
+            <button type="button" disabled={busy} onClick={() => void check(true)}
+              className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50">
+              Show the answer
+            </button>
+          )}
+          {result && <span className="text-xs text-muted-foreground">Attempt {result.attempt_number} of ∞</span>}
+        </div>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        <div role="status" aria-live="polite" data-verdict={result?.verdict ?? ""}>
+          {result && (
+            <div className="space-y-2 rounded-lg border bg-muted/30 p-3 text-sm">
+              {verdict && (
+                <p className={cn("flex items-center gap-1.5 font-medium", verdict.tone)}>
+                  <verdict.icon aria-hidden="true" className="size-4" /> {verdict.label}
+                </p>
+              )}
+              <p>{result.feedback}</p>
+              {result.reveal && (
+                <div className="space-y-1 border-t pt-2">
+                  <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">The answer</p>
+                  {code ? (
+                    <pre tabIndex={0} className="max-w-full overflow-x-auto rounded-md border bg-muted/40 p-3 font-mono text-[13px]"><code>{result.reveal.answer}</code></pre>
+                  ) : (
+                    <p className="[overflow-wrap:anywhere]">{result.reveal.answer}</p>
+                  )}
+                  {result.reveal.explanation && <p className="text-muted-foreground">{result.reveal.explanation}</p>}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </Block>
   );
@@ -203,7 +274,7 @@ function LessonContentView({ lesson, content }: { lesson: LessonDetail; content:
           </dl>
         </Block>
       )}
-      <YourTurn key={lesson.id} turn={content.your_turn} />
+      <YourTurn key={lesson.id} lessonId={lesson.id} turn={content.your_turn} />
     </div>
   );
 }
@@ -252,20 +323,6 @@ function RegenerateMenu({ left, busy, onConfirm }: { left: number; busy: boolean
         </DialogContent>
       </Dialog>
     </>
-  );
-}
-
-function TutorPanel() {
-  return (
-    <aside aria-labelledby="tutor-heading" className="rounded-xl border p-5 xl:sticky xl:top-4">
-      <h2 id="tutor-heading" className="mb-2 flex items-center gap-2 text-sm font-medium">
-        <MessageCircleQuestionIcon aria-hidden="true" className="size-4 text-muted-foreground" />
-        Tutor
-      </h2>
-      <p className="text-sm text-muted-foreground">
-        A tutor that answers questions about this lesson, guiding you first and giving the answer when you ask, is coming soon.
-      </p>
-    </aside>
   );
 }
 
@@ -365,7 +422,7 @@ export function LessonView({ courseId, lessonId }: { courseId: string; lessonId:
             )}
             {lesson && !locked && lesson.content && <LessonContentView lesson={lesson} content={lesson.content} />}
           </div>
-          {!locked && <TutorPanel />}
+          {lesson && !locked && <LessonTutor lessonId={lesson.id} documentId={lesson.document_id} />}
         </div>
       </div>
       {lesson && !locked && (

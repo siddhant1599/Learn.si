@@ -122,3 +122,16 @@ export type QuizHistoryItem = {
   created_at: string;
   submitted_at: string | null;
 };
+
+export type YourTurnVerdict = "correct" | "partial" | "incorrect";
+export type YourTurnResult = {
+  verdict: YourTurnVerdict | null;
+  feedback: string;
+  attempt_number: number;
+  reveal: { answer: string; explanation: string } | null;
+};
+
+export type TutorHistory = {
+  thread_id: string | null;
+  messages: { id: number; role: "user" | "assistant"; content: string; citations: unknown[] }[];
+};

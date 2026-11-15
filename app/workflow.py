@@ -46,11 +46,12 @@ class Workflow:
         research_limiter=None,
         chat_call_limit: int = 6,
         embedding_call_limit: int = 13,
+        boost_sections: frozenset[str] = frozenset(),
     ):
         self.stream_answer = stream_answer
         self.providers, self.storage = providers, storage
         providers = BudgetedProvider(providers)
-        search = SearchService(providers, storage)
+        search = SearchService(providers, storage, frozenset(boost_sections))
         self.triage = TriageAgent(providers)
         self.conversational = ConversationalAgent()
         self.plan = PlanningAgent(providers, max_sub_questions)
