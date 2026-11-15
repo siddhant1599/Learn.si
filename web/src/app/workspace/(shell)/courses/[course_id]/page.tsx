@@ -1,17 +1,10 @@
 "use client";
 
-import { BookOpenIcon } from "lucide-react";
+import { useParams } from "next/navigation";
 
-import { MasterEmptyPage } from "@/components/workspace/master-empty";
+import { CourseDetail } from "@/components/study/course-detail";
 
 export default function CoursePage() {
-  return (
-    <MasterEmptyPage
-      title="Course"
-      heading="This course is not available yet"
-      description="Lesson plans with modules, chapters and estimated learning time will appear here once course creation ships."
-      icon={<BookOpenIcon className="size-8" />}
-      action={{ href: "/workspace/courses", label: "Back to courses" }}
-    />
-  );
+  const { course_id } = useParams<{ course_id: string }>();
+  return <CourseDetail key={course_id} courseId={course_id} />;
 }

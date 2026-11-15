@@ -87,6 +87,7 @@ async def test_study_lifecycle_gating_and_deletion():
         assert [lesson.position for lesson in lessons] == [1, 2, 3]
         assert [lesson.status for lesson in lessons] == ["locked"] * 0 + ["available", "locked", "locked"]
         first, second, third = (lesson.id for lesson in lessons)
+        assert view.next_lesson_id == first
         assert (await study.courses())[0].id == course.id
         # Opening never unlocks; completing unlocks exactly the next lesson.
         assert await study.open_lesson(second) == "locked"
@@ -98,6 +99,7 @@ async def test_study_lifecycle_gating_and_deletion():
         assert await study.add_study_time(first, 500) == 60
         assert await study.add_study_time(first, 30) <= 61  # Clamped to elapsed time.
         assert await study.complete_lesson(first) == second
+        assert (await study.course(course.id)).next_lesson_id == second
         assert await study.complete_lesson(first) is None  # Idempotent, no re-unlock.
         assert (await study.lesson(third)).progress.status == "locked"
         detail = await study.lesson(first)

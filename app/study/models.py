@@ -181,6 +181,8 @@ class CourseSummary(BaseModel):
     module_count: int
     lesson_count: int
     completed_lessons: int
+    # First unlocked, unfinished lesson in teaching order ("Continue").
+    next_lesson_id: UUID | None = None
     created_at: datetime
     updated_at: datetime
 

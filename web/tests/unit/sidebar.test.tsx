@@ -9,8 +9,9 @@ vi.mock('sonner',()=>({toast:{error:vi.fn(),success:vi.fn(),message:vi.fn()}}));
 import {ChatSidebar} from '@/components/chat/chat-sidebar';
 import {SidebarProvider} from '@/components/ui/sidebar';
 import {ChatStoreProvider} from '@/core/chat/store';
+import {StudyStoreProvider} from '@/core/study/store';
 
-const mount=()=>render(<ChatStoreProvider><SidebarProvider><ChatSidebar/></SidebarProvider></ChatStoreProvider>);
+const mount=()=>render(<ChatStoreProvider><StudyStoreProvider><SidebarProvider><ChatSidebar/></SidebarProvider></StudyStoreProvider></ChatStoreProvider>);
 const modeGroup=()=>within(screen.getByRole('group',{name:'Workspace mode'}));
 beforeEach(()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>[]}))});
 

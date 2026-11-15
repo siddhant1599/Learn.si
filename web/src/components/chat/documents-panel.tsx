@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useChatStore } from "@/core/chat/store";
+import { MAX_UPLOAD_BYTES, UPLOAD_ACCEPT, UPLOAD_LIMITS, UPLOAD_SIZE_MESSAGE, uploadDocument } from "@/core/uploads";
 import { DeleteButton } from "./delete-button";
 export function DocumentsPanel() {
   const {
@@ -38,27 +39,14 @@ export function DocumentsPanel() {
       </Button>
     );
   async function upload(file: File) {
-    if (file.size > 10 * 1024 * 1024 || !file.size) {
-      toast.error("Choose a nonempty file no larger than 10 MB.");
+    if (file.size > MAX_UPLOAD_BYTES || !file.size) {
+      toast.error(UPLOAD_SIZE_MESSAGE);
       return;
     }
     setUploading(true);
     setStatus(`Indexing ${file.name}… Keep this page open.`);
     try {
-      const r = await fetch(
-        "/api/rag/documents/upload?filename=" + encodeURIComponent(file.name),
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/octet-stream" },
-          body: file,
-          signal: AbortSignal.timeout(1830000),
-        },
-      );
-      const data = await r.json();
-      if (!r.ok)
-        throw new Error(
-          typeof data.detail === "string" ? data.detail : "Upload failed.",
-        );
+      const data = await uploadDocument(file);
       await refreshDocuments();
       setSelectedIds([data.id]);
       setStatus(`Indexed ${data.title} · ${data.chunks} chunks`);
@@ -104,7 +92,7 @@ export function DocumentsPanel() {
       <input
         ref={input}
         type="file"
-        accept=".pdf,.txt,.md"
+        accept={UPLOAD_ACCEPT}
         className="hidden"
         aria-label="Upload file"
         onChange={(e) => {
@@ -175,10 +163,7 @@ export function DocumentsPanel() {
       )}
       <details className="text-muted-foreground mt-3 text-xs">
         <summary className="cursor-pointer">Upload limits</summary>
-        <p className="mt-2 leading-5">
-          PDF, TXT, Markdown. 10 MB, 100 pages, 1 million characters, 600
-          chunks. Scanned PDFs need OCR. Indexing can take up to 30 minutes.
-        </p>
+        <p className="mt-2 leading-5">{UPLOAD_LIMITS}</p>
       </details>
     </section>
   );

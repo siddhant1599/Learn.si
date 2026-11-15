@@ -10,7 +10,7 @@ function Activity({step}:{step:ChatStep}) {
  {step.results?.length ? <ChainOfThoughtSearchResults>{step.results.map((result,index)=><ChainOfThoughtSearchResult key={index}>{result}</ChainOfThoughtSearchResult>)}</ChainOfThoughtSearchResults>:null}
  </ChainOfThoughtStep>;
 }
-export function MessageSteps({steps}:{steps:ChatStep[]}) {
+export function MessageSteps({steps,detailsLabel}:{steps:ChatStep[];detailsLabel?:string}) {
  const parents=steps.filter(s=>!s.parent);
  return <ChainOfThought className="w-full min-w-0 gap-2 rounded-lg border p-0.5" open={true}>
    <p className="px-4 pt-2 text-xs text-muted-foreground break-words" role="status" aria-live="polite" aria-atomic="true">{parents.filter(s=>s.status==='active').map(s=>s.label).join('. ') || 'No activity running'}</p>
@@ -18,7 +18,7 @@ export function MessageSteps({steps}:{steps:ChatStep[]}) {
    {parents.map(step=><div key={step.id} className="space-y-2">
      <Activity step={step}/>
      {steps.some(s=>s.parent===step.id)&&<details className="ml-4 text-xs">
-       <summary className="cursor-pointer py-1">{step.kind==='fetch'?'Web':'Research'} task details ({steps.filter(s=>s.parent===step.id).length})</summary>
+       <summary className="cursor-pointer py-1">{detailsLabel ?? `${step.kind==='fetch'?'Web':'Research'} task details`} ({steps.filter(s=>s.parent===step.id).length})</summary>
        <div className="space-y-2 pt-2">{steps.filter(s=>s.parent===step.id).sort((a,b)=>a.id.localeCompare(b.id)).map(child=><Activity key={child.id} step={child}/>)}</div>
      </details>}
    </div>)}

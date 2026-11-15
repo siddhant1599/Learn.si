@@ -40,6 +40,7 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { RecentCourses } from "@/components/study/recent-courses";
 import { ModeSwitch } from "@/components/workspace/mode-switch";
 import { site } from "@/config/site";
 import { useChatStore } from "@/core/chat/store";
@@ -258,9 +259,10 @@ export function ChatSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarNav />
-        {/* Sources and chats belong to Ask; Master lists courses once #27 lands. */}
+        {/* Sources and chats belong to Ask; Master lists its courses. */}
         {mode === "ask" && <DocumentsPanel />}
         {mode === "ask" && <RecentChats />}
+        {mode === "master" && <RecentCourses />}
       </SidebarContent>
       <SidebarFooter>
         <SettingsMenu />
