@@ -8,7 +8,8 @@ from pathlib import Path
 
 from playwright.sync_api import expect, sync_playwright
 
-from scripts.check_web_master import BASE, CHROME, COURSE, DOC, LESSONS, FixtureBackend, run
+from scripts.browser import BASE, launch
+from scripts.check_web_master import COURSE, DOC, LESSONS, FixtureBackend, run
 
 OUTPUT = Path(__file__).resolve().parents[1] / "web/public/images"
 
@@ -16,7 +17,7 @@ OUTPUT = Path(__file__).resolve().parents[1] / "web/public/images"
 def capture():
     OUTPUT.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as p:
-        browser = p.chromium.launch(executable_path=CHROME, headless=True)
+        browser = launch(p)
         context = browser.new_context(viewport={"width": 1440, "height": 1000}, reduced_motion="reduce")
         context.add_init_script("localStorage.setItem('theme', 'dark')")
         page = context.new_page()

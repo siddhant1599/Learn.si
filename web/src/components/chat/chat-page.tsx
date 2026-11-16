@@ -156,6 +156,8 @@ function ChatHeader({
       )}
     >
       <WorkspaceSidebarTrigger className="md:hidden" />
+      {/* Every workspace page has one level-1 heading; the visible title animates. */}
+      <h1 className="sr-only">{title ?? "New chat"}</h1>
       <div className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium">
         {title && threadId && (
           <FlipDisplay

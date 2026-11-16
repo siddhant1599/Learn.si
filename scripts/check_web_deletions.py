@@ -3,16 +3,15 @@
 
 from playwright.sync_api import expect, sync_playwright
 
-BASE = "http://127.0.0.1:3001"
+from scripts.browser import BASE, launch
+
 DOC = "11111111-1111-4111-8111-111111111111"
 CHAT = "22222222-2222-4222-8222-222222222222"
 
 
 def main():
     with sync_playwright() as p:
-        browser = p.chromium.launch(
-            executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-        )
+        browser = launch(p)
         context = browser.new_context()
         errors, deleted = [], []
         docs = [{"id": DOC, "title": "Disposable handbook", "edition": "test"}]

@@ -161,7 +161,7 @@ export function Composer({
 
       <p
         className={cn(
-          "text-muted-foreground/67 z-10 px-4 text-center text-xs leading-4",
+          "text-muted-foreground z-10 px-4 text-center text-xs leading-4",
           !isWelcomeMode && "absolute top-full right-0 left-0",
         )}
       >

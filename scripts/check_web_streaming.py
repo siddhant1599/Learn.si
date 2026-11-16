@@ -9,16 +9,13 @@ from pathlib import Path
 
 from playwright.sync_api import expect, sync_playwright
 
-BASE = "http://127.0.0.1:3001"
+from scripts.browser import BASE, launch
 
 
 def main():
     checks = []
     with sync_playwright() as p:
-        browser = p.chromium.launch(
-            executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            headless=True,
-        )
+        browser = launch(p)
         page = browser.new_page()
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))

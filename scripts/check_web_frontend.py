@@ -5,18 +5,14 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-BASE = "http://127.0.0.1:3001"
+from scripts.browser import BASE, launch_options
 
 
 def main():
     checks = []
     Path(".local").mkdir(exist_ok=True)
     with sync_playwright() as p:
-        browser = p.chromium.launch(
-            executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            headless=True,
-            args=["--enable-unsafe-swiftshader"],
-        )
+        browser = p.chromium.launch(**launch_options(), args=["--enable-unsafe-swiftshader"])
         page = browser.new_page(viewport={"width": 1440, "height": 1000})
         page.route(
             "**/api/rag/documents",

@@ -5,7 +5,7 @@ import json
 
 from playwright.async_api import async_playwright, expect
 
-BASE = "http://127.0.0.1:3001"
+from scripts.browser import BASE, launch_async
 
 
 def frame(event, data):
@@ -14,9 +14,7 @@ def frame(event, data):
 
 async def main():
     async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-        )
+        browser = await launch_async(p)
         context = await browser.new_context()
         errors = []
         await context.route("**/api/rag/health", lambda r: r.fulfill(json={"web_available": False}))

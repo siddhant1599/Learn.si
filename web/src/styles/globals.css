@@ -285,7 +285,9 @@
   --secondary: oklch(0.9455 0.0098 87.47);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0.0098 87.47);
-  --muted-foreground: oklch(0.556 0 0);
+  /* 0.51 keeps muted text >= 4.5:1 (WCAG AA) on every light surface, including the
+     sidebar and its active row; 0.556 measured 4.27:1 on the sidebar (axe, #35). */
+  --muted-foreground: oklch(0.51 0 0);
   --accent: oklch(0.94 0.0098 87.47);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);

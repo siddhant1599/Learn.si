@@ -38,3 +38,5 @@ htmlcov/
 coverage/
 playwright-report/
 test-results/
+
+web/.next-browser-*/

@@ -261,9 +261,25 @@ node --test tests/frontend.test.mjs
 cd web && npm run typecheck && npm test && npm run build
 ```
 
-Headless browser checks run against the started frontend (production build on
-port 3001). They mock `/api/rag` at the browser, so they need no database,
-provider or credits:
+**Browser suite (one command).** Builds an isolated production frontend on its own
+port, runs every browser test with fixture APIs (no database, provider or
+credits), writes `test-results/browser/summary.md`, traces and screenshots, and
+stops only what it started. CI runs it on pull requests and `main`. Setup,
+fixtures, debugging and how to extend it: [docs/testing/browser-suite.md](docs/testing/browser-suite.md);
+coverage by feature: [docs/testing/browser-coverage.md](docs/testing/browser-coverage.md).
+
+```sh
+uv run playwright install chromium
+uv run python -m scripts.run_browser_suite                  # isolated build on 3101
+uv run python -m scripts.run_browser_suite --base-url http://127.0.0.1:3001
+```
+
+Mocked browser results verify frontend behavior only, never real persistence,
+provider availability or teaching quality.
+
+The individual headless checks still run on their own against a started frontend
+(`E2E_BASE_URL`, default `http://127.0.0.1:3001`). They mock `/api/rag` at the
+browser, so they need no database, provider or credits:
 
 ```sh
 uv run --with playwright python -m scripts.check_web_modes

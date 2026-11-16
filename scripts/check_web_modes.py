@@ -5,7 +5,8 @@ uv run --with playwright python -m scripts.check_web_modes
 """
 from playwright.sync_api import expect, sync_playwright
 
-BASE = "http://127.0.0.1:3001"
+from scripts.browser import BASE, launch
+
 MASTER_ROUTES = ["/workspace/courses", "/workspace/courses/demo", "/workspace/courses/demo/lessons/intro", "/workspace/progress"]
 
 
@@ -29,7 +30,9 @@ def check_desktop(page, errors):
     expect(page.get_by_role("button", name="Toggle Sidebar")).to_have_count(0)
     expect(page.get_by_role("group", name="Workspace mode")).to_have_count(0)
     no_overflow(page, "chooser")
-    # Keyboard: the Ask card is reachable and Enter opens Ask mode.
+    # Keyboard: the Ask card is reachable and Enter opens Ask mode. Wait for the page to
+    # finish loading first: a keypress during hydration can be lost on a cold server.
+    page.wait_for_load_state("networkidle")
     ask.focus()
     page.keyboard.press("Enter")
     expect(page).to_have_url(f"{BASE}/workspace/chats/new")
@@ -97,7 +100,7 @@ def check_mobile(page, errors):
 
 def main():
     with sync_playwright() as p:
-        browser = p.chromium.launch(executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless=True)
+        browser = launch(p)
         page = browser.new_page(viewport={"width": 1440, "height": 900})
         # Deterministic, read-only Master data: no courses, an empty overview.
         page.route("**/api/rag/courses", lambda route: route.fulfill(json=[]))

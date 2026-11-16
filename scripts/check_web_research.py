@@ -5,7 +5,8 @@ from pathlib import Path
 
 from playwright.sync_api import expect, sync_playwright
 
-BASE = "http://127.0.0.1:3001"
+from scripts.browser import BASE, launch
+
 URL = "https://example.org/web-source-sentinel"
 
 
@@ -17,10 +18,7 @@ def main():
     checks, requests, errors = [], [], []
     Path(".local").mkdir(exist_ok=True)
     with sync_playwright() as p:
-        browser = p.chromium.launch(
-            executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            headless=True,
-        )
+        browser = launch(p)
         page = browser.new_page(viewport={"width": 1280, "height": 960})
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.route("**/api/rag/health", lambda r: r.fulfill(json={"web_available": True}))

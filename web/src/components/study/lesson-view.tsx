@@ -21,7 +21,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { CitationList } from "@/components/chat/citation-list";
 import { Markdown } from "@/components/chat/message-list";
@@ -296,11 +296,12 @@ function ContentSkeleton() {
 
 function RegenerateMenu({ left, busy, onConfirm }: { left: number; busy: boolean; onConfirm: () => void }) {
   const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label="Lesson options" className="ml-auto">
+          <Button ref={trigger} variant="ghost" size="icon-sm" aria-label="Lesson options" className="ml-auto">
             <MoreHorizontalIcon className="size-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -312,7 +313,7 @@ function RegenerateMenu({ left, busy, onConfirm }: { left: number; busy: boolean
         </DropdownMenuContent>
       </DropdownMenu>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" onCloseAutoFocus={(event) => { event.preventDefault(); trigger.current?.focus(); }}>
           <DialogTitle>Regenerate this lesson?</DialogTitle>
           <DialogDescription>
             A new version is written from the same sections. The current version stays until the new one is ready, and your progress and quiz attempts are kept. {left} regeneration{left === 1 ? "" : "s"} left today.

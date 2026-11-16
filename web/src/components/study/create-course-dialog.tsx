@@ -17,6 +17,7 @@ import { useChatStore } from "@/core/chat/store";
 import { courseHref } from "@/core/study/format";
 import { useStudyStore } from "@/core/study/store";
 import { UPLOAD_ACCEPT, UPLOAD_LIMITS, uploadDocument } from "@/core/uploads";
+import { useReturnFocus } from "@/lib/use-return-focus";
 
 /**
  * Create a course from a new upload or an existing source. Uploading here never
@@ -31,6 +32,7 @@ export function CreateCourseDialog({ open, onOpenChange }: { open: boolean; onOp
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [selected, setSelected] = useState("");
+  const returnFocus = useReturnFocus(open);
   const withCourse = new Set(courses.map((c) => c.document_id));
   const available = documents.filter((d) => !withCourse.has(d.id));
 
@@ -68,7 +70,7 @@ export function CreateCourseDialog({ open, onOpenChange }: { open: boolean; onOp
 
   return (
     <Dialog open={open} onOpenChange={(value) => { if (!busy) { onOpenChange(value); setError(""); setStatus(""); } }}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" onCloseAutoFocus={returnFocus}>
         <DialogTitle>New course</DialogTitle>
         <DialogDescription>
           Master mode turns one document into modules of short lessons with quizzes. Planning runs in the background.

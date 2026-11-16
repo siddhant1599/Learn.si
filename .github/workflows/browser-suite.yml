@@ -1,0 +1,48 @@
+name: Browser suite
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: browser-suite-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install locked dependencies
+        run: |
+          uv sync --locked
+          npm ci --prefix web
+      - name: Install Playwright Chromium
+        run: uv run playwright install --with-deps chromium
+      - name: Run the browser suite (isolated production build, fixture APIs only)
+        # One retry identifies flaky tests; a test that only passes on retry still fails the job.
+        run: uv run python -m scripts.run_browser_suite --retries 1
+      - name: Publish summary
+        if: always()
+        run: cat test-results/browser/summary.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Upload results, traces and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-suite-results
+          path: |
+            test-results/browser
+          retention-days: 14
+          if-no-files-found: warn

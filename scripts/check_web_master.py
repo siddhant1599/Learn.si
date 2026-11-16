@@ -29,9 +29,8 @@ from app.study.models import client_content
 from app.study.progress import course_progress, overview, summary
 from app.study.quiz import check_question, grade
 from app.uploads import extract_document
+from scripts.browser import BASE, launch
 
-BASE = "http://127.0.0.1:3001"
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 FIXTURES = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "master"
 DOC = "aaaaaaaa-0000-4000-8000-000000000001"
 COURSE = "cccccccc-0000-4000-8000-000000000001"
@@ -70,7 +69,7 @@ class FixtureBackend:
         self.quiz_sets = [json.loads((FIXTURES / name).read_text())["questions"]
                           for name in ("quiz_reply.json", "quiz_retake_reply.json")]
         self.review = json.loads((FIXTURES / "review_reply.json").read_text())
-        self.documents, self.course_status = [], None
+        self.documents, self.course_status, self.failure_code = [], None, None
         self.plan_ready = self.lesson_ready = False
         self.status = {lid: "locked" for lid, *_ in LESSONS}
         self.status[LESSONS[0][0]] = "available"
@@ -93,7 +92,7 @@ class FixtureBackend:
         done = sum(1 for s in self.status.values() if s == "completed")
         following = next((lid for lid, *_ in LESSONS if self.status[lid] in ("available", "in_progress")), None)
         return {"id": COURSE, "document_id": DOC, "title": "Archive Handbook", "status": self.course_status,
-                "failure_code": None, "estimated_minutes": 18 if ready else 0,
+                "failure_code": self.failure_code, "estimated_minutes": 18 if ready else 0,
                 "module_count": len(MODULES) if ready else 0, "lesson_count": len(LESSONS) if ready else 0,
                 "completed_lessons": done, "next_lesson_id": following if ready else None,
                 "created_at": T0.isoformat(), "updated_at": T0.isoformat(), "generation": COURSE,
@@ -132,7 +131,10 @@ class FixtureBackend:
         path = url.path.removeprefix("/api/rag/")
         method = request.method
         body = json.loads(request.post_data) if request.post_data and method == "POST" and "upload" not in path else {}
-        status, payload, content_type = self.dispatch(method, path, body, parse_qs(url.query))
+        result = self.dispatch(method, path, body, parse_qs(url.query))
+        if result is None:
+            return route.fulfill(status=404, json={"detail": "Not found"})
+        status, payload, content_type = result
         if content_type == "sse":
             route.fulfill(status=200, headers={"Content-Type": "text/event-stream"}, body=payload)
         else:
@@ -151,6 +153,8 @@ class FixtureBackend:
             return 201, {"id": DOC, "title": "Archive Handbook", "edition": "fixture", "chunks": 3}, "json"
         if path == "courses" and method == "POST":
             assert body == {"document_id": DOC}, body
+            if self.course_status == "failed":  # POST /courses restarts a failed plan.
+                self.course_status, self.failure_code = "generating", None
             self.course_status = self.course_status or "generating"
             return 202, {k: v for k, v in self.course_view().items() if k not in ("modules", "generation")}, "json"
         if path == "courses":
@@ -159,6 +163,8 @@ class FixtureBackend:
             entry = {k: v for k, v in self.course_view().items() if k not in ("modules", "generation")}
             return 200, [{**entry, "progress": summary(self.progress()[0])}], "json"
         if path == f"courses/{COURSE}":
+            if self.course_status is None:
+                return 404, {"detail": "Course does not exist"}, "json"
             if self.plan_ready:
                 self.course_status = "ready"
             events = [] if self.course_status == "ready" else [
@@ -213,7 +219,7 @@ class FixtureBackend:
                          "questions_with_results": results, "lesson_status": self.status[lid],
                          "unlocked_lesson_id": unlocked}, "json"
         if not lesson_match:
-            return 404, {"detail": "Not found"}, "json"
+            return None  # Unhandled: the caller decides (404 here, a failure in the suite).
         lid, rest = lesson_match[1], lesson_match[2] or ""
         if rest == "" and method == "GET":
             if self.status[lid] == "available":
@@ -259,7 +265,7 @@ class FixtureBackend:
             return 200, [{k: a[k] for k in ("id", "lesson_id", "attempt_number", "status", "score", "passed",
                                             "created_at", "submitted_at")}
                          for a in self.attempts if a["lesson_id"] == lid], "json"
-        return 404, {"detail": "Not found"}, "json"
+        return None
 
 
 def no_overflow(page, label):
@@ -304,6 +310,7 @@ def run(page, backend, errors):
     page.get_by_role("link", name="Start learning").click()
     expect(page).to_have_url(f"{BASE}/workspace")
     master = page.get_by_role("link", name="Master: Learn deeply. Build mastery.")
+    page.wait_for_load_state("networkidle")  # Keyboard input during hydration can be lost.
     master.focus()
     page.keyboard.press("Enter")  # Keyboard path through the chooser.
     expect(page).to_have_url(f"{BASE}/workspace/courses")
@@ -426,7 +433,7 @@ def check_views(page, errors):
 
 def main():
     with sync_playwright() as p:
-        browser = p.chromium.launch(executable_path=CHROME, headless=True)
+        browser = launch(p)
         page = browser.new_page(viewport={"width": 1440, "height": 900})
         backend = FixtureBackend()
         page.route("**/api/rag/**", backend.handle)

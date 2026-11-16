@@ -4,7 +4,8 @@ Run against the production frontend: uv run --with playwright python -m scripts.
 """
 from playwright.sync_api import expect, sync_playwright
 
-BASE = "http://127.0.0.1:3001"
+from scripts.browser import BASE, launch
+
 SLUGS = ["", "getting-started", "choose-a-mode", "master-mode", "lessons", "quizzes", "progress",
          "evidence", "deletion", "local-setup", "architecture", "api", "evaluation", "troubleshooting"]
 
@@ -85,7 +86,7 @@ def check_landing(page):
 
 def main():
     with sync_playwright() as p:
-        browser = p.chromium.launch(executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless=True)
+        browser = launch(p)
         page = browser.new_page(viewport={"width": 1440, "height": 900})
         check_docs(page)
         check_landing(page)
