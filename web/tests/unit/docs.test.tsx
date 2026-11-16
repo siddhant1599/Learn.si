@@ -59,9 +59,18 @@ it('shared landing navigation points to published docs and retains workspace',()
  expect(site.header.links).toContainEqual({href:'/workspace',label:'Workspace'});
  expect(site.header.links.some(link=>link.label==='Examples')).toBe(false);
 });
-it('Master mode is documented and searchable with valid destinations',()=>{
- for(const slug of ['choose-a-mode','master-mode','lessons','quizzes','progress'])
+it('docs are grouped by mode and Master mode is searchable with valid destinations',()=>{
+ // Distinct sections per mode, in this order in the navigation.
+ expect([...new Set(docs.map(d=>d.group))]).toEqual(['Start here','Ask mode','Master mode','Developers']);
+ for(const slug of ['getting-started','evidence','deletion']) expect(findDoc(slug)?.group).toBe('Ask mode');
+ for(const slug of ['master-mode','lessons','quizzes','progress','master-data'])
   expect(findDoc(slug)?.group).toBe('Master mode');
+ expect(findDoc('choose-a-mode')?.group).toBe('Start here');
+ // Ask pages no longer carry Master-only sections; the shared privacy summary is on the home page.
+ expect(findDoc('evidence')!.sections.map(s=>s.id)).not.toContain('master-storage');
+ expect(findDoc('deletion')!.sections.map(s=>s.id)).not.toContain('courses');
+ expect(findDoc('master-data')!.sections.map(s=>s.id)).toEqual(['master-storage','courses']);
+ expect(findDoc('')!.sections.map(s=>s.id)).toContain('at-a-glance');
  for(const query of ['mastery','quiz','Your turn','study time','lesson_id']){
   const results=searchDocs(query);
   expect(results.length,query).toBeGreaterThan(0);

@@ -6,8 +6,8 @@ from playwright.sync_api import expect, sync_playwright
 
 from scripts.browser import BASE, launch
 
-SLUGS = ["", "getting-started", "choose-a-mode", "master-mode", "lessons", "quizzes", "progress",
-         "evidence", "deletion", "local-setup", "architecture", "api", "evaluation", "troubleshooting"]
+SLUGS = ["", "choose-a-mode", "getting-started", "evidence", "deletion", "master-mode", "lessons", "quizzes",
+         "progress", "master-data", "local-setup", "architecture", "api", "evaluation", "troubleshooting"]
 
 
 def check_docs(page):

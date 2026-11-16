@@ -1,4 +1,4 @@
-/** Shared verbatim by the landing page and Evidence and privacy docs. */
+/** The docs home page's "Privacy at a glance" section (covers both modes). */
 export const privacySummary = [
   { title: "Your local workspace", text: "Study Buddy runs on your machine without an account. Provider keys stay on the backend. There is no authentication: keep the servers on localhost. Documents and questions can be sent to configured external providers; local does not mean offline." },
   { title: "Evidence stays distinguishable", text: "Ask labels document and web findings separately. Web URLs, excerpts and generated web findings are excluded from saved conversations and browser history. Master uses only the course document and never searches the web." },

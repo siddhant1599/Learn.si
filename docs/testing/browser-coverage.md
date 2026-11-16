@@ -25,13 +25,13 @@ dark-only.
 | Every learning CTA (header, hero) reaches the chooser; no per-mode landing CTA | `test_landing.py::test_every_learning_cta_goes_to_the_chooser_never_to_a_mode`, `existing:check_web_landing` | 1440 | New + Covered |
 | Header, mobile menu and footer links | `test_landing.py::test_header_footer_and_mobile_menu_links`, `existing:check_web_docs` | 1440, 390 | New + Covered |
 | How-it-works, privacy and closing-CTA sections stay removed from the landing (removed on request after #34) | `test_landing.py::test_removed_sections_are_not_on_the_landing`, `existing:check_web_landing` | 1440, 390 | New + Covered |
-| Privacy wording | — | — | N/A on the landing: the section was removed; the shared text remains in Evidence and privacy docs (`web/src/content/privacy.ts`, covered by `existing:check_web_docs`) |
+| Privacy wording | — | — | N/A on the landing: the section was removed; the text is the "Privacy at a glance" section of the docs home page (`web/src/content/privacy.ts`, covered by `existing:check_web_docs`) |
 | Scripted-illustration labels; Ask demo replay; keyboard tabs | `test_landing.py::test_demos_are_labeled_scripted_and_replay_restarts_the_run`, `existing:check_web_landing`, `existing:check_web_frontend` | 1440 | New + Covered |
 | Ordering exercise: correct and incorrect | `existing:check_web_landing` | 1440, 390 | Covered |
 | Ordering exercise: partial verdict, movement limits, reveal | `test_landing.py::test_ordering_partial_verdict_boundaries_and_reveal` | 1440 | New |
 | Demo quiz fail → retake → pass updates demo progress | `existing:check_web_landing` | 1440, 390 | Covered |
 | Hero, scroll stage, reduced motion | `existing:check_web_landing`, `existing:check_web_frontend` | 1440, 390, reduced motion | Covered |
-| Docs navigation, search, anchors, history, refresh, 404, all 14 pages | `existing:check_web_docs` | 1440, 390, light/dark | Covered |
+| Docs navigation (Start here, Ask mode, Master mode, Developers), search, anchors, history, refresh, 404, all 15 pages | `existing:check_web_docs`, `web/tests/unit/docs.test.tsx` | 1440, 390, light/dark | Covered |
 | Landing in light theme | — | — | N/A: the landing page is intentionally dark |
 
 ## Mode chooser and navigation (#20)
