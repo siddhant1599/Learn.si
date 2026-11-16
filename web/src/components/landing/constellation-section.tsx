@@ -134,10 +134,6 @@ export function ConstellationSection({ className }: { className?: string }) {
       <div className="mx-auto mt-10 w-full max-w-6xl px-4">
         <div className="mb-6 max-w-2xl">
           <h3 className="font-serif text-2xl text-white sm:text-3xl">Open the next lesson</h3>
-          <p className="mt-2 text-sm text-white/70 sm:text-base">
-            Try this browser-only example: read, put the steps in order, then pass the quiz: Pods turns gold on the map and
-            Deployments opens.
-          </p>
         </div>
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
           <LessonCard onPass={pass} passed={completed > INITIAL_COMPLETED} />
