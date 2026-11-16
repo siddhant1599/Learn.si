@@ -60,7 +60,7 @@ export function RagExamples() {
   return (
     <Section
       id="examples"
-      title="Watch a question become an answer"
+      title="Understand what you read. Remember what you learn."
       subtitle={
         <>
           {/* One sentence per line. */}

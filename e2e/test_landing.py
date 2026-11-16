@@ -45,7 +45,7 @@ def test_header_footer_and_mobile_menu_links(page, api):
 
 def test_removed_sections_are_not_on_the_landing(page, api):
     page.goto("/")
-    expect(page.get_by_role("heading", name="Watch a question become an answer")).to_be_visible()
+    expect(page.get_by_role("heading", name="Understand what you read. Remember what you learn.")).to_be_visible()
     for removed in ("#how-it-works", "#privacy", "#closing-title"):
         expect(page.locator(removed)).to_have_count(0)
     for heading in ("Make your documents part of your day", "Know where your information goes",
