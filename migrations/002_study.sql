@@ -1,7 +1,13 @@
 -- Master mode (Study Buddy): courses, lessons, quizzes and progress.
 -- Additive and idempotent; run after 001_initial.sql with the same owner account.
 CREATE SCHEMA IF NOT EXISTS study;
-REVOKE ALL ON SCHEMA study FROM PUBLIC;
+-- Hardening where the role may change privileges. Managed hosts (e.g. Prisma Postgres)
+-- forbid REVOKE; a newly created schema grants PUBLIC nothing anyway, so skipping is safe.
+DO $$ BEGIN
+  REVOKE ALL ON SCHEMA study FROM PUBLIC;
+EXCEPTION WHEN insufficient_privilege THEN
+  RAISE NOTICE 'Skipped REVOKE on schema study: insufficient privilege';
+END $$;
 
 -- One course per source document. SQL ownership: deleting the document deletes the course.
 CREATE TABLE IF NOT EXISTS study.courses (

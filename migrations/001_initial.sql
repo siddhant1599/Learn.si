@@ -4,7 +4,13 @@ CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
 -- If vector was installed in public, relocate before running this migration:
 -- ALTER EXTENSION vector SET SCHEMA extensions;
 CREATE SCHEMA IF NOT EXISTS rag;
-REVOKE ALL ON SCHEMA rag FROM PUBLIC;
+-- Hardening where the role may change privileges. Managed hosts (e.g. Prisma Postgres)
+-- forbid REVOKE; a newly created schema grants PUBLIC nothing anyway, so skipping is safe.
+DO $$ BEGIN
+  REVOKE ALL ON SCHEMA rag FROM PUBLIC;
+EXCEPTION WHEN insufficient_privilege THEN
+  RAISE NOTICE 'Skipped REVOKE on schema rag: insufficient privilege';
+END $$;
 
 CREATE TABLE IF NOT EXISTS rag.documents (
     id uuid PRIMARY KEY,
