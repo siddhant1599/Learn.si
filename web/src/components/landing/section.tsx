@@ -24,7 +24,7 @@ export function Section({
           {title}
         </h2>
         {subtitle && (
-          <p className="text-muted-foreground max-w-3xl text-center text-base text-balance break-words sm:text-lg md:text-xl">
+          <p className="text-muted-foreground max-w-4xl text-center text-base text-balance break-words sm:text-lg md:text-xl">
             {subtitle}
           </p>
         )}
