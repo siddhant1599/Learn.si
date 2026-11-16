@@ -76,9 +76,6 @@ function LessonFront({ onQuiz }: { onQuiz: () => void }) {
           <h3 className="font-serif text-3xl leading-none text-white">
             Lesson {lesson.number} · {lesson.title}
           </h3>
-          <span className="text-sm text-white/60">
-            {lesson.module} · ≈ {lesson.minutes} min
-          </span>
         </div>
         <p className="mt-3 text-sm text-white/70">{lesson.objective}</p>
       </header>

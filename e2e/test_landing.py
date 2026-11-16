@@ -26,13 +26,16 @@ def test_every_learning_cta_goes_to_the_chooser_never_to_a_mode(page, api):
     expect(page.get_by_role("link", name="Master: Learn deeply. Build mastery.")).to_be_visible()
 
 
-def test_header_footer_and_mobile_menu_links(page, api):
+def test_header_and_mobile_menu_links_footer_has_none(page, api):
     page.goto("/")
-    footer = page.get_by_role("navigation", name="Footer")
-    expect(footer.get_by_role("link", name="Workspace")).to_have_attribute("href", "/workspace")
-    expect(footer.get_by_role("link", name="Docs")).to_have_attribute("href", "/docs")
-    expect(footer.get_by_role("link", name="Repository")).to_have_attribute("href", re.compile(r"^https://github\.com/"))
-    expect(footer.get_by_role("link", name="Frontend MIT license")).to_have_attribute("href", re.compile(r"/web/LICENSE$"))
+    header = page.get_by_role("banner")
+    expect(header.get_by_role("link", name="Docs", exact=True)).to_have_attribute("href", "/docs")
+    expect(header.get_by_role("link", name="Workspace", exact=True)).to_have_attribute("href", "/workspace")
+    # The footer's link row (Workspace, Docs, Repository, license) was removed on request.
+    expect(page.get_by_role("navigation", name="Footer")).to_have_count(0)
+    site_footer = page.get_by_role("contentinfo")  # The page footer (the demo card has its own <footer>).
+    expect(site_footer.get_by_role("link")).to_have_count(0)
+    expect(site_footer).to_contain_text("Understand what you read. Remember what you learn.")
     page.set_viewport_size({"width": 390, "height": 844})
     page.get_by_role("button", name="Open menu").click()
     menu = page.get_by_role("dialog")

@@ -137,7 +137,7 @@ def check_content(page):
             # The how-it-works, privacy and closing sections were removed from the landing.
             for removed in ("#how-it-works", "#privacy", "#closing-title"):
                 expect(page.locator(removed)).to_have_count(0)
-            expect(page.get_by_role("navigation", name="Footer").get_by_role("link")).to_have_count(4)
+            expect(page.get_by_role("navigation", name="Footer")).to_have_count(0)  # Footer links removed on request.
             cta = page.get_by_role("link", name="Start learning")
             cta.focus()
             cta.press("Enter")

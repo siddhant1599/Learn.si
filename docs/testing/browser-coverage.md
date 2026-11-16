@@ -23,7 +23,7 @@ dark-only.
 | Behavior | Tests | Viewports / themes | Status |
 |---|---|---|---|
 | Every learning CTA (header, hero) reaches the chooser; no per-mode landing CTA | `test_landing.py::test_every_learning_cta_goes_to_the_chooser_never_to_a_mode`, `existing:check_web_landing` | 1440 | New + Covered |
-| Header, mobile menu and footer links | `test_landing.py::test_header_footer_and_mobile_menu_links`, `existing:check_web_docs` | 1440, 390 | New + Covered |
+| Header and mobile menu links; footer has no link row (removed on request) | `test_landing.py::test_header_and_mobile_menu_links_footer_has_none`, `existing:check_web_docs`, `existing:check_web_landing` | 1440, 390 | New + Covered |
 | How-it-works, privacy and closing-CTA sections stay removed from the landing (removed on request after #34) | `test_landing.py::test_removed_sections_are_not_on_the_landing`, `existing:check_web_landing` | 1440, 390 | New + Covered |
 | Privacy wording | — | — | N/A on the landing: the section was removed; the text is the "Privacy at a glance" section of the docs home page (`web/src/content/privacy.ts`, covered by `existing:check_web_docs`) |
 | Ask demo replay; keyboard tabs; "Scripted illustration" labels stay removed (removed on request) | `test_landing.py::test_demo_replay_restarts_the_run_and_labels_are_removed`, `existing:check_web_landing`, `existing:check_web_frontend` | 1440 | New + Covered |
