@@ -45,6 +45,8 @@ export const site = {
       "Quiz Coaching",
     ],
     rotatingSuffix: "SuperAgent",
+    /** Shown under the SuperAgent line; a label, not a link. */
+    betaLabel: "Beta version",
     description:
       "A learning workspace with your documents. Ask a question and follow the answer back to its source, or turn a document into short lessons, quizzes and a path to mastery.",
     ctaLabel: "Start learning",

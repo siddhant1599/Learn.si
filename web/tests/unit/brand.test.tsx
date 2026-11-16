@@ -31,3 +31,17 @@ it('landing header shows the brand and the frontend-sample GitHub button, with n
  expect(screen.queryByRole('link',{name:'Open workspace'})).not.toBeInTheDocument();
  expect(screen.queryByRole('link',{name:/^(Ask|Master)$/})).not.toBeInTheDocument();
 });
+
+it('hero shows a "Beta version" label under the SuperAgent line, with no link',async()=>{
+ const {Hero}=await import('@/components/landing/hero');
+ render(<Hero/>);
+ const badge=document.querySelector('[data-beta-badge]') as HTMLElement;
+ expect(badge).toHaveTextContent(/^Beta version$/);
+ expect(badge.tagName).toBe('DIV');
+ expect(badge.closest('a')).toBeNull();
+ expect(badge.querySelector('a,button')).toBeNull();
+ expect(screen.queryByRole('link',{name:/Beta version/})).not.toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:/Beta version/})).not.toBeInTheDocument();
+ const suffix=screen.getByText(site.hero.rotatingSuffix);
+ expect(suffix.compareDocumentPosition(badge)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});

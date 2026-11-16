@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 import { GalaxyBackdrop } from "@/components/landing/galaxy-backdrop";
 import { AuroraText } from "@/components/ui/aurora-text";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { FlickeringGrid } from "@/components/ui/flickering-grid";
 import { site } from "@/config/site";
 import { usePrefersReducedMotion } from "@/core/dom/render-activity";
@@ -39,6 +39,13 @@ export function Hero({ className }: { className?: string }) {
         <div className="mt-3 flex w-full max-w-full min-w-0 flex-wrap items-center justify-center gap-x-2 text-center text-2xl font-semibold md:text-4xl">
           <HeroWordRotate words={site.hero.rotatingWords} />
           <span className="whitespace-nowrap">{site.hero.rotatingSuffix}</span>
+        </div>
+        {/* Styled like frontend-sample's hero button, but a plain label: no link, not focusable. */}
+        <div
+          data-beta-badge
+          className={cn(buttonVariants({ size: "lg" }), "pointer-events-none mt-6 h-11 cursor-default px-5 select-none")}
+        >
+          <span className="text-md">{site.hero.betaLabel}</span>
         </div>
         <p className="text-muted-foreground mt-8 max-w-4xl text-center text-base leading-7 text-shadow-sm sm:text-xl md:text-2xl">
           {site.hero.description}
