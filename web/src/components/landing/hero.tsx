@@ -31,7 +31,7 @@ export function Hero({ className }: { className?: string }) {
         maxOpacity={0.4}
         flickerChance={0.25}
       />
-      <div className="container-md relative z-10 mx-auto flex min-h-[92svh] flex-col items-center justify-center px-4 pt-20 pb-14">
+      <div className="container-md relative z-10 mx-auto flex min-h-[100svh] flex-col items-center justify-center px-4 pt-20 pb-24">
         <h1 className="text-center text-5xl leading-tight font-bold break-words md:text-6xl">
           {site.hero.title}
         </h1>
@@ -49,8 +49,14 @@ export function Hero({ className }: { className?: string }) {
             <ChevronRightIcon className="size-4" />
           </Button>
         </Link>
-        <a href="#examples" className="mt-10 text-xs tracking-widest text-white/60 uppercase hover:text-white">Explore the workspace ↓</a>
       </div>
+      {/* Pinned to the bottom of the hero, below the book mark (the mask is centered and sized to the viewport). */}
+      <a
+        href="#examples"
+        className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-xs tracking-widest whitespace-nowrap text-white/60 uppercase hover:text-white"
+      >
+        Explore the workspace ↓
+      </a>
     </div>
   );
 }
