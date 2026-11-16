@@ -39,7 +39,6 @@ export function WhatsNewSection({ className }: { className?: string }) {
     <Section
       className={cn("", className)}
       title={site.whatsNew.title}
-      subtitle={site.whatsNew.subtitle}
     >
       <div
         ref={bentoContainerRef}

@@ -56,7 +56,7 @@ def test_removed_sections_are_not_on_the_landing(page, api):
         expect(page.get_by_role("heading", name=heading)).to_have_count(0)
     # The page now ends with the features section, then the footer.
     order = page.evaluate("[...document.querySelectorAll('main > *')].map(n => n.id || n.querySelector('h2')?.textContent || '')")
-    assert order[-1].startswith("Two ways to learn"), order
+    assert order[-1].startswith("Agents that help you learn"), order
 
 
 @pytest.fixture

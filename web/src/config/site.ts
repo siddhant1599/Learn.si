@@ -118,9 +118,7 @@ export const site = {
   },
 
   whatsNew: {
-    title: "Two ways to learn from what you have",
-    subtitle:
-      "Ask mode answers with evidence. Master mode turns a document into lessons, quizzes and progress.",
+    title: "Agents that help you learn",
     features: [
       {
         label: "Ask mode",
