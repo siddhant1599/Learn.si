@@ -113,7 +113,9 @@ def main():
         reduced.goto(BASE, wait_until="networkidle")
         reduced.locator("#examples").scroll_into_view_if_needed()
         # Reduced motion shows the first demo run's finished answer (landing-demo.ts).
-        reduced.get_by_text("A Pod is the unit Kubernetes schedules", exact=False).wait_for()
+        # Scoped to the original demo; design B (#examples-stage) shows the same answer.
+        reduced.locator("#examples").get_by_text("A Pod is the unit Kubernetes schedules", exact=False).wait_for()
+        reduced.locator("#examples-stage").get_by_text("A Pod is the unit Kubernetes schedules", exact=False).wait_for()
         assert reduced.locator(".galaxy-container canvas").count() == 0
         checks.append("Reduced motion removes WebGL and leaves example answers readable")
         assert not errors, errors
