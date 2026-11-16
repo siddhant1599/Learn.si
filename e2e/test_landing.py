@@ -1,5 +1,5 @@
 """Landing and docs gaps not covered by scripts/check_web_landing and check_web_docs:
-CTA destinations, header/mobile/footer links, product images, shared privacy wording,
+CTA destinations, header/mobile/footer links, the removed sections staying gone,
 and the ordering exercise's partial verdict, movement limits and reveal."""
 
 import re
@@ -17,7 +17,7 @@ def test_every_learning_cta_goes_to_the_chooser_never_to_a_mode(page, api):
     links = page.locator("a[href]")
     hrefs = links.evaluate_all("nodes => nodes.map(n => [n.textContent.trim(), n.getAttribute('href')])")
     ctas = [(text, href) for text, href in hrefs if LEARNING_CTA.search(text)]
-    assert len(ctas) >= 3, ctas  # Header, hero and closing CTA at least.
+    assert len(ctas) >= 2, ctas  # Header and hero.
     assert all(href == "/workspace" for _, href in ctas), ctas
     # No landing link skips the chooser into a mode.
     assert not [h for _, h in hrefs if h and re.match(r"/workspace/(chats|courses|progress)", h)], hrefs
@@ -43,31 +43,17 @@ def test_header_footer_and_mobile_menu_links(page, api):
     no_overflow(page, "docs mobile")
 
 
-def test_product_images_load_with_reserved_dimensions(page, api):
+def test_removed_sections_are_not_on_the_landing(page, api):
     page.goto("/")
-    images = page.locator('img[src*="product-"]')
-    expect(images).to_have_count(2)
-    for index in range(2):
-        image = images.nth(index)
-        image.scroll_into_view_if_needed()
-        expect(image).to_have_attribute("width", re.compile(r"^\d+$"))
-        expect(image).to_have_attribute("height", re.compile(r"^\d+$"))
-        expect(image).to_have_attribute("alt", re.compile(r"\w"))
-        page.wait_for_function("img => img.complete && img.naturalWidth > 0", arg=image.element_handle())
-    link = page.get_by_role("link", name=re.compile("View full-size .* screenshot")).first
-    assert page.request.get(link.get_attribute("href")).status == 200
-
-
-def test_privacy_wording_on_landing_matches_the_docs(page, api):
-    page.goto("/")
-    section = page.locator("#privacy")
-    section.scroll_into_view_if_needed()
-    landing = [t.strip() for t in section.locator("li p, li div p, p").all_inner_texts() if len(t.strip()) > 80]
-    page.goto("/docs/evidence#at-a-glance")
-    docs = page.locator("#at-a-glance").locator("xpath=..").inner_text()
-    assert len(landing) >= 4, landing
-    for paragraph in landing[:4]:
-        assert paragraph in docs, paragraph
+    expect(page.get_by_role("heading", name="Watch a question become an answer")).to_be_visible()
+    for removed in ("#how-it-works", "#privacy", "#closing-title"):
+        expect(page.locator(removed)).to_have_count(0)
+    for heading in ("Make your documents part of your day", "Know where your information goes",
+                    "Your next insight is already in your documents."):
+        expect(page.get_by_role("heading", name=heading)).to_have_count(0)
+    # The page now ends with the features section, then the footer.
+    order = page.evaluate("[...document.querySelectorAll('main > *')].map(n => n.id || n.querySelector('h2')?.textContent || '')")
+    assert order[-1].startswith("Two ways to learn"), order
 
 
 @pytest.fixture

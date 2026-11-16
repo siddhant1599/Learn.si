@@ -22,10 +22,10 @@ dark-only.
 
 | Behavior | Tests | Viewports / themes | Status |
 |---|---|---|---|
-| Every learning CTA reaches the chooser; no per-mode landing CTA | `test_landing.py::test_every_learning_cta_goes_to_the_chooser_never_to_a_mode`, `existing:check_web_landing` | 1440 | New + Covered |
+| Every learning CTA (header, hero) reaches the chooser; no per-mode landing CTA | `test_landing.py::test_every_learning_cta_goes_to_the_chooser_never_to_a_mode`, `existing:check_web_landing` | 1440 | New + Covered |
 | Header, mobile menu and footer links | `test_landing.py::test_header_footer_and_mobile_menu_links`, `existing:check_web_docs` | 1440, 390 | New + Covered |
-| Product images load with reserved dimensions; full-size links resolve | `test_landing.py::test_product_images_load_with_reserved_dimensions`, `existing:check_web_landing` | 1440 | New + Covered |
-| Landing privacy wording matches the docs | `test_landing.py::test_privacy_wording_on_landing_matches_the_docs` | 1440 | New |
+| How-it-works, privacy and closing-CTA sections stay removed from the landing (removed on request after #34) | `test_landing.py::test_removed_sections_are_not_on_the_landing`, `existing:check_web_landing` | 1440, 390 | New + Covered |
+| Privacy wording | — | — | N/A on the landing: the section was removed; the shared text remains in Evidence and privacy docs (`web/src/content/privacy.ts`, covered by `existing:check_web_docs`) |
 | Scripted-illustration labels; Ask demo replay; keyboard tabs | `test_landing.py::test_demos_are_labeled_scripted_and_replay_restarts_the_run`, `existing:check_web_landing`, `existing:check_web_frontend` | 1440 | New + Covered |
 | Ordering exercise: correct and incorrect | `existing:check_web_landing` | 1440, 390 | Covered |
 | Ordering exercise: partial verdict, movement limits, reveal | `test_landing.py::test_ordering_partial_verdict_boundaries_and_reveal` | 1440 | New |

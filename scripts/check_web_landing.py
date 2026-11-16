@@ -134,16 +134,11 @@ def check_content(page):
             page.goto(BASE, wait_until="networkidle")
             page.evaluate("theme => localStorage.setItem('theme', theme)", theme)
             page.reload(wait_until="networkidle")
-            for name in ("Ask steps", "Master steps"):
-                expect(page.get_by_role("list", name=name).get_by_role("listitem")).to_have_count(3)
-            for img in page.locator("#how-it-works img").all():
-                img.scroll_into_view_if_needed()
-                expect(img).to_be_visible()
-                page.wait_for_function("img => img.complete && img.naturalWidth > 0", arg=img.element_handle())
-                assert img.get_attribute("width") == "1440" and img.get_attribute("height") == "1000"
-            expect(page.locator("#privacy")).to_contain_text("local does not mean offline")
+            # The how-it-works, privacy and closing sections were removed from the landing.
+            for removed in ("#how-it-works", "#privacy", "#closing-title"):
+                expect(page.locator(removed)).to_have_count(0)
             expect(page.get_by_role("navigation", name="Footer").get_by_role("link")).to_have_count(4)
-            cta = page.get_by_role("link", name="Open your workspace", exact=True)
+            cta = page.get_by_role("link", name="Start learning")
             cta.focus()
             cta.press("Enter")
             expect(page).to_have_url(BASE + "/workspace")
@@ -156,7 +151,7 @@ def check_content(page):
             expect(page.get_by_role("tab").nth(1)).to_have_attribute("aria-selected", "true")
             assert page.locator('a[href^="/workspace/"]').count() == 0
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-    print("Landing content: screenshots, privacy, footer, chooser CTA and keyboard tabs; desktop/mobile, both themes passed")
+    print("Landing content: removed sections absent, footer, chooser CTA and keyboard tabs; desktop/mobile, both themes passed")
 
 
 def check_reduced_motion(browser):
