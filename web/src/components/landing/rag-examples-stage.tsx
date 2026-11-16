@@ -20,6 +20,8 @@ import { usePrefersReducedMotion, useRenderActivity } from "@/core/dom/render-ac
 import { cn } from "@/lib/utils";
 
 const TICK_MS = 50;
+/** How long a finished run stays on screen before the next question starts. */
+export const STAGE_HOLD_MS = 2500;
 
 /**
  * Design B of the Ask demo, for comparison with the one above: the same scripted
@@ -56,9 +58,22 @@ export function RagExamplesStage() {
     return () => clearInterval(timer);
   }, [playing, visible, done, duration, reduced]);
 
+  // Play the questions in sequence: after a short hold, a finished run hands over to the
+  // next one; the stage stops only after the last question has finished.
+  const last = selected === demoRuns.length - 1;
   useEffect(() => {
-    if (done) setPlaying(false);
-  }, [done]);
+    if (!done || !playing || reduced) return;
+    if (last) {
+      setPlaying(false);
+      return;
+    }
+    if (!visible) return;
+    const timer = setTimeout(() => {
+      setSelected((index) => index + 1);
+      setElapsed(0);
+    }, STAGE_HOLD_MS);
+    return () => clearTimeout(timer);
+  }, [done, playing, last, visible, reduced]);
 
   // Nothing has happened until the first play (the timeline's first step is at 0 ms).
   const steps = started || reduced ? stepsAt(run, shown) : [];
@@ -79,7 +94,8 @@ export function RagExamplesStage() {
   };
   const toggle = () => {
     if (playing) setPlaying(false);
-    else if (done || elapsed === 0) play();
+    else if (done) play(last ? 0 : selected + 1); // replay starts the sequence over
+    else if (elapsed === 0) play();
     else setPlaying(true);
   };
 
@@ -287,7 +303,7 @@ export function RagExamplesStage() {
                 {playing ? <Pause size={24} className="text-white" fill="white" /> : <Play size={24} className="ml-0.5 text-white" fill="white" />}
               </button>
               <span className="text-lg font-medium text-white" aria-hidden="true">
-                Click to {playing ? "pause" : done ? "replay" : "play"}
+                Click to {playing ? "pause" : done && last ? "replay" : "play"}
               </span>
             </div>
           )}

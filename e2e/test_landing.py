@@ -135,7 +135,14 @@ def test_design_b_demo_sits_below_the_original_and_plays(page, api):
     stage.scroll_into_view_if_needed()  # Auto-plays once it is on screen.
     expect(stage.get_by_text("What is a Pod?")).to_be_visible(timeout=5000)
     expect(stage.get_by_text(re.compile("Grounded in 2 cited sentences"))).to_be_visible(timeout=20000)
+    # The next question starts by itself after the first finishes.
+    expect(stage.get_by_role("button", name="Connect two ideas")).to_have_attribute("aria-pressed", "true", timeout=8000)
+    expect(stage.get_by_text("Why do my Pods disappear when a node fails?")).to_be_visible()
     stage.get_by_role("button", name="Know what's missing").click()
     expect(stage.get_by_text("How much CPU should I request?")).to_be_visible()
     expect(stage.get_by_text(re.compile("Partly answered"))).to_be_visible(timeout=20000)
+    # The last question ends the sequence: it stays put and offers a replay.
+    page.wait_for_timeout(4000)
+    expect(stage.get_by_role("button", name="Know what's missing")).to_have_attribute("aria-pressed", "true")
+    expect(stage.get_by_text("Click to replay")).to_be_visible()
     no_overflow(page, "landing with design B")

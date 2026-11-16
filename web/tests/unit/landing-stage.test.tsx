@@ -1,6 +1,6 @@
 import {beforeEach,it,expect,vi} from 'vitest';
 import {render,screen,fireEvent,act} from '@testing-library/react';
-import {RagExamplesStage} from '@/components/landing/rag-examples-stage';
+import {RagExamplesStage,STAGE_HOLD_MS} from '@/components/landing/rag-examples-stage';
 import {demoRuns,runDurationMs} from '@/content/landing-demo';
 const state=vi.hoisted(()=>({active:true,reduced:false}));
 vi.mock('@/core/dom/render-activity',()=>({useRenderActivity:()=>state.active,usePrefersReducedMotion:()=>state.reduced}));
@@ -51,4 +51,34 @@ it('reduced motion shows the finished run without overlay or controls',()=>{
  expect(screen.queryByText('Click to play')).not.toBeInTheDocument();
  expect(screen.queryByRole('button',{name:/demo$/})).not.toBeInTheDocument();
  expect(screen.getByText(/Grounded in 2 cited sentences/)).toBeInTheDocument();
+});
+it('plays all three questions in order, then stops on the last',()=>{
+ render(<RagExamplesStage/>);
+ const pressed=()=>screen.getAllByRole('button',{pressed:true}).map(b=>b.textContent);
+ act(()=>vi.advanceTimersByTime(400));
+ for(let i=0;i<demoRuns.length;i++){
+  expect(pressed()).toEqual([demoRuns[i]!.label]);
+  act(()=>vi.advanceTimersByTime(runDurationMs(demoRuns[i]!)+100));
+  expect(screen.getByText(demoRuns[i]!.question)).toBeInTheDocument();
+  act(()=>vi.advanceTimersByTime(STAGE_HOLD_MS+100));
+ }
+ // Stopped on the last question, finished, with a replay control.
+ expect(pressed()).toEqual([demoRuns[2]!.label]);
+ expect(screen.getByText(/Partly answered/)).toBeInTheDocument();
+ expect(screen.getByText('Click to replay')).toBeInTheDocument();
+ act(()=>vi.advanceTimersByTime(10000));
+ expect(pressed()).toEqual([demoRuns[2]!.label]);
+ // Replay starts the sequence over from the first question.
+ fireEvent.click(screen.getByRole('button',{name:'Play demo'}));
+ expect(pressed()).toEqual([demoRuns[0]!.label]);
+});
+it('pausing during the hold keeps the finished run until play',()=>{
+ render(<RagExamplesStage/>);
+ act(()=>vi.advanceTimersByTime(400));
+ act(()=>vi.advanceTimersByTime(runDurationMs(demoRuns[0]!)+100));
+ fireEvent.click(screen.getByRole('button',{name:'Pause demo'}));
+ act(()=>vi.advanceTimersByTime(STAGE_HOLD_MS*3));
+ expect(screen.getByRole('button',{name:demoRuns[0]!.label})).toHaveAttribute('aria-pressed','true');
+ fireEvent.click(screen.getByRole('button',{name:'Play demo'}));
+ expect(screen.getByRole('button',{name:demoRuns[1]!.label})).toHaveAttribute('aria-pressed','true');
 });
