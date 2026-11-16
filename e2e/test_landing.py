@@ -111,8 +111,8 @@ def test_demo_plays_the_three_questions_in_sequence(page, api):
     # One demo only: the comparison design replaced the original, without its label.
     expect(page.locator("#examples-stage")).to_have_count(0)
     expect(page.get_by_role("tab")).to_have_count(0)
-    expect(page.get_by_text(re.compile(r"Design B|for comparison|Scripted illustration"))).to_have_count(0)
     stage = page.locator("#examples")
+    expect(stage.get_by_text(re.compile(r"Design B|for comparison|Scripted illustration"))).to_have_count(0)
     stage.scroll_into_view_if_needed()  # Auto-plays once it is on screen.
     expect(stage.get_by_text("What is a Pod?")).to_be_visible(timeout=5000)
     expect(stage.get_by_text(re.compile("Grounded in 2 cited sentences"))).to_be_visible(timeout=20000)
@@ -127,3 +127,25 @@ def test_demo_plays_the_three_questions_in_sequence(page, api):
     expect(stage.get_by_role("button", name="Know what's missing")).to_have_attribute("aria-pressed", "true")
     expect(stage.get_by_text("Click to replay")).to_be_visible()
     no_overflow(page, "landing demo")
+
+
+def test_lesson_design_b_sits_below_the_original_and_works(page, api):
+    page.goto("/")
+    order = page.evaluate("[...document.querySelectorAll('main > *')].map(n => n.id)")
+    assert order.index("lesson-stage") == order.index("path") + 1, order
+    stage = page.locator("#lesson-stage")
+    stage.scroll_into_view_if_needed()
+    expect(stage.get_by_text("Design B · for comparison")).to_be_visible()
+    expect(stage.get_by_role("heading", name="Your sky, filling in")).to_be_visible()
+    stage.get_by_role("button", name="Check order").click()
+    expect(stage.locator("[data-b-order-verdict]")).to_have_attribute("data-b-order-verdict", "incorrect")
+    stage.get_by_role("button", name=re.compile("Take the quiz")).click()
+    for qid, right in (("a1", "b"), ("a2", "b"), ("a3", "a")):
+        stage.locator(f'[data-b-question="{qid}"] input[value="{right}"]').check()
+    stage.get_by_role("button", name="Submit answers").click()
+    expect(stage.locator("[data-b-quiz-result]")).to_have_attribute("data-b-quiz-result", "passed")
+    expect(stage.locator("[data-b-progress]")).to_have_attribute("data-b-completed", "4")
+    expect(stage.get_by_text("3/3 first try")).to_be_visible()
+    # The original card and panel are untouched by design B.
+    expect(page.locator("[data-progress-panel]")).to_have_attribute("data-completed", "3")
+    no_overflow(page, "landing with lesson design B")

@@ -3,6 +3,7 @@ import { ConstellationSection } from "@/components/landing/constellation-section
 import { Footer } from "@/components/landing/footer";
 import { Header } from "@/components/landing/header";
 import { Hero } from "@/components/landing/hero";
+import { LessonStage } from "@/components/landing/lesson-stage";
 import { RagExamples } from "@/components/landing/rag-examples";
 import { WhatsNewSection } from "@/components/landing/sections/whats-new-section";
 
@@ -17,6 +18,8 @@ export default function LandingPage() {
         <Hero />
         <RagExamples />
         <ConstellationSection />
+        {/* Design B of the lesson and progress, kept below the originals for comparison. */}
+        <LessonStage />
         <WhatsNewSection />
       </main>
       <Footer />

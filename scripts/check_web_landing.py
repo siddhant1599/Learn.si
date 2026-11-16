@@ -104,7 +104,7 @@ def check_lesson_flow(page):
     card.get_by_role("button", name="Take the quiz").click()
     expect(card).to_have_attribute("data-side", "quiz")
     page.wait_for_timeout(800)  # Let the 3D flip finish before clicking inside the back face.
-    submit = page.get_by_role("button", name="Submit answers")
+    submit = card.get_by_role("button", name="Submit answers")
     expect(submit).to_be_disabled()
     # Bank one keys: b, b, a. Choose all wrong.
     for qid, wrong in (("a1", "a"), ("a2", "c"), ("a3", "b")):
@@ -112,12 +112,12 @@ def check_lesson_flow(page):
     submit.click()
     expect(page.locator("[data-quiz-result]")).to_have_attribute("data-quiz-result", "failed")
     stems_before = page.locator("[data-question] legend").all_inner_texts()
-    page.get_by_role("button", name="Retake with new questions").click()
+    card.get_by_role("button", name="Retake with new questions").click()
     expect(page.locator("[data-quiz]")).to_have_attribute("data-attempt", "2")
     assert page.locator("[data-question] legend").all_inner_texts() != stems_before
     for qid, right in (("b1", "b"), ("b2", "a"), ("b3", "b")):
         page.locator(f'[data-question="{qid}"] input[value="{right}"]').check()
-    page.get_by_role("button", name="Submit answers").click()
+    card.get_by_role("button", name="Submit answers").click()
     expect(page.locator("[data-quiz-result]")).to_have_attribute("data-quiz-result", "passed")
     expect(page.locator("[data-progress-panel]")).to_have_attribute("data-completed", "4")
     mini = page.evaluate("[...document.querySelectorAll('[data-mini-sky] g[data-state]')].map(g => g.dataset.state)")
