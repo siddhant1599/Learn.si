@@ -29,11 +29,11 @@ import { cn } from "@/lib/utils";
 const INITIAL_COMPLETED = 3; // Module one mastered when the visitor arrives.
 
 /**
- * Design B of "Lesson 4 · Pods" and "Your sky, filling in", for comparison with the
- * originals above: the same lesson, exercise, quiz and progress, styled like
- * frontend-sample's Agent Skills stage (a course tree beside a tutor chat).
+ * "Lesson 4 · Pods" and "Your sky, filling in": the playable next lesson and its
+ * progress, styled like frontend-sample's Agent Skills stage (a course tree beside a
+ * tutor chat). Graded in the browser; passing the quiz calls onPass.
  */
-export function LessonStage() {
+export function LessonStage({ onPass }: { onPass?: (firstTry: boolean) => void }) {
   const reduced = usePrefersReducedMotion();
   const [completed, setCompleted] = useState(INITIAL_COMPLETED);
   const [quizFirstTry, setQuizFirstTry] = useState<boolean | null>(null);
@@ -41,20 +41,20 @@ export function LessonStage() {
   const pass = (firstTry: boolean) => {
     setCompleted((count) => Math.max(count, INITIAL_COMPLETED + 1));
     setQuizFirstTry((value) => value ?? firstTry);
+    onPass?.(firstTry);
   };
 
   return (
-    <section id="lesson-stage" aria-labelledby="lesson-stage-title" className="w-full bg-white/[0.02] py-16">
+    <section id="lesson" aria-labelledby="lesson-title" className="w-full bg-white/[0.02] py-16">
       <div className="mx-auto w-full max-w-6xl px-4">
-        <p className="mb-6 text-center text-xs tracking-[0.3em] text-zinc-500 uppercase">Design B · for comparison</p>
-        <h3 id="lesson-stage-title" className="mb-8 text-center font-serif text-2xl text-white sm:text-3xl">
+        <h2 id="lesson-title" className="mb-8 text-center font-serif text-2xl text-white sm:text-3xl">
           Open the next lesson
-        </h3>
+        </h2>
         <div className="flex flex-col gap-8 md:flex-row md:items-start">
           <ProgressTree completed={completed} quizFirstTry={quizFirstTry} reduced={reduced} />
           <div
-            data-b-lesson
-            data-b-side={side}
+            data-lesson-card
+            data-side={side}
             className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50"
           >
             <div className="flex items-center justify-between gap-3 border-b border-zinc-800 p-4">
@@ -241,8 +241,8 @@ function OrderExercise() {
             <motion.li
               layout
               key={id}
-              data-b-order-item={id}
-              data-b-placed={verdict === null ? undefined : placed}
+              data-order-item={id}
+              data-placed={verdict === null ? undefined : placed}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
                 verdict === null && "bg-zinc-800/60 text-zinc-200",
@@ -290,7 +290,7 @@ function OrderExercise() {
           </button>
         )}
       </div>
-      <div role="status" aria-live="polite" data-b-order-verdict={verdict ?? ""}>
+      <div role="status" aria-live="polite" data-order-verdict={verdict ?? ""}>
         <AnimatePresence>
           {verdict && (
             <motion.div
@@ -344,7 +344,7 @@ function QuizChat({
     if (graded.passed) onPass(attempt === 0);
   };
   return (
-    <div data-b-quiz data-b-attempt={attempt + 1}>
+    <div data-quiz data-attempt={attempt + 1}>
       <UserBubble>Take the quiz</UserBubble>
       <Block icon="📝" divider={false} title={<span className="text-xl font-medium text-white">Check your understanding</span>}>
         <p className="text-xs tracking-widest text-zinc-500 uppercase">
@@ -395,7 +395,7 @@ function QuizChat({
           animate={{ opacity: 1, scale: 1 }}
           role="status"
           aria-live="polite"
-          data-b-quiz-result={result.passed ? "passed" : "failed"}
+          data-quiz-result={result.passed ? "passed" : "failed"}
           className={cn(
             "mt-4 rounded-xl border p-4",
             result.passed ? "border-green-500/30 bg-green-500/10" : "border-amber-400/30 bg-amber-400/10",
@@ -406,7 +406,7 @@ function QuizChat({
           </p>
           <p className="mt-1 text-sm text-zinc-300">
             {result.passed
-              ? "Lesson 4 is complete. In the course tree, Pods turns green and Deployments opens."
+              ? "Lesson 4 is complete. Pods turns green in the course tree and Deployments opens."
               : `You need ${demoLesson.passScore} of 3. Retake with a fresh set of questions.`}
           </p>
           <div className="mt-3 flex flex-wrap gap-3">
@@ -463,7 +463,7 @@ function Question({
   onChoose: (id: string) => void;
 }) {
   return (
-    <fieldset className="mt-4" data-b-question={question.id}>
+    <fieldset className="mt-4" data-question={question.id}>
       <hr className="mb-3 border-zinc-700" />
       <legend className="sr-only">
         {index + 1}. {question.stem}
@@ -529,23 +529,23 @@ function ProgressTree({ completed, quizFirstTry, reduced }: { completed: number;
   const isToday = day === demoWeek.length - 1;
   const shown = isToday ? completed : Math.min(demoWeek[day]!.completed, completed);
   const progress = demoProgress(shown, isToday ? quizFirstTry : null);
-  const stars = site.constellation.stars;
+  const courseLessons = site.course.lessons;
   const stateOf = (index: number): LessonState => (index < shown ? "mastered" : index === shown ? "next" : "locked");
 
   return (
-    <section aria-labelledby={`${sliderId}-title`} data-b-progress data-b-completed={shown} className="flex flex-col md:w-[42%]">
+    <section aria-labelledby={`${sliderId}-title`} data-progress-panel data-completed={shown} className="flex flex-col md:w-[42%]">
       <div className="mb-1 font-mono text-sm text-zinc-500">/courses/containers-handbook/</div>
       <p className="text-xs tracking-widest text-zinc-500 uppercase">Progress · example week</p>
       <h3 id={`${sliderId}-title`} className="mt-2 text-2xl font-medium text-white">
         Your sky, filling in
       </h3>
       <p className="mt-2 mb-5 text-sm text-zinc-400">
-        Each lesson is a star. Green is mastered, white is open, dim is still locked.
+        Each file is a lesson. Green is mastered, white is open, dim is still locked.
       </p>
 
-      <div className="space-y-2" role="list" aria-label={`${shown} of ${stars.length} lessons complete`}>
-        {site.constellation.modules.map((module, moduleIndex) => {
-          const lessons = stars.map((star, index) => ({ ...star, index })).filter((star) => star.module === moduleIndex);
+      <div className="space-y-2" role="list" aria-label={`${shown} of ${courseLessons.length} lessons complete`}>
+        {site.course.modules.map((module, moduleIndex) => {
+          const lessons = courseLessons.map((lesson, index) => ({ ...lesson, index })).filter((lesson) => lesson.module === moduleIndex);
           const states = lessons.map((lesson) => stateOf(lesson.index));
           const folder: LessonState = states.every((s) => s === "mastered") ? "mastered" : states.includes("next") || states.includes("mastered") ? "next" : "locked";
           return (
@@ -561,7 +561,7 @@ function ProgressTree({ completed, quizFirstTry, reduced }: { completed: number;
                   return (
                     <motion.li
                       key={lesson.label}
-                      data-b-lesson-state={state}
+                      data-lesson-state={state}
                       animate={reduced ? undefined : state === "mastered" ? { scale: [1, 1.04, 1] } : { scale: 1 }}
                       transition={{ duration: 0.5 }}
                       className={cn(

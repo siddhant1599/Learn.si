@@ -1,68 +1,32 @@
-import re
-"""Landing checks: static hero, then the "From a page to a path" scroll stage after the examples.
+"""Landing checks: static hero, the Ask demo, then the playable next lesson and its progress tree.
 
 Read-only; no providers. Run against the production frontend:
 uv run --with playwright python -m scripts.check_web_landing
 """
+import re
+
 from playwright.sync_api import expect, sync_playwright
 
 from scripts.browser import BASE, launch
 
 
-def progress(page):
-    return float(page.evaluate("getComputedStyle(document.querySelector('[data-constellation-stage]')).getPropertyValue('--stage-progress')"))
-
-
-def star_positions(page):
-    return page.evaluate("[...document.querySelectorAll('[data-constellation-star]')].map(s => s.style.transform)")
-
-
-def scroll_stage_to(page, fraction):
-    """Scroll so that the sticky stage has advanced `fraction` of its scrollable distance."""
-    page.evaluate(
-        "f => { const el = document.querySelector('[data-constellation-stage]');"
-        " const top = el.getBoundingClientRect().top + window.scrollY;"
-        " window.scrollTo(0, top + (el.offsetHeight - innerHeight) * f); }",
-        fraction,
-    )
-    page.wait_for_timeout(500)
-
-
-def check_stage(page, width, height, errors):
+def check_layout(page, width, height, errors):
     page.set_viewport_size({"width": width, "height": height})
     page.goto(BASE, wait_until="networkidle")
     page.wait_for_timeout(600)
-    # Hero is static again: no stage inside it, book mask present.
+    # Hero is static: no stage inside it, book mask present.
     assert page.locator("[data-hero-stage]").count() == 0
     assert page.locator("[style*='mask-image']").count() >= 1
-    # The stage sits right after the examples section.
+    # The "From a page to a path" map was removed: the lesson follows the examples.
     order = page.evaluate("[...document.querySelectorAll('main > section')].map(s => s.id || '?')")
-    assert order.index("examples") + 1 == order.index("path"), order
+    assert order.index("examples") + 1 == order.index("lesson"), order
+    assert "path" not in order and page.locator("[data-constellation-stage]").count() == 0, order
+    expect(page.get_by_text("From a page to a path")).to_have_count(0)
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), f"overflow at {width}"
-    scroll_stage_to(page, 0)
-    assert progress(page) <= 0.01, progress(page)
-    expect(page.locator("[data-constellation-page]")).to_be_visible()
-    start = star_positions(page)
-    scroll_stage_to(page, 0.5)
-    mid = progress(page)
-    assert 0.4 < mid < 0.6, mid
-    assert star_positions(page) != start, "stars did not move"
-    assert page.evaluate("document.querySelector('[data-constellation-legend]').style.opacity") == "0"
-    scroll_stage_to(page, 1)
-    assert progress(page) >= 0.99, progress(page)
-    assert page.evaluate("document.querySelector('[data-constellation-page]').style.opacity") == "0"
-    assert page.evaluate("[...document.querySelectorAll('[data-constellation-label]')].every(l => parseFloat(l.style.opacity) > 0.4)")
-    assert page.evaluate("document.querySelector('[data-constellation-legend]').style.opacity") == "1"
-    assert page.evaluate("document.querySelector('[data-constellation-chip]').style.opacity") == "1"
-    states = page.evaluate("[...document.querySelectorAll('[data-constellation-star]')].map(s => s.dataset.state)")
-    assert states.count("mastered") == 3 and states.count("next") == 1 and states.count("locked") == 5, states
-    boxes = page.evaluate("(() => { const b = document.querySelector('[data-constellation]').getBoundingClientRect(); return [...document.querySelectorAll('[data-constellation-star], [data-constellation-label]')].map(s => s.getBoundingClientRect()).map(r => [r.left - b.left, r.top - b.top, r.right - b.left, r.bottom - b.top]); })()")
-    for left, top, right, bottom in boxes:
-        assert 0 <= left and right <= width and 0 <= top and bottom <= height, (left, top, right, bottom)
     check_lesson_flow(page)
     check_ask_demo(page)
     assert not errors, errors
-    print(f"{width}x{height}: static hero; stage 0 → {mid:.2f} → 1; 9 stars travel, labels, lines, module one gold, legend and chip; lesson + quiz light Pods")
+    print(f"{width}x{height}: static hero; no map; lesson exercise + quiz retake light Pods in the course tree; Ask demo sequence")
 
 
 def check_ask_demo(page):
@@ -83,11 +47,14 @@ def check_ask_demo(page):
 
 
 def check_lesson_flow(page):
-    """Order exercise, a failed first quiz, a retake with new questions, then the map updates."""
+    """Order exercise, a failed first quiz, a retake with new questions, then the course tree updates."""
     card = page.locator("[data-lesson-card]")
     card.scroll_into_view_if_needed()
-    assert "TODO(you)" not in page.locator("#path").inner_text()
+    page.wait_for_timeout(1500)  # Lesson blocks fade in as they scroll into view.
+    assert "TODO(you)" not in page.locator("#lesson").inner_text()
     check = card.get_by_role("button", name="Check order", exact=True)
+    check.scroll_into_view_if_needed()
+    page.wait_for_timeout(800)
     check.click()
     expect(page.locator("[data-order-verdict]")).to_have_attribute("data-order-verdict", "incorrect")
     describe = "You describe the Pod: images, ports, volumes."
@@ -101,9 +68,11 @@ def check_lesson_flow(page):
     check.click()
     expect(page.locator("[data-order-verdict]")).to_have_attribute("data-order-verdict", "correct")
     assert page.locator('[data-placed="true"]').count() == 4
-    card.get_by_role("button", name="Take the quiz").click()
+    take = card.get_by_role("button", name=re.compile("Take the quiz"))
+    take.scroll_into_view_if_needed()
+    page.wait_for_timeout(800)
+    take.click()
     expect(card).to_have_attribute("data-side", "quiz")
-    page.wait_for_timeout(800)  # Let the 3D flip finish before clicking inside the back face.
     submit = card.get_by_role("button", name="Submit answers")
     expect(submit).to_be_disabled()
     # Bank one keys: b, b, a. Choose all wrong.
@@ -111,21 +80,17 @@ def check_lesson_flow(page):
         page.locator(f'[data-question="{qid}"] input[value="{wrong}"]').check()
     submit.click()
     expect(page.locator("[data-quiz-result]")).to_have_attribute("data-quiz-result", "failed")
-    stems_before = page.locator("[data-question] legend").all_inner_texts()
+    stems_before = page.locator("[data-question] legend").all_text_contents()
     card.get_by_role("button", name="Retake with new questions").click()
     expect(page.locator("[data-quiz]")).to_have_attribute("data-attempt", "2")
-    assert page.locator("[data-question] legend").all_inner_texts() != stems_before
+    assert page.locator("[data-question] legend").all_text_contents() != stems_before
     for qid, right in (("b1", "b"), ("b2", "a"), ("b3", "b")):
         page.locator(f'[data-question="{qid}"] input[value="{right}"]').check()
     card.get_by_role("button", name="Submit answers").click()
     expect(page.locator("[data-quiz-result]")).to_have_attribute("data-quiz-result", "passed")
     expect(page.locator("[data-progress-panel]")).to_have_attribute("data-completed", "4")
-    mini = page.evaluate("[...document.querySelectorAll('[data-mini-sky] g[data-state]')].map(g => g.dataset.state)")
-    assert mini.count("mastered") == 4 and mini[4] == "next", mini
-    scroll_stage_to(page, 1)
-    states = page.evaluate("[...document.querySelectorAll('[data-constellation-star]')].map(s => s.dataset.state)")
-    assert states.count("mastered") == 4 and states[4] == "next", states
-    assert page.evaluate("document.querySelector('[data-constellation-chip]').textContent") == "Lesson 5 · ≈ 5 min"
+    tree = page.evaluate("[...document.querySelectorAll('[data-lesson-state]')].map(n => n.dataset.lessonState)")
+    assert tree.count("mastered") == 4 and tree[4] == "next", tree
 
 
 def check_content(page):
@@ -159,12 +124,14 @@ def check_reduced_motion(browser):
     ctx = browser.new_context(viewport={"width": 1440, "height": 900}, reduced_motion="reduce")
     page = ctx.new_page()
     page.goto(BASE, wait_until="networkidle")
-    page.wait_for_timeout(600)
-    assert progress(page) == 1
-    assert page.evaluate("document.querySelector('[data-constellation-stage]').offsetHeight") <= 900 + 1
-    assert page.evaluate("document.querySelector('[data-constellation-legend]').style.opacity") == "1"
+    lesson = page.locator("#lesson")
+    lesson.scroll_into_view_if_needed()
+    # Without motion every lesson block is shown at once, and the Ask demo is finished.
+    expect(lesson.get_by_text("Insight · Common misconception")).to_be_visible()
+    expect(lesson.get_by_role("button", name=re.compile("Take the quiz"))).to_be_visible()
+    expect(page.locator("#examples").get_by_text(re.compile("Grounded in 2 cited sentences"))).to_be_visible()
     ctx.close()
-    print("reduced motion: finished map in a single-screen frame")
+    print("reduced motion: lesson fully shown, Ask demo finished")
 
 
 def main():
@@ -173,8 +140,8 @@ def main():
         page = browser.new_page()
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
-        check_stage(page, 1440, 900, errors)
-        check_stage(page, 390, 844, errors)
+        check_layout(page, 1440, 900, errors)
+        check_layout(page, 390, 844, errors)
         check_reduced_motion(browser)
         check_content(page)
         browser.close()

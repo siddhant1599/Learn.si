@@ -51,70 +51,20 @@ export const site = {
     ctaHref: "/workspace",
   },
 
-  /** Scroll stage after the examples: a handbook page becomes a map of lessons. */
-  constellation: {
-    eyebrow: "Master mode",
-    title: "From a page to a path",
-    subtitle:
-      "Scroll: a document's sentences become short lessons, grouped into modules, unlocked one quiz at a time.",
-    source: "Containers handbook.pdf · Page 12",
-    caption:
-      "A document's sentences become a map of lessons: the first module mastered, the next lesson open, the rest locked until its quiz is passed.",
+  /** The demo course shown in the landing's lesson tree: three modules of three lessons. */
+  course: {
     modules: ["Build", "Deploy", "Operate"],
-    stars: [
-      {
-        sentence: "A Dockerfile declares each layer of your image.",
-        label: "Dockerfile layers",
-        module: 0,
-      },
-      {
-        sentence: "Tag images with a version before you push them.",
-        label: "Image tagging",
-        module: 0,
-      },
-      {
-        sentence: "Keep containers stateless; mount volumes for data.",
-        label: "Volumes and state",
-        module: 0,
-      },
-      {
-        sentence: "A Pod runs one or more containers together.",
-        label: "Pods",
-        module: 1,
-      },
-      {
-        sentence: "Deployments keep the desired replica count running.",
-        label: "Deployments",
-        module: 1,
-      },
-      {
-        sentence: "Services give Pods a stable network address.",
-        label: "Services",
-        module: 1,
-      },
-      {
-        sentence: "Set resource requests and limits on every container.",
-        label: "Requests and limits",
-        module: 2,
-      },
-      {
-        sentence: "Readiness probes gate traffic until the app is up.",
-        label: "Health probes",
-        module: 2,
-      },
-      {
-        sentence: "Roll back a failed rollout with kubectl rollout undo.",
-        label: "Rollbacks",
-        module: 2,
-      },
+    lessons: [
+      { label: "Dockerfile layers", module: 0 },
+      { label: "Image tagging", module: 0 },
+      { label: "Volumes and state", module: 0 },
+      { label: "Pods", module: 1 },
+      { label: "Deployments", module: 1 },
+      { label: "Services", module: 1 },
+      { label: "Requests and limits", module: 2 },
+      { label: "Health probes", module: 2 },
+      { label: "Rollbacks", module: 2 },
     ],
-    /** Act three: lesson states shown on the map. */
-    states: {
-      mastered: "Mastered",
-      available: "Next lesson",
-      locked: "Locked until the quiz before it is passed",
-    },
-    nextLesson: "Lesson 4 · ≈ 5 min",
   },
 
   whatsNew: {
