@@ -64,8 +64,8 @@ export function RagExamples() {
       subtitle={
         <>
           {/* One sentence per line. */}
-          <span className="block">Ask mode answers three questions with the workspace&apos;s activity panel and citations.</span>
-          <span className="mt-1 block">Further down, Master mode turns the same handbook into lessons and quizzes.</span>
+          <span className="block">Ask mode answers with evidence.</span>
+          <span className="mt-1 block">Master mode turns a document into lessons, quizzes and progress.</span>
         </>
       }
     >
