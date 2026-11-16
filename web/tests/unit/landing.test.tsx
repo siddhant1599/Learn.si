@@ -8,10 +8,10 @@ vi.mock('next/link',()=>({default:({children,href,...props}:any)=><a href={href}
 beforeEach(()=>{state.active=true;state.reduced=false});
 const run=demoRuns[0]!;
 
-it('labels the runs as scripted and makes no network calls',()=>{
+it('runs the scripted demo without network calls',()=>{
  vi.stubGlobal('fetch',vi.fn());
  render(<RagExamples/>);
- expect(screen.getByText(/Scripted illustration · no model calls/)).toBeVisible();
+ expect(screen.queryByText(/Scripted illustration/)).not.toBeInTheDocument();
  expect(fetch).not.toHaveBeenCalled();
 });
 it('first run is selected and associated with its panel',()=>{render(<RagExamples/>);const tab=screen.getByRole('tab',{name:run.label});expect(tab).toHaveAttribute('aria-selected','true');expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby',tab.id)});

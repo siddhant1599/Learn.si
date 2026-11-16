@@ -100,10 +100,10 @@ def test_ordering_partial_verdict_boundaries_and_reveal(order):
     expect(card.locator("[data-order-item] button").first).to_be_disabled()
 
 
-def test_demos_are_labeled_scripted_and_replay_restarts_the_run(page, api):
+def test_demo_replay_restarts_the_run_and_labels_are_removed(page, api):
     page.goto("/")
-    # Both illustrations say plainly that nothing calls a model.
-    expect(page.get_by_text(re.compile(r"Scripted illustration · no model calls"))).to_have_count(2)
+    # The "Scripted illustration · no model calls" labels were removed on request.
+    expect(page.get_by_text(re.compile(r"Scripted illustration"))).to_have_count(0)
     panel = page.get_by_role("tabpanel")
     panel.scroll_into_view_if_needed()  # The run only advances while it is on screen.
     answer = "A Pod is the unit Kubernetes schedules"

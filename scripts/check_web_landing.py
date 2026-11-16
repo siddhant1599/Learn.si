@@ -78,7 +78,7 @@ def check_ask_demo(page):
     page.get_by_role("button", name="Citation 1").hover()
     expect(page.locator('[data-cited="focus"]')).to_have_text("Deployments keep the desired replica count running.")
     assert page.locator("#examples a[href='/workspace']").count() == 1
-    assert "no model calls" in page.locator("#examples").inner_text()
+    assert "Scripted illustration" not in page.locator("#examples").inner_text()  # Label removed on request.
 
 
 def check_lesson_flow(page):

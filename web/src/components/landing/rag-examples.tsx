@@ -212,8 +212,7 @@ export function RagExamples() {
               </div>
             </div>
           </div>
-          <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-6 py-4 text-xs">
-            <span>Scripted illustration · no model calls · timings are illustrative</span>
+          <div className="text-muted-foreground flex flex-wrap items-center justify-end gap-3 border-t border-white/10 px-6 py-4 text-xs">
             <Link href="/workspace" className="flex items-center gap-2 text-white">
               Try your documents <ArrowRight size={14} />
             </Link>

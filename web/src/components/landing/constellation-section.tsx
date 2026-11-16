@@ -133,10 +133,7 @@ export function ConstellationSection({ className }: { className?: string }) {
       {/* The next lesson, playable: passing its quiz lights Pods on the map above. */}
       <div className="mx-auto mt-10 w-full max-w-6xl px-4">
         <div className="mb-6 max-w-2xl">
-          <p className="text-[11px] font-semibold tracking-widest text-[#e9c665] uppercase">
-            Scripted illustration · no model calls
-          </p>
-          <h3 className="mt-2 font-serif text-2xl text-white sm:text-3xl">Open the next lesson</h3>
+          <h3 className="font-serif text-2xl text-white sm:text-3xl">Open the next lesson</h3>
           <p className="mt-2 text-sm text-white/70 sm:text-base">
             Try this browser-only example: read, put the steps in order, then pass the quiz: Pods turns gold on the map and
             Deployments opens.
