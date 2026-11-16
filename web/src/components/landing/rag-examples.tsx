@@ -61,7 +61,7 @@ export function RagExamples() {
     <Section
       id="examples"
       title="Watch a question become an answer"
-      subtitle="Ask mode: three demo runs over a handbook, shown through the same activity panel and citations you get in the workspace. Below, Master mode turns the same handbook into lessons and quizzes."
+      subtitle="Three questions in Ask mode, answered with the same activity panel and citations you get in the workspace. Further down, Master mode turns the same handbook into lessons and quizzes."
     >
       <div ref={ref} className="mx-auto mt-10 max-w-6xl">
         <div className="mb-6 flex flex-wrap justify-center gap-3" role="tablist" aria-label="Example questions">
