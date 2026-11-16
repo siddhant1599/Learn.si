@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 import { GalaxyBackdrop } from "@/components/landing/galaxy-backdrop";
 import { AuroraText } from "@/components/ui/aurora-text";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { FlickeringGrid } from "@/components/ui/flickering-grid";
 import { site } from "@/config/site";
 import { usePrefersReducedMotion } from "@/core/dom/render-activity";
@@ -40,12 +40,13 @@ export function Hero({ className }: { className?: string }) {
           <HeroWordRotate words={site.hero.rotatingWords} />
           <span className="whitespace-nowrap">{site.hero.rotatingSuffix}</span>
         </div>
-        {/* Styled like frontend-sample's hero button, but a plain label: no link, not focusable. */}
+        {/* Same look as the DeerFlow hero's "In partnership with" badge (thin white outline,
+            light text), but a plain label: no link. */}
         <div
           data-beta-badge
-          className={cn(buttonVariants({ size: "lg" }), "pointer-events-none mt-6 h-11 cursor-default px-5 select-none")}
+          className="mt-4 flex size-fit items-center rounded-lg border border-white px-3 text-center text-base font-light text-white text-shadow-sm"
         >
-          <span className="text-md">{site.hero.betaLabel}</span>
+          <span>{site.hero.betaLabel}</span>
         </div>
         <p className="text-muted-foreground mt-8 max-w-4xl text-center text-base leading-7 text-shadow-sm sm:text-xl md:text-2xl">
           {site.hero.description}
