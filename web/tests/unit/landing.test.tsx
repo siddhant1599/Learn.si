@@ -1,21 +1,12 @@
 import {beforeEach,it,expect,vi} from 'vitest';
 import {render,screen,fireEvent,act} from '@testing-library/react';
-import {RagExamples} from '@/components/landing/rag-examples';
+import {RagExamples,STAGE_HOLD_MS} from '@/components/landing/rag-examples';
 import {demoRuns,runDurationMs,stepsAt,answerCharsAt} from '@/content/landing-demo';
+const run=demoRuns[0]!;
 const state=vi.hoisted(()=>({active:true,reduced:false}));
 vi.mock('@/core/dom/render-activity',()=>({useRenderActivity:()=>state.active,usePrefersReducedMotion:()=>state.reduced}));
-vi.mock('next/link',()=>({default:({children,href,...props}:any)=><a href={href} {...props}>{children}</a>}));
-beforeEach(()=>{state.active=true;state.reduced=false});
-const run=demoRuns[0]!;
+beforeEach(()=>{state.active=true;state.reduced=false;vi.useFakeTimers()});
 
-it('runs the scripted demo without network calls',()=>{
- vi.stubGlobal('fetch',vi.fn());
- render(<RagExamples/>);
- expect(screen.queryByText(/Scripted illustration/)).not.toBeInTheDocument();
- expect(fetch).not.toHaveBeenCalled();
-});
-it('first run is selected and associated with its panel',()=>{render(<RagExamples/>);const tab=screen.getByRole('tab',{name:run.label});expect(tab).toHaveAttribute('aria-selected','true');expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby',tab.id)});
-it('switching run changes the question and the passages',()=>{render(<RagExamples/>);fireEvent.click(screen.getByRole('tab',{name:demoRuns[1]!.label}));expect(screen.getByText(demoRuns[1]!.question)).toBeVisible();expect(screen.getByText('Deployments keep the desired replica count running.')).toBeVisible()});
 it('timeline uses the product step labels and completes the answer step after streaming',()=>{
  expect(stepsAt(run,0).map(s=>s.label)).toEqual(['Choosing how to handle your question']);
  expect(stepsAt(run,700).map(s=>s.label)).toEqual(['Request routed','Searching selected documents']);
@@ -25,19 +16,85 @@ it('timeline uses the product step labels and completes the answer step after st
  expect(demoRuns[1]!.timeline.some(e=>e.step.parent==='retrieve')).toBe(true);
  expect(demoRuns[2]!.timeline.some(e=>e.step.results?.includes('Partial evidence'))).toBe(true);
 });
-it('advances the real activity panel on the timer',()=>{vi.useFakeTimers();render(<RagExamples/>);expect(screen.getAllByText(/Choosing how to handle your question/).length).toBeGreaterThan(0);act(()=>vi.advanceTimersByTime(800));expect(screen.getByText('Request routed')).toBeInTheDocument();expect(screen.getAllByText(/Searching selected documents/).length).toBeGreaterThan(0)});
-it('streams the answer with citation markers and highlights cited passages',()=>{
- vi.useFakeTimers();render(<RagExamples/>);
- act(()=>vi.advanceTimersByTime(runDurationMs(run)+100));
- expect(screen.getByRole('button',{name:'Citation 1'})).toBeInTheDocument();
- expect(screen.getByText(/A Pod is the unit Kubernetes schedules/)).toBeInTheDocument();
- expect(document.querySelectorAll('[data-cited]')).toHaveLength(2);
- expect(screen.getByText('Answer prepared')).toBeInTheDocument();
- fireEvent.focus(screen.getByRole('button',{name:'Citation 2'}));
- expect(document.querySelector('[data-cited="focus"]')).toHaveTextContent('Keep containers stateless');
+it('shows the section heading and no comparison label',()=>{
+ render(<RagExamples/>);
+ expect(screen.getByRole('heading',{name:'Understand what you read. Remember what you learn.'})).toBeInTheDocument();
+ expect(screen.queryByText(/Design B|for comparison/)).not.toBeInTheDocument();
 });
-it('pause freezes and play resumes',()=>{vi.useFakeTimers();render(<RagExamples/>);fireEvent.click(screen.getByRole('button',{name:'Pause preview'}));act(()=>vi.advanceTimersByTime(3000));expect(screen.queryByText('Request routed')).not.toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'Play preview'}));act(()=>vi.advanceTimersByTime(800));expect(screen.getByText('Request routed')).toBeInTheDocument()});
-it('replay restarts from the beginning',()=>{vi.useFakeTimers();render(<RagExamples/>);act(()=>vi.advanceTimersByTime(2000));fireEvent.click(screen.getByRole('button',{name:'Replay preview'}));expect(screen.queryByText('Request routed')).not.toBeInTheDocument()});
-it('offscreen runs do not advance',()=>{state.active=false;vi.useFakeTimers();render(<RagExamples/>);act(()=>vi.advanceTimersByTime(9000));expect(screen.queryByText('Request routed')).not.toBeInTheDocument()});
-it('reduced motion renders the complete answer without waiting',()=>{state.reduced=true;render(<RagExamples/>);expect(screen.getByText(/A Pod is the unit Kubernetes schedules/)).toBeInTheDocument();expect(screen.getByText('Answer prepared')).toBeInTheDocument()});
-it('keyboard navigation moves focus and selection across tabs',()=>{render(<RagExamples/>);const first=screen.getByRole('tab',{name:demoRuns[0]!.label});first.focus();fireEvent.keyDown(first,{key:'ArrowRight'});const second=screen.getByRole('tab',{name:demoRuns[1]!.label});expect(second).toHaveFocus();expect(second).toHaveAttribute('aria-selected','true');fireEvent.keyDown(second,{key:'End'});expect(screen.getByRole('tab',{name:demoRuns[2]!.label})).toHaveFocus()});
+
+it('waits behind a play overlay, then auto-plays once visible',()=>{
+ state.active=false;
+ const {rerender}=render(<RagExamples/>);
+ expect(screen.getAllByText('Click to play').length).toBe(2); // overlay + bottom-left control, as in the sample
+ expect(screen.queryByText(demoRuns[0]!.question)).not.toBeInTheDocument();
+ state.active=true;rerender(<RagExamples/>);
+ act(()=>vi.advanceTimersByTime(400));
+ expect(screen.getByText(demoRuns[0]!.question)).toBeInTheDocument();
+ expect(screen.getByText(/Choosing how to handle your question/)).toBeInTheDocument();
+});
+it('runs the same script: routed, researched, answer with citations, grounded card',()=>{
+ vi.stubGlobal('fetch',vi.fn());
+ render(<RagExamples/>);
+ act(()=>vi.advanceTimersByTime(400)); // auto-play starts
+ act(()=>vi.advanceTimersByTime(runDurationMs(demoRuns[0]!)+200));
+ expect(screen.getByText(/Routed: Direct document search/)).toBeInTheDocument();
+ expect(screen.getByText(/A Pod is the unit Kubernetes schedules/)).toBeInTheDocument();
+ expect(screen.getByText(/Grounded in 2 cited sentences/)).toBeInTheDocument();
+ expect(document.querySelectorAll('[data-stage-passage="done"]').length).toBeGreaterThanOrEqual(2);
+ expect(fetch).not.toHaveBeenCalled();
+});
+it('switching question restarts with that run; the missing-evidence run ends partial',()=>{
+ render(<RagExamples/>);
+ fireEvent.click(screen.getByRole('button',{name:demoRuns[2]!.label}));
+ expect(screen.getByRole('button',{name:demoRuns[2]!.label})).toHaveAttribute('aria-pressed','true');
+ act(()=>vi.advanceTimersByTime(runDurationMs(demoRuns[2]!)+200));
+ expect(screen.getByText(demoRuns[2]!.question)).toBeInTheDocument();
+ expect(screen.getByText(/Partly answered/)).toBeInTheDocument();
+});
+it('pause freezes the run',()=>{
+ render(<RagExamples/>);
+ act(()=>vi.advanceTimersByTime(400));
+ fireEvent.click(screen.getByRole('button',{name:'Pause demo'}));
+ act(()=>vi.advanceTimersByTime(3000));
+ expect(screen.queryByText(/Routed:/)).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'Play demo'}));
+ act(()=>vi.advanceTimersByTime(800));
+ expect(screen.getByText(/Routed:/)).toBeInTheDocument();
+});
+it('reduced motion shows the finished run without overlay or controls',()=>{
+ state.reduced=true;state.active=false;
+ render(<RagExamples/>);
+ expect(screen.queryByText('Click to play')).not.toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:/demo$/})).not.toBeInTheDocument();
+ expect(screen.getByText(/Grounded in 2 cited sentences/)).toBeInTheDocument();
+});
+it('plays all three questions in order, then stops on the last',()=>{
+ render(<RagExamples/>);
+ const pressed=()=>screen.getAllByRole('button',{pressed:true}).map(b=>b.textContent);
+ act(()=>vi.advanceTimersByTime(400));
+ for(let i=0;i<demoRuns.length;i++){
+  expect(pressed()).toEqual([demoRuns[i]!.label]);
+  act(()=>vi.advanceTimersByTime(runDurationMs(demoRuns[i]!)+100));
+  expect(screen.getByText(demoRuns[i]!.question)).toBeInTheDocument();
+  act(()=>vi.advanceTimersByTime(STAGE_HOLD_MS+100));
+ }
+ // Stopped on the last question, finished, with a replay control.
+ expect(pressed()).toEqual([demoRuns[2]!.label]);
+ expect(screen.getByText(/Partly answered/)).toBeInTheDocument();
+ expect(screen.getByText('Click to replay')).toBeInTheDocument();
+ act(()=>vi.advanceTimersByTime(10000));
+ expect(pressed()).toEqual([demoRuns[2]!.label]);
+ // Replay starts the sequence over from the first question.
+ fireEvent.click(screen.getByRole('button',{name:'Play demo'}));
+ expect(pressed()).toEqual([demoRuns[0]!.label]);
+});
+it('pausing during the hold keeps the finished run until play',()=>{
+ render(<RagExamples/>);
+ act(()=>vi.advanceTimersByTime(400));
+ act(()=>vi.advanceTimersByTime(runDurationMs(demoRuns[0]!)+100));
+ fireEvent.click(screen.getByRole('button',{name:'Pause demo'}));
+ act(()=>vi.advanceTimersByTime(STAGE_HOLD_MS*3));
+ expect(screen.getByRole('button',{name:demoRuns[0]!.label})).toHaveAttribute('aria-pressed','true');
+ fireEvent.click(screen.getByRole('button',{name:'Play demo'}));
+ expect(screen.getByRole('button',{name:demoRuns[1]!.label})).toHaveAttribute('aria-pressed','true');
+});

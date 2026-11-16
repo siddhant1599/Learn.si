@@ -1,3 +1,4 @@
+import re
 """Landing checks: static hero, then the "From a page to a path" scroll stage after the examples.
 
 Read-only; no providers. Run against the production frontend:
@@ -36,8 +37,7 @@ def check_stage(page, width, height, errors):
     assert page.locator("[style*='mask-image']").count() >= 1
     # The stage sits right after the examples section.
     order = page.evaluate("[...document.querySelectorAll('main > section')].map(s => s.id || '?')")
-    # Design B of the demo (#examples-stage) sits between the original demo and the path, for comparison.
-    assert order.index("examples") + 1 == order.index("examples-stage") == order.index("path") - 1, order
+    assert order.index("examples") + 1 == order.index("path"), order
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), f"overflow at {width}"
     scroll_stage_to(page, 0)
     assert progress(page) <= 0.01, progress(page)
@@ -66,21 +66,20 @@ def check_stage(page, width, height, errors):
 
 
 def check_ask_demo(page):
-    """Scripted Ask run: real activity labels, streamed answer with citations, highlighted passages."""
-    # Scoped to the original demo: design B (#examples-stage) shows the same runs.
+    """Scripted Ask demo: document tree beside an agent chat; the questions play in sequence."""
     panel = page.locator("#examples")
-    panel.scroll_into_view_if_needed()
-    panel.get_by_role("tab", name="Connect two ideas").click()
+    panel.scroll_into_view_if_needed()  # Auto-plays once on screen.
+    panel.get_by_role("button", name="Connect two ideas").click()
+    expect(panel.get_by_role("button", name="Connect two ideas")).to_have_attribute("aria-pressed", "true")
     expect(panel.get_by_text("Why do my Pods disappear when a node fails?")).to_be_visible()
-    expect(panel.get_by_text("Request routed")).to_be_visible(timeout=5000)
-    expect(panel.get_by_text("Search planned")).to_be_visible(timeout=5000)
-    expect(panel.get_by_role("button", name="Citation 2")).to_be_visible(timeout=15000)
-    expect(panel.get_by_text("Answer prepared")).to_be_visible(timeout=15000)
-    assert panel.locator("[data-cited]").count() == 2
-    panel.get_by_role("button", name="Citation 1").hover()
-    expect(page.locator('[data-cited="focus"]')).to_have_text("Deployments keep the desired replica count running.")
-    assert page.locator("#examples a[href='/workspace']").count() == 1
-    assert "Scripted illustration" not in page.locator("#examples").inner_text()  # Label removed on request.
+    expect(panel.get_by_text(re.compile("Routed: Multi-question research"))).to_be_visible(timeout=5000)
+    expect(panel.get_by_text(re.compile("Search planned"))).to_be_visible(timeout=5000)
+    expect(panel.get_by_text(re.compile("Grounded in 2 cited sentences"))).to_be_visible(timeout=15000)
+    assert panel.locator('[data-stage-passage="done"]').count() >= 2
+    # It moves on to the last question by itself.
+    expect(panel.get_by_role("button", name="Know what's missing")).to_have_attribute("aria-pressed", "true", timeout=8000)
+    assert "Scripted illustration" not in panel.inner_text()  # Label removed on request.
+    assert "Design B" not in panel.inner_text()
 
 
 def check_lesson_flow(page):
@@ -145,15 +144,15 @@ def check_content(page):
             cta.press("Enter")
             expect(page).to_have_url(BASE + "/workspace")
             page.go_back(wait_until="networkidle")
-            # Use the first demo tab regardless of editorial tab names.
-            first = page.get_by_role("tab").first
-            first.focus()
-            first.press("ArrowRight")
-            expect(page.get_by_role("tab").nth(1)).to_be_focused()
-            expect(page.get_by_role("tab").nth(1)).to_have_attribute("aria-selected", "true")
+            # Demo questions are keyboard-operable buttons.
+            name = page.locator("#examples").get_by_role("button", pressed=False).first.inner_text()
+            second = page.locator("#examples").get_by_role("button", name=name, exact=True)
+            second.focus()
+            second.press("Enter")
+            expect(second).to_have_attribute("aria-pressed", "true")
             assert page.locator('a[href^="/workspace/"]').count() == 0
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-    print("Landing content: removed sections absent, footer, chooser CTA and keyboard tabs; desktop/mobile, both themes passed")
+    print("Landing content: removed sections absent, footer, chooser CTA and keyboard demo questions; desktop/mobile, both themes passed")
 
 
 def check_reduced_motion(browser):

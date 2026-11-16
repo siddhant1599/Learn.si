@@ -106,32 +106,13 @@ def test_ordering_partial_verdict_boundaries_and_reveal(order):
     expect(card.locator("[data-order-item] button").first).to_be_disabled()
 
 
-def test_demo_replay_restarts_the_run_and_labels_are_removed(page, api):
+def test_demo_plays_the_three_questions_in_sequence(page, api):
     page.goto("/")
-    # The "Scripted illustration · no model calls" labels were removed on request.
-    expect(page.get_by_text(re.compile(r"Scripted illustration"))).to_have_count(0)
-    panel = page.get_by_role("tabpanel")
-    panel.scroll_into_view_if_needed()  # The run only advances while it is on screen.
-    answer = "A Pod is the unit Kubernetes schedules"
-    expect(panel.get_by_text(answer, exact=False)).to_be_visible(timeout=20000)  # The run finishes.
-    panel.get_by_role("button", name="Replay preview").click()
-    # Replay restarts: the finished answer is gone, then streams back.
-    expect(panel.get_by_text(answer, exact=False)).to_have_count(0)
-    expect(panel.get_by_text(answer, exact=False)).to_be_visible(timeout=20000)
-    # Keyboard: arrow keys move between example tabs and select them.
-    tab = page.get_by_role("tab", name="Ask a definition")
-    tab.focus()
-    page.keyboard.press("ArrowRight")
-    expect(page.get_by_role("tab", name="Connect two ideas")).to_be_focused()
-    expect(page.get_by_role("tab", name="Connect two ideas")).to_have_attribute("aria-selected", "true")
-    expect(panel.get_by_text("Why do my Pods disappear when a node fails?")).to_be_visible()
-
-
-def test_design_b_demo_sits_below_the_original_and_plays(page, api):
-    page.goto("/")
-    order = page.evaluate("[...document.querySelectorAll('main > *')].map(n => n.id)")
-    assert order.index("examples-stage") == order.index("examples") + 1, order
-    stage = page.locator("#examples-stage")
+    # One demo only: the comparison design replaced the original, without its label.
+    expect(page.locator("#examples-stage")).to_have_count(0)
+    expect(page.get_by_role("tab")).to_have_count(0)
+    expect(page.get_by_text(re.compile(r"Design B|for comparison|Scripted illustration"))).to_have_count(0)
+    stage = page.locator("#examples")
     stage.scroll_into_view_if_needed()  # Auto-plays once it is on screen.
     expect(stage.get_by_text("What is a Pod?")).to_be_visible(timeout=5000)
     expect(stage.get_by_text(re.compile("Grounded in 2 cited sentences"))).to_be_visible(timeout=20000)
@@ -145,4 +126,4 @@ def test_design_b_demo_sits_below_the_original_and_plays(page, api):
     page.wait_for_timeout(4000)
     expect(stage.get_by_role("button", name="Know what's missing")).to_have_attribute("aria-pressed", "true")
     expect(stage.get_by_text("Click to replay")).to_be_visible()
-    no_overflow(page, "landing with design B")
+    no_overflow(page, "landing demo")
