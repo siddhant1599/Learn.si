@@ -21,9 +21,13 @@ it('landing copy names both modes without numbering and links to neither directl
  for(const link of site.header.links)expect(link.label).not.toMatch(/^(Ask|Master)$/);
 });
 
-it('landing header shows the brand and one CTA to the workspace, with no mode links',()=>{
+it('landing header shows the brand and the frontend-sample GitHub button, with no mode links',()=>{
  render(<Header/>);
  expect(screen.getAllByText('Study Buddy').length).toBeGreaterThan(0);
- expect(screen.getByRole('link',{name:'Open workspace'})).toHaveAttribute('href','/workspace');
+ const star=screen.getByRole('link',{name:'Star on GitHub'});
+ expect(star).toHaveAttribute('href',site.repositoryUrl);
+ expect(star).toHaveAttribute('target','_blank');
+ expect(star).toHaveAttribute('rel','noopener noreferrer');
+ expect(screen.queryByRole('link',{name:'Open workspace'})).not.toBeInTheDocument();
  expect(screen.queryByRole('link',{name:/^(Ask|Master)$/})).not.toBeInTheDocument();
 });

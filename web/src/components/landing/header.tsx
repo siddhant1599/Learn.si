@@ -1,4 +1,4 @@
-import { ArrowRightIcon } from "lucide-react";
+import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -35,24 +35,26 @@ export function Header({ className }: { className?: string }) {
         <div
           className="pointer-events-none absolute inset-0 z-0 h-full w-full rounded-full opacity-30 blur-2xl"
           style={{
-            background: "linear-gradient(90deg, #e9c665 0%, #b89138 100%)",
+            background: "linear-gradient(90deg, #ff80b5 0%, #9089fc 100%)",
             filter: "blur(16px)",
           }}
         />
-        {/* Internal route with a visible label at every width; no external-link cue. */}
+        {/* Same button as frontend-sample's header, pointed at this project's repository. */}
         <Button
           variant="outline"
           size="sm"
           asChild
           className="group relative z-10"
         >
-          <Link href={site.hero.ctaHref}>
-            {site.header.ctaLabel}
-            <ArrowRightIcon
-              aria-hidden="true"
-              className="size-3.5 transition-transform motion-safe:group-hover:translate-x-0.5"
-            />
-          </Link>
+          <a
+            href={site.repositoryUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={site.header.ctaLabel}
+          >
+            <GitHubLogoIcon className="size-4" />
+            <span className="hidden sm:inline">{site.header.ctaLabel}</span>
+          </a>
         </Button>
       </div>
       <MobileNav links={site.header.links} />

@@ -32,7 +32,7 @@ export const site = {
       { href: "/workspace", label: "Workspace" },
       { href: "/docs", label: "Docs" },
     ],
-    ctaLabel: "Open workspace",
+    ctaLabel: "Star on GitHub",
   },
 
   hero: {

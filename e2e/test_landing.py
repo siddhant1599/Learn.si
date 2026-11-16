@@ -17,8 +17,11 @@ def test_every_learning_cta_goes_to_the_chooser_never_to_a_mode(page, api):
     links = page.locator("a[href]")
     hrefs = links.evaluate_all("nodes => nodes.map(n => [n.textContent.trim(), n.getAttribute('href')])")
     ctas = [(text, href) for text, href in hrefs if LEARNING_CTA.search(text)]
-    assert len(ctas) >= 2, ctas  # Header and hero.
+    assert len(ctas) >= 1, ctas  # The hero; the header button now links to GitHub.
     assert all(href == "/workspace" for _, href in ctas), ctas
+    star = page.get_by_role("banner").get_by_role("link", name="Star on GitHub")
+    expect(star).to_have_attribute("href", re.compile(r"^https://github\.com/"))
+    expect(star).to_have_attribute("target", "_blank")
     # No landing link skips the chooser into a mode.
     assert not [h for _, h in hrefs if h and re.match(r"/workspace/(chats|courses|progress)", h)], hrefs
     page.get_by_role("link", name=re.compile("Start learning")).first.click()
