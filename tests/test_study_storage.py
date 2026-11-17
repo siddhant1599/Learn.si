@@ -46,7 +46,7 @@ async def test_study_lifecycle_gating_and_deletion():
     dsn = os.environ["TEST_DATABASE_URL"]
     config = Settings(_env_file=None, database_url=dsn)
     assert [p.name for p in migration_files()] == [
-        "001_initial.sql", "002_study.sql", "003_lesson_content.sql"
+        "001_initial.sql", "002_study.sql", "003_lesson_content.sql", "004_chat_history.sql"
     ]
     await apply_migrations(dsn)
     await apply_migrations(dsn)  # Idempotent re-run.

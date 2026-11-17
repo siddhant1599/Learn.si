@@ -15,8 +15,9 @@ import { toast } from "sonner";
 
 import { site } from "@/config/site";
 
-import { CHAT_PREFIX, DELETED_PREFIX, readChats, restoreSettings, saveChat, markChatDeleted } from "./cache";
+import { restoreSettings } from "./cache";
 import { chatAdapter } from "./adapter";
+import { chatTitle, fetchChatList, fetchChatMessages, importLocalChats, summaryThread } from "./server";
 
 import {
   applyChatEvent,
@@ -46,8 +47,12 @@ type ChatStore = {
   deletions: Deletion[];
   deleteChat: (id: string) => Promise<void>;
   deleteDocument: (id: string) => Promise<void>;
-  /** False until browser storage has been read, on the client only. */
+  /** False until the server's chat list has been requested (loaded or failed). */
   ready: boolean;
+  /** Why the chat list could not be loaded, if it could not. */
+  chatsError: string;
+  /** Load a listed chat's messages from the server. */
+  loadThread: (id: string) => Promise<void>;
   webAvailable: boolean | null;
   documents: { id: string; title: string; edition: string }[];
   selectedIds: string[];
@@ -89,20 +94,22 @@ function writeJson(key: string, value: unknown) {
   }
 }
 
-function titleFromPrompt(text: string) {
-  return text.length > 60 ? `${text.slice(0, 60).trimEnd()}…` : text;
-}
-
-/** A reload cannot resume a stream, so a saved running turn reads as stopped. */
-function settleInterruptedTurn(thread: ChatThread): ChatThread {
-  return {
-    ...thread,
-    messages: thread.messages.map((message) =>
-      message.role === "assistant" && message.status === "streaming"
-        ? finishAssistantMessage(message, "stopped", 0)
-        : message,
-    ),
-  };
+/**
+ * Combine the server's chat list with chats already in memory. A chat whose messages are
+ * loaded (or being written in this tab) keeps them; the list adds new chats and updates
+ * titles and order. Chats removed here stay removed.
+ */
+function mergeChats(current: ChatThread[], listed: ChatThread[], removed: Set<string>): ChatThread[] {
+  const byId = new Map(current.map((t) => [t.id, t]));
+  for (const incoming of listed) {
+    const known = byId.get(incoming.id);
+    byId.set(incoming.id, known && known.loaded !== false
+      ? { ...known, documentIds: known.documentIds ?? incoming.documentIds, updatedAt: Math.max(known.updatedAt, incoming.updatedAt) }
+      : incoming);
+  }
+  return [...byId.values()]
+    .filter((t) => !removed.has(t.id))
+    .sort((a, b) => b.updatedAt - a.updatedAt || a.id.localeCompare(b.id));
 }
 
 export function ChatStoreProvider({ children }: { children: ReactNode }) {
@@ -153,12 +160,10 @@ export function ChatStoreProvider({ children }: { children: ReactNode }) {
   const threadsRef = useRef(threads);
   threadsRef.current = threads;
 
-  const owned = useRef(new Set<string>());
+  const [chatsError, setChatsError] = useState("");
   const forget = useCallback((id: string) => {
     removed.current.add(id);
     controllers.current.get(id)?.abort();
-    owned.current.delete(id);
-    try { markChatDeleted(localStorage, id); } catch { /* server tombstone remains authoritative */ }
     setThreads(current => current.filter(t => t.id !== id));
     if (window.location.pathname === `/workspace/chats/${id}`) history.replaceState(null, "", "/workspace/chats/new");
   }, []);
@@ -200,11 +205,8 @@ export function ChatStoreProvider({ children }: { children: ReactNode }) {
     controllers.current.get(id)?.abort();
     const thread = threadsRef.current.find(t => t.id === id);
     const serverId = thread?.serverThreadId ?? sessions.current.get(id);
+    // A chat that never reached the server exists only in this tab.
     if (serverId) await requestDelete(`conversations/${serverId}`);
-    else {
-      try { markChatDeleted(localStorage, id); }
-      catch { throw new Error("Browser storage is unavailable. Chat deletion could not be saved; please retry."); }
-    }
     forget(id);
     toast.success("Chat deleted. Source documents were kept.");
   }, [forget, requestDelete]);
@@ -217,55 +219,45 @@ export function ChatStoreProvider({ children }: { children: ReactNode }) {
     if (result.status === "cleanup_pending") toast.message("Source removed. External cleanup is pending; retry is available in Sources.");
     else toast.success("Document deleted. Historical answers were kept.");
   }, [requestDelete]);
-  useEffect(() => {
-    const restore = () => {
-      try {
-        const { threads: saved, invalid } = readChats(localStorage);
-        const restored = saved.map(settleInterruptedTurn);
-        setThreads(current => {
-          const incoming = new Map(restored.map(t => [t.id, t]));
-          // A local in-flight turn wins over external updates until it settles.
-          for (const t of current) {
-            if (localStorage.getItem(DELETED_PREFIX + t.id)) {
-              controllers.current.get(t.id)?.abort();
-              owned.current.delete(t.id);
-              removed.current.add(t.id);
-              if (window.location.pathname === `/workspace/chats/${t.id}`) history.replaceState(null, "", "/workspace/chats/new");
-            } else if (owned.current.has(t.id)) incoming.set(t.id, t);
-          }
-          return [...incoming.values()].sort((a,b) => b.updatedAt-a.updatedAt || a.id.localeCompare(b.id));
-        });
-        if (invalid) toast.error("Some saved chats could not be restored. Valid chats remain available; the original cache was preserved.");
-      } catch {
-        // Blocked storage must not make the in-memory workspace unusable.
-      }
-    };
-    restore();
-    setSettings(current => restoreSettings(readJson<unknown>(SETTINGS_KEY), current));
-    setReady(true);
-    const changed = (event: StorageEvent) => {
-      if (event.key === null || (event.key.startsWith(CHAT_PREFIX) || event.key.startsWith(DELETED_PREFIX))) restore();
-    };
-    window.addEventListener("storage", changed);
-    return () => window.removeEventListener("storage", changed);
+  // Chats come from the server, so every device shows the same list. Older builds kept
+  // chats in this browser: their steps are uploaded once, then the local copies go.
+  const refreshChats = useCallback(async () => {
+    const listed = (await fetchChatList()).map(summaryThread);
+    setThreads((current) => mergeChats(current, listed, removed.current));
+    setChatsError("");
   }, []);
-
   useEffect(() => {
-    if (!ready) return;
-    for (const thread of threads) {
-      if (!owned.current.has(thread.id) || streamingIds.has(thread.id)) continue;
-      try {
-        if (!saveChat(localStorage, thread)) {
-          setThreads(current => current.filter(t => t.id !== thread.id));
-          toast.error("This chat was deleted in another tab.");
-        }
-      } catch {
-        toast.error("Chat could not be saved in this browser. It remains available in this tab.");
-        continue;
-      }
-      owned.current.delete(thread.id);
+    setSettings(current => restoreSettings(readJson<unknown>(SETTINGS_KEY), current));
+    let live = true;
+    void (async () => {
+      try { await importLocalChats(localStorage); } catch { /* retried on the next visit */ }
+      try { await refreshChats(); }
+      catch (e) { if (live) setChatsError(e instanceof Error ? e.message : "Chats could not be loaded."); }
+      finally { if (live) setReady(true); }
+    })();
+    // Other tabs and devices add chats; pick them up when this tab regains focus.
+    const onFocus = () => { void refreshChats().catch(() => {}); };
+    window.addEventListener("focus", onFocus);
+    return () => { live = false; window.removeEventListener("focus", onFocus); };
+  }, [refreshChats]);
+
+  const loading = useRef(new Set<string>());
+  const loadThread = useCallback(async (id: string) => {
+    if (loading.current.has(id)) return;
+    loading.current.add(id);
+    try {
+      const messages = await fetchChatMessages(id);
+      setThreads((current) => messages === null
+        ? current.filter((t) => t.id !== id)
+        : current.map((t) => t.id === id && t.loaded === false
+            ? { ...t, messages, loaded: true, loadError: undefined } : t));
+    } catch (e) {
+      const loadError = e instanceof Error ? e.message : "This chat could not be loaded.";
+      setThreads((current) => current.map((t) => t.id === id ? { ...t, loadError } : t));
+    } finally {
+      loading.current.delete(id);
     }
-  }, [ready, streamingIds, threads]);
+  }, []);
 
   useEffect(() => {
     if (ready) writeJson(SETTINGS_KEY, settings);
@@ -301,6 +293,9 @@ export function ChatStoreProvider({ children }: { children: ReactNode }) {
         (thread) => thread.id === threadId,
       );
       const documentIds = existing?.documentIds ?? selectedIds;
+      // The server knows the chat once an answer was saved; until then (a first question,
+      // or a retry after it failed) the server creates it under this tab's id.
+      const saved = existing?.messages.some((m) => m.role === "assistant" && m.status === "complete");
       if (documentIds.some(id => deletions.some(d => d.kind === "document" && d.id === id))) {
         throw new Error("A source was deleted. Start a new chat with available sources.");
       }
@@ -314,13 +309,13 @@ export function ChatStoreProvider({ children }: { children: ReactNode }) {
       }
       const messages = [...(existing?.messages ?? []), userMessage];
 
-      owned.current.add(threadId);
       setThreads((current) => {
         const next: ChatThread = {
           id: threadId,
           documentIds,
           serverThreadId: existing?.serverThreadId,
-          title: existing?.title ?? titleFromPrompt(text),
+          loaded: true,
+          title: existing?.title ?? chatTitle(text),
           todos: [],
           updatedAt: Date.now(),
           messages: [
@@ -367,7 +362,8 @@ export function ChatStoreProvider({ children }: { children: ReactNode }) {
               files,
               settings,
               documentIds,
-              serverThreadId: existing?.serverThreadId,
+              serverThreadId: saved ? existing?.serverThreadId ?? threadId : undefined,
+              newThreadId: saved ? undefined : threadId,
             },
             controller.signal,
           );
@@ -417,6 +413,8 @@ export function ChatStoreProvider({ children }: { children: ReactNode }) {
     () => ({
       deletions, deleteChat, deleteDocument,
       ready,
+      chatsError,
+      loadThread,
       webAvailable,
       documents,
       selectedIds,
@@ -433,6 +431,8 @@ export function ChatStoreProvider({ children }: { children: ReactNode }) {
     [
       deletions, deleteChat, deleteDocument,
       ready,
+      chatsError,
+      loadThread,
       webAvailable,
       threads,
       settings,

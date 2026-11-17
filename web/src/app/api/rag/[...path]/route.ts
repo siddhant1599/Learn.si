@@ -13,9 +13,10 @@ async function proxy(
 ) {
   const { path } = await context.params;
   const endpoint = path.join("/");
-  // Ask routes plus the Master-mode surface (#21): courses, lessons, quiz attempts, progress.
+  // Ask routes (including the server-stored chat list and the one-time step import) plus the
+  // Master-mode surface (#21): courses, lessons, quiz attempts, progress.
   const allowed =
-    /^(documents|documents\/upload|documents\/[0-9a-f-]+|deletions|query|health|conversations\/[0-9a-f-]+(?:\/messages)?|courses|courses\/[0-9a-f-]+(?:\/events|\/progress)?|lessons\/[0-9a-f-]+(?:\/events|\/regenerate|\/quiz-attempts|\/your-turn|\/conversation|\/study-time)?|quiz-attempts\/[0-9a-f-]+(?:\/submit)?|progress)$/;
+    /^(documents|documents\/upload|documents\/[0-9a-f-]+|deletions|query|health|conversations|conversations\/[0-9a-f-]+(?:\/messages|\/import-steps)?|courses|courses\/[0-9a-f-]+(?:\/events|\/progress)?|lessons\/[0-9a-f-]+(?:\/events|\/regenerate|\/quiz-attempts|\/your-turn|\/conversation|\/study-time)?|quiz-attempts\/[0-9a-f-]+(?:\/submit)?|progress)$/;
   if (!allowed.test(endpoint))
     return new Response("Not found", { status: 404 });
   const url = new URL(request.url);

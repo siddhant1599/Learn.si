@@ -146,6 +146,8 @@ class FixtureBackend:
             return 200, {"status": "ok", "web_available": True}, "json"
         if path == "deletions":
             return 200, [], "json"
+        if path == "conversations":  # Ask chats are listed from the server; none in this flow.
+            return 200, [], "json"
         if path == "documents":
             return 200, self.documents, "json"
         if path == "documents/upload" and method == "POST":

@@ -149,7 +149,7 @@ class ChatStore:
             self.threads[thread_id] = []
         return thread_id, 0, self.threads.get(thread_id, [])
 
-    async def save_turn(self, thread_id, version, question, answer, citations):
+    async def save_turn(self, thread_id, version, question, answer, citations, steps=None, warnings=None):
         self.saved.append((thread_id, question, answer))
         self.threads.setdefault(thread_id, []).extend(
             [{"role": "user", "content": question}, {"role": "assistant", "content": answer}])

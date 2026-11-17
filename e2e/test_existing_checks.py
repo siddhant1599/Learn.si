@@ -27,6 +27,10 @@ CHECKS = [
 ]
 
 
+# Each existing check is a whole multi-scenario script run as a subprocess with its own
+# 600 s limit; on CI (software-rendered WebGL) check_web_landing alone takes ~5 minutes,
+# so these get that limit instead of the suite's 240 s per-test default.
+@pytest.mark.timeout(600)
 @pytest.mark.parametrize("check", CHECKS)
 def test_existing_browser_check(check, tmp_path):
     env = {**os.environ, "E2E_BASE_URL": BASE, "E2E_ARTIFACTS": str(tmp_path)}

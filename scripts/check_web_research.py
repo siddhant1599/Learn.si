@@ -6,7 +6,7 @@ from pathlib import Path
 
 from playwright.sync_api import expect, sync_playwright
 
-from scripts.browser import BASE, launch
+from scripts.browser import BASE, SavedChats, launch
 
 URL = "https://example.org/web-source-sentinel"
 
@@ -53,10 +53,14 @@ def main():
             "retrieved_at": "2026-11-04",
             "published_date": "2026-10-01",
         }
+        saved_chats = SavedChats()  # Chats live on the server: the fake saves them too.
+        saved_chats.install(page)
+
         def query(route):
             body = route.request.post_data_json
             requests.append(body)
             is_web = len(requests) == 1
+            chat_id = body.get("thread_id") or body["new_thread_id"]
             result = {
                 "answer": "## From your documents\n\nDocument finding [1].\n\n## From the web\n\nExternal live finding [2]."
                 if is_web
@@ -64,9 +68,11 @@ def main():
                 "citations": [document, web] if is_web else [document],
                 "warnings": ["Web evidence partial for wq1."] if is_web else [],
             }
+            saved_chats.record(chat_id, body["user_query"], result["answer"], result["citations"],
+                               warnings=result["warnings"])
             route.fulfill(
                 content_type="text/event-stream",
-                body=frame("session", {"thread_id": "22222222-2222-4222-8222-222222222222"})
+                body=frame("session", {"thread_id": chat_id})
                 + frame("progress", {"step": "web" if is_web else "answer", "status": "completed"})
                 + frame("token", {"delta": "Provisional draft"})
                 + frame("result", result),
@@ -97,14 +103,11 @@ def main():
         checks.append(
             "Automatic fallback displays without client controls; final text replaces draft"
         )
-        page.wait_for_function(
-            "Object.keys(localStorage).filter(k => k.startsWith('document-lab.chat.v2.')).some(k => localStorage.getItem(k)?.includes('External live finding'))"
-        )
-        saved = page.evaluate(
-            "JSON.stringify(Object.keys(localStorage).filter(k => k.startsWith('document-lab.chat.v2.')).map(k => localStorage.getItem(k)))"
-        )
+        saved = json.dumps(saved_chats.chats)
         assert URL in saved and "External live finding" in saved
-        checks.append("Browser persistence keeps the web answer and its source link")
+        assert not page.evaluate(
+            "Object.keys(localStorage).some(k => k.startsWith('document-lab.chat.v2.'))")
+        checks.append("The saved chat keeps the web answer and its source link (server, not browser storage)")
         page.get_by_role("textbox", name="Message", exact=True).fill("Document-only follow-up")
         page.get_by_role("button", name="Send", exact=True).click()
         expect(page.get_by_text("Document-only follow-up [1].", exact=True)).to_be_visible()

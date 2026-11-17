@@ -4,6 +4,7 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 from uuid import UUID, uuid4
 
 import httpx
@@ -13,6 +14,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 from app import deletions
 from app.agents.budget import BudgetedProvider, BudgetExceeded, CallBudget, current_budget
@@ -597,6 +599,54 @@ async def submit_quiz_attempt(
     }
 
 
+@app.get("/conversations")
+async def list_conversations(store=Depends(storage)):
+    """Ask chats for the sidebar on any device, newest first."""
+    rows = await store.conversations()
+    return [
+        {
+            "id": row["id"],
+            "document_ids": row["document_ids"],
+            "updated_at": row["updated_at"],
+            "title": (row["first_question"] or "Untitled chat")[:200],
+            "message_count": row["message_count"],
+        }
+        for row in rows
+    ]
+
+
+class ImportedAnswer(BaseModel):
+    content: str = Field(max_length=200_000)
+    steps: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
+    warnings: list[str] = Field(default_factory=list, max_length=50)
+
+
+class StepImport(BaseModel):
+    answers: list[ImportedAnswer] = Field(max_length=500)
+
+
+@app.post("/conversations/{thread_id}/import-steps")
+async def import_steps(thread_id: UUID, body: StepImport, store=Depends(storage)):
+    """One-time upload of activity steps that older builds kept only in the browser."""
+    allowed = {"id", "kind", "label", "status", "results", "parent", "progressVersion", "attempt", "sequence"}
+    answers = [
+        {
+            "content": a.content,
+            "warnings": [w[:500] for w in a.warnings],
+            "steps": [
+                {k: v for k, v in step.items() if k in allowed and (
+                    not isinstance(v, str) or len(v) <= 300)}
+                for step in a.steps
+            ],
+        }
+        for a in body.answers
+    ]
+    try:
+        return {"matched": await store.import_steps(thread_id, answers)}
+    except NotFound as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
 @app.get("/conversations/{thread_id}/messages")
 async def messages(
     thread_id: UUID,
@@ -608,6 +658,18 @@ async def messages(
         return await store.history(thread_id, before, limit)
     except NotFound as exc:
         raise HTTPException(404, str(exc)) from exc
+
+
+# Progress fields kept with a saved answer: what the activity panel needs to redraw it,
+# never free text from a provider (details, deltas or URLs are not part of a saved step).
+SAVED_STEP_FIELDS = ("type", "version", "step", "id", "status", "attempt", "sequence", "task", "outcome", "count")
+
+
+def record_step(steps, update):
+    """Keep the latest state per step id, in first-seen order."""
+    saved = {key: update[key] for key in SAVED_STEP_FIELDS if key in update}
+    key = str(saved.get("id") or saved.get("step") or len(steps))
+    steps[key] = saved
 
 
 def event(name, data):
@@ -638,6 +700,9 @@ async def query(body: Query, request: Request, store=Depends(storage)):
             body.document_ids,
             config.embedding_signature,
             config.history_exchanges * 2,
+            # Lesson tutor chats are bound by the server; only Ask chats pick their own id.
+            **({"new_thread_id": body.new_thread_id}
+               if lesson is None and body.new_thread_id is not None else {}),
         )
     except NotFound as exc:
         raise HTTPException(404, str(exc)) from exc
@@ -675,6 +740,7 @@ async def query(body: Query, request: Request, store=Depends(storage)):
             boost_sections=frozenset(lesson.source_section_ids) if lesson else frozenset(),
         )
         final = {}
+        steps = {}  # Final state of each progress step, saved with the answer.
         try:
             async with asyncio.timeout(config.request_timeout_seconds):
                 async for mode, update in workflow.graph.astream(
@@ -689,6 +755,7 @@ async def query(body: Query, request: Request, store=Depends(storage)):
                 ):
                     if mode == "custom":
                         if isinstance(update, dict) and update.get("type") == "progress":
+                            record_step(steps, update)
                             yield event("progress", update)
                         elif isinstance(update, dict) and isinstance(update.get("delta"), str):
                             yield event("token", {"delta": update["delta"]})
@@ -713,7 +780,8 @@ async def query(body: Query, request: Request, store=Depends(storage)):
                     final["citations"],
                 )
                 await store.save_turn(
-                    thread_id, version, saved_question, saved_answer, saved_citations
+                    thread_id, version, saved_question, saved_answer, saved_citations,
+                    list(steps.values()), list(dict.fromkeys(final.get("warnings", []))),
                 )
                 yield event(
                     "result",

@@ -75,6 +75,10 @@ export type ChatThread = {
   messages: ChatMessage[];
   todos: ChatTodo[];
   updatedAt: number;
+  /** False while only the server's list entry is known; true once its messages are loaded. */
+  loaded?: boolean;
+  /** Set when loading this chat's messages failed. */
+  loadError?: string;
 };
 
 export type ChatSettings = {
@@ -97,6 +101,8 @@ export type ChatEvent =
 export type ChatRequest = {
   documentIds: string[];
   serverThreadId?: string;
+  /** A new chat's id, chosen here so the server stores the chat under the same id. */
+  newThreadId?: string;
   threadId: string;
   /** The full conversation, ending with the new user message. */
   messages: ChatMessage[];

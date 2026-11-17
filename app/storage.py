@@ -51,7 +51,7 @@ class Storage:
             cur = await conn.execute("SELECT id, title, edition FROM rag.documents ORDER BY title")
             return await cur.fetchall()
 
-    async def conversation(self, thread_id, document_ids, signature, history_limit):
+    async def conversation(self, thread_id, document_ids, signature, history_limit, new_thread_id=None):
         async with self.pool.connection() as conn:
             cur = await conn.execute(
                 "SELECT id, embedding_signature FROM rag.documents WHERE id = ANY(%s)",
@@ -63,12 +63,15 @@ class Storage:
             if any(d["embedding_signature"] != signature for d in documents):
                 raise Conflict("Embedding configuration differs from the indexed documents")
             if thread_id is None:
-                thread_id = uuid4()
-                await conn.execute(
-                    "INSERT INTO rag.conversations(id, document_ids) VALUES (%s, %s)",
+                thread_id = new_thread_id or uuid4()
+                cur = await conn.execute(
+                    "INSERT INTO rag.conversations(id, document_ids) VALUES (%s, %s) "
+                    "ON CONFLICT (id) DO NOTHING RETURNING id",
                     (thread_id, document_ids),
                 )
-                return thread_id, 0, []
+                if await cur.fetchone():
+                    return thread_id, 0, []
+                # The id already exists (a retry of the chat's first question): continue it.
             cur = await conn.execute(
                 "SELECT document_ids, version FROM rag.conversations WHERE id=%s", (thread_id,)
             )
@@ -90,13 +93,13 @@ class Storage:
             if not await cur.fetchone():
                 raise NotFound("Conversation does not exist")
             cur = await conn.execute(
-                "SELECT id, role, content, citations FROM rag.messages "
+                "SELECT id, role, content, citations, steps, warnings FROM rag.messages "
                 "WHERE conversation_id=%s AND id < %s ORDER BY id DESC LIMIT %s",
                 (thread_id, before, limit),
             )
             return list(reversed(await cur.fetchall()))
 
-    async def save_turn(self, thread_id, version, question, answer, citations):
+    async def save_turn(self, thread_id, version, question, answer, citations, steps=None, warnings=None):
         async with self.pool.connection() as conn:
             scope = await conn.execute("SELECT document_ids FROM rag.conversations WHERE id=%s", (thread_id,))
             row = await scope.fetchone()
@@ -107,8 +110,8 @@ class Storage:
             if {d["id"] for d in await cur.fetchall()} != set(row["document_ids"]):
                 raise Conflict("A source was deleted. Start a new chat with available sources.")
             cur = await conn.execute(
-                "UPDATE rag.conversations SET version=version+1 WHERE id=%s AND version=%s "
-                "RETURNING id",
+                "UPDATE rag.conversations SET version=version+1, updated_at=now() "
+                "WHERE id=%s AND version=%s RETURNING id",
                 (thread_id, version),
             )
             if not await cur.fetchone():
@@ -116,10 +119,48 @@ class Storage:
                     "Conversation changed during this request; retry with latest history"
                 )
             await conn.execute(
-                "INSERT INTO rag.messages(conversation_id, role, content, citations) "
-                "VALUES (%s, 'user', %s, '[]'), (%s, 'assistant', %s, %s)",
-                (thread_id, question, thread_id, answer, Jsonb(citations)),
+                "INSERT INTO rag.messages(conversation_id, role, content, citations, steps, warnings) "
+                "VALUES (%s, 'user', %s, '[]', '[]', '[]'), (%s, 'assistant', %s, %s, %s, %s)",
+                (thread_id, question, thread_id, answer, Jsonb(citations),
+                 Jsonb(steps or []), Jsonb(warnings or [])),
             )
+
+    async def conversations(self, limit=200):
+        """Ask chats, newest first. Lesson tutor chats belong to Master mode and are left out;
+        a chat whose first question never completed has nothing to show and is left out too."""
+        async with self.pool.connection() as conn:
+            cur = await conn.execute(
+                """SELECT c.id, c.document_ids, COALESCE(c.updated_at, c.created_at) AS updated_at,
+                       (SELECT m.content FROM rag.messages m WHERE m.conversation_id = c.id
+                          AND m.role = 'user' ORDER BY m.id LIMIT 1) AS first_question,
+                       (SELECT count(*) FROM rag.messages m WHERE m.conversation_id = c.id) AS message_count
+                   FROM rag.conversations c
+                   WHERE c.version > 0
+                     AND NOT EXISTS (SELECT 1 FROM study.lesson_conversations l
+                                     WHERE l.conversation_id = c.id)
+                   ORDER BY updated_at DESC, c.id LIMIT %s""",
+                (limit,),
+            )
+            return await cur.fetchall()
+
+    async def import_steps(self, thread_id, answers):
+        """Attach steps saved by an older browser build to the matching saved answers.
+        Only answers that have no steps yet are filled; matching is by exact answer text."""
+        async with self.pool.connection() as conn:
+            cur = await conn.execute("SELECT 1 FROM rag.conversations WHERE id=%s", (thread_id,))
+            if not await cur.fetchone():
+                raise NotFound("Conversation does not exist")
+            matched = 0
+            for answer in answers:
+                cur = await conn.execute(
+                    """UPDATE rag.messages SET steps = %s, warnings = %s
+                       WHERE id = (SELECT id FROM rag.messages WHERE conversation_id = %s
+                                   AND role = 'assistant' AND content = %s AND steps = '[]'
+                                   ORDER BY id LIMIT 1) RETURNING id""",
+                    (Jsonb(answer["steps"]), Jsonb(answer.get("warnings", [])), thread_id, answer["content"]),
+                )
+                matched += 1 if await cur.fetchone() else 0
+            return matched
 
     async def discard_empty(self, thread_id):
         async with self.pool.connection() as conn:

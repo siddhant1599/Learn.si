@@ -1,7 +1,6 @@
 "use client";
 
 import { MessageSquareOffIcon } from "lucide-react";
-import { nanoid } from "nanoid";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
@@ -28,7 +27,7 @@ export function ChatPage() {
   // Not useParams: it ignores the history.replaceState call in handleSubmit.
   const routeThreadId = usePathname().split("/").pop() ?? NEW_THREAD_ID;
   const {
-    ready, deletions, documents,
+    ready, deletions, documents, chatsError, loadThread,
     webAvailable,
     threads,
     selectedIds,
@@ -41,7 +40,12 @@ export function ChatPage() {
 
   const isNewThread = routeThreadId === NEW_THREAD_ID;
   const thread = threads.find((item) => item.id === routeThreadId);
-  const isWelcomeMode = isNewThread || !thread?.messages.length;
+  // A listed chat's messages come from the server when it is opened.
+  const unloaded = !!thread && thread.loaded === false;
+  useEffect(() => {
+    if (thread && thread.loaded === false && !thread.loadError) void loadThread(thread.id);
+  }, [thread, loadThread]);
+  const isWelcomeMode = isNewThread || (!unloaded && !thread?.messages.length);
   const streaming = isStreaming(routeThreadId);
   const title = thread?.title;
   const missingSource = thread?.documentIds?.some(id => deletions.some(d => d.kind === "document" && d.id === id));
@@ -51,7 +55,8 @@ export function ChatPage() {
   }, [title]);
 
   const handleSubmit = (text: string, files: File[]) => {
-    const threadId = isNewThread ? nanoid() : routeThreadId;
+    // A UUID: the server stores the chat under this same id, so its address works everywhere.
+    const threadId = isNewThread ? crypto.randomUUID() : routeThreadId;
     send({ threadId, text, files });
     if (isNewThread) {
       // Keeps this page mounted so the composer can animate down from welcome.
@@ -67,11 +72,32 @@ export function ChatPage() {
           <MessageSquareOffIcon className="text-muted-foreground size-8" />
           <p className="text-sm font-medium">Chat not found</p>
           <p className="text-muted-foreground text-sm">
-            Chats are saved in this browser. Start a new one to continue.
+            {chatsError || "This chat was deleted or does not exist. Start a new one to continue."}
           </p>
           <Button asChild className="mt-2" size="sm" variant="outline">
             <Link href={`/workspace/chats/${NEW_THREAD_ID}`}>New chat</Link>
           </Button>
+        </ConversationEmptyState>
+      </div>
+    );
+  }
+
+  if (unloaded) {
+    return (
+      <div className="flex size-full flex-col">
+        <ChatHeader isWelcomeMode={false} threadId={routeThreadId} title={thread.title} />
+        <ConversationEmptyState>
+          {thread.loadError ? (
+            <>
+              <p className="text-sm font-medium">This chat could not be loaded</p>
+              <p className="text-muted-foreground text-sm">{thread.loadError}</p>
+              <Button className="mt-2" size="sm" variant="outline" onClick={() => void loadThread(thread.id)}>
+                Try again
+              </Button>
+            </>
+          ) : (
+            <p role="status" className="text-muted-foreground text-sm">Loading chat…</p>
+          )}
         </ConversationEmptyState>
       </div>
     );

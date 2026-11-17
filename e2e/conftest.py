@@ -66,6 +66,8 @@ def api(context, console):
     router.on("GET", "deletions", ok([]))
     router.on("GET", "health", ok({"status": "ok", "service": "fixture", "web_available": True}))
     router.on("GET", "documents", ok([]))
+    # Ask chats are listed from the server; tests that need saved chats override this.
+    router.on("GET", "conversations", ok([]))
     yield router
     assert not router.unexpected, f"Unexpected API requests: {router.unexpected}"
     assert not router.external, f"Requests to other hosts: {router.external}"

@@ -50,6 +50,7 @@ export const chatAdapter: ChatAdapter = {
         user_query: last.text,
         document_ids: request.documentIds,
         thread_id: request.serverThreadId || null,
+        ...(!request.serverThreadId && request.newThreadId ? { new_thread_id: request.newThreadId } : {}),
         ...(request.lessonId ? { lesson_id: request.lessonId } : {}),
       }),
       signal: AbortSignal.any([signal, AbortSignal.timeout(250000)]),

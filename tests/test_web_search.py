@@ -115,7 +115,8 @@ def test_normalize_url():
 def test_request_needs_no_web_controls():
     request = Query(user_query="Question", document_ids=[uuid4()])
     # lesson_id scopes a tutor turn (#25); it is not a web control.
-    assert set(request.model_dump()) == {"user_query", "document_ids", "thread_id", "lesson_id"}
+    # new_thread_id lets the browser choose a new chat's id (server-stored chats); not a web control.
+    assert set(request.model_dump()) == {"user_query", "document_ids", "thread_id", "new_thread_id", "lesson_id"}
     assert not any("web" in field for field in request.model_dump())
 
 

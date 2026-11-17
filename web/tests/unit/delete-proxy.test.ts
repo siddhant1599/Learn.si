@@ -31,3 +31,17 @@ it.each([
  expect(response.status).toBe(200);
  expect(mocks.fetch).toHaveBeenCalledWith(`http://127.0.0.1:8001/${path}`,expect.objectContaining({method}));
 });
+it.each([
+ ['GET','conversations'],['GET',`conversations/${ID}/messages`],['DELETE',`conversations/${ID}`],['POST',`conversations/${ID}/import-steps`],
+] as const)('forwards server-stored chat %s %s',async(method,path)=>{
+ mocks.fetch.mockResolvedValue(new Response('[]',{status:200,headers:{'Content-Type':'application/json'}}));
+ const response=await call(method,path);
+ expect(response.status).toBe(200);
+ expect(mocks.fetch).toHaveBeenCalledWith(expect.stringContaining(`/${path}`),expect.objectContaining({method}));
+});
+it('rejects chat paths outside the list, messages, delete and step import',async()=>{
+ mocks.fetch.mockClear();
+ expect((await call('GET',`conversations/${ID}/steps`)).status).toBe(404);
+ expect((await call('GET','conversations/../documents')).status).toBe(404);
+ expect(mocks.fetch).not.toHaveBeenCalled();
+});

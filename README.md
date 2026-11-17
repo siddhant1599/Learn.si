@@ -34,7 +34,8 @@ QUIZ_TIMEOUT_SECONDS=90
 ```
 
 Run `uv run python -m scripts.migrate` after pulling: Master mode needs
-`migrations/002_study.sql` and `003_lesson_content.sql`. Details for each piece
+`migrations/002_study.sql` and `003_lesson_content.sql`, and server-stored Ask chats
+(listed on every device, with their steps) need `004_chat_history.sql`. Details for each piece
 are in the sections below and in the in-app docs (`/docs/choose-a-mode`).
 Not yet done: live quality review of generated lessons and quizzes (the golden
 pipeline, #11, remains independent).

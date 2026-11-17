@@ -5,7 +5,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-from scripts.browser import BASE, launch_options
+from scripts.browser import BASE, SavedChats, launch_options
 
 
 def main():
@@ -52,10 +52,14 @@ def main():
             page.get_by_role("button", name="Upload document", exact=True).click()
         checks.append("Native file chooser")
         requests = []
+        saved_chats = SavedChats()  # Chats live on the server: the fake saves them too.
+        saved_chats.install(page)
 
         def query(route):
-            requests.append(route.request.post_data_json)
-            data = 'event: session\ndata: {"thread_id":"11111111-1111-4111-8111-111111111111"}\n\n'
+            body = route.request.post_data_json
+            requests.append(body)
+            chat_id = body.get("thread_id") or body["new_thread_id"]
+            data = "event: session\ndata: " + json.dumps({"thread_id": chat_id}) + "\n\n"
             data += 'event: progress\ndata: {"step":"retrieve"}\n\n'
             result = {
                 "answer": "**Blue labels** are required. [1]\n\n- Include title\n- Include edition",
@@ -72,6 +76,7 @@ def main():
                 ],
             }
             data += "event: result\ndata: " + json.dumps(result) + "\n\n"
+            saved_chats.record(chat_id, body["user_query"], result["answer"], result["citations"])
             route.fulfill(content_type="text/event-stream", body=data)
 
         page.route("**/api/rag/query", query)
@@ -86,12 +91,14 @@ def main():
         page.get_by_role("textbox", name="Message", exact=True).fill("What else?")
         page.get_by_role("button", name="Send", exact=True).click()
         page.wait_for_function("document.querySelectorAll('[data-streamdown=strong]').length >= 2")
-        assert requests[1]["thread_id"] == "11111111-1111-4111-8111-111111111111"
+        # The browser chose the new chat's id; the follow-up continues that chat.
+        assert requests[0]["thread_id"] is None and requests[0]["new_thread_id"]
+        assert requests[1]["thread_id"] == requests[0]["new_thread_id"]
         assert "messages" not in requests[1]
-        checks.append("Follow-up uses backend UUID and bounded request")
+        checks.append("Follow-up continues the browser-chosen chat id with a bounded request")
         page.reload(wait_until="networkidle")
         page.get_by_text("Blue labels", exact=True).first.wait_for()
-        checks.append("Recent conversation, sources and citations survive reload")
+        checks.append("Recent conversation, sources and citations reload from the server")
         page.get_by_role("button", name="Settings and more").click()
         page.get_by_role("menuitem", name="Dark", exact=True).click()
         assert "dark" in page.locator("html").get_attribute("class")
