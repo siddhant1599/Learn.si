@@ -11,6 +11,7 @@ import { ConversationEmptyState } from "@/components/ai-elements/conversation";
 import { Button } from "@/components/ui/button";
 import { site } from "@/config/site";
 import { useChatStore } from "@/core/chat/store";
+import type { AssistantMessage } from "@/core/chat/types";
 import { cn } from "@/lib/utils";
 
 import { Composer } from "./composer";
@@ -105,7 +106,7 @@ export function ChatPage() {
   if (!isWelcomeMode && thread) {
     // The landing demo's stage with real data: the chat's documents on the left, lighting
     // up as the latest answer searches, checks and cites them; the agent chat on the right.
-    const latest = [...thread.messages].reverse().find((m) => m.role === "assistant");
+    const answers = thread.messages.filter((m): m is AssistantMessage => m.role === "assistant");
     const deletedIds = deletions.filter((d) => d.kind === "document").map((d) => d.id);
     const sources = (thread.documentIds ?? []).map(
       (id) => documents.find((doc) => doc.id === id) ?? { id, title: "Unavailable source" },
@@ -118,7 +119,7 @@ export function ChatPage() {
             <SourceTree
               className="hidden w-64 shrink-0 overflow-y-auto pt-3 lg:flex xl:w-72"
               documents={sources}
-              message={latest?.role === "assistant" ? latest : undefined}
+              messages={answers}
               deletedIds={deletedIds}
             />
             <section

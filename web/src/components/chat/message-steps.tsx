@@ -48,7 +48,7 @@ function StatusIcon({ step, className }: { step: ChatStep; className?: string })
 function Line({ children, web, done }: { children: React.ReactNode; web?: boolean; done?: boolean }) {
   return (
     <div
-      className={cn("flex min-w-0 items-center gap-2 text-sm animate-in fade-in slide-in-from-bottom-2 duration-300 motion-reduce:animate-none", done ? "text-muted-foreground" : "text-muted-foreground/80")}
+      className={cn("flex min-w-0 items-center gap-2 text-sm animate-in fade-in slide-in-from-bottom-2 duration-300 motion-reduce:animate-none", done ? "text-zinc-700 dark:text-muted-foreground" : "text-zinc-600 dark:text-muted-foreground/80")}
     >
       {web ? (
         <Globe aria-hidden="true" className="size-3.5 shrink-0 text-green-600 dark:text-green-400" />
@@ -63,7 +63,7 @@ function Line({ children, web, done }: { children: React.ReactNode; web?: boolea
 
 function SubTask({ step }: { step: ChatStep }) {
   return (
-    <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+    <div className="flex min-w-0 items-center gap-2 text-sm text-zinc-700 dark:text-muted-foreground">
       <StatusIcon step={step} className="size-3.5 shrink-0" />
       <span className="min-w-0 break-words">{statusText(step)}</span>
       {step.results?.map((result) => (
@@ -112,7 +112,7 @@ export function MessageSteps({ steps, detailsLabel }: { steps: ChatStep[]; detai
                 ))}
                 {children.length > 0 && (
                   <details className="text-sm">
-                    <summary className="cursor-pointer py-1 text-muted-foreground">
+                    <summary className="cursor-pointer py-1 text-zinc-700 dark:text-muted-foreground">
                       {detailsLabel ?? `${web ? "Web" : "Research"} task details`} ({children.length})
                     </summary>
                     <div className="space-y-2 pt-2 pl-2">

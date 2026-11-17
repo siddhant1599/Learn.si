@@ -1,7 +1,8 @@
 "use client";
 
 import { PaperclipIcon } from "lucide-react";
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
+import { useStickToBottomContext } from "use-stick-to-bottom";
 
 import {
   Conversation,
@@ -35,6 +36,7 @@ import { CopyButton } from "./copy-button";
 import { MessageReasoning } from "./message-reasoning";
 import { CitationList } from "./citation-list";
 import { MessageSteps } from "./message-steps";
+import { REVEAL_CITATION_EVENT } from "./source-tree";
 import { StreamingIndicator } from "./streaming-indicator";
 
 const TOOLBAR_VISIBILITY =
@@ -181,7 +183,7 @@ function AssistantRow({ message }: { message: AssistantMessage }) {
           <Markdown content={message.text} isLoading={isLoading} />
         )}
         {message.citations && message.citations.length > 0 && (
-          <CitationList citations={message.citations} />
+          <CitationList citations={message.citations} anchor={message.id} />
         )}
         <VerdictCard message={message} />
         {message.warnings?.map((w) => (
@@ -208,6 +210,25 @@ function AssistantRow({ message }: { message: AssistantMessage }) {
   );
 }
 
+/**
+ * The chat sticks to the newest message. A source-tree click releases that so the
+ * revealed citation stays in view; sending a new message sticks to the bottom again.
+ */
+function ScrollLock({ count }: { count: number }) {
+  const { stopScroll, scrollToBottom } = useStickToBottomContext();
+  const previous = useRef(count);
+  useEffect(() => {
+    const release = () => stopScroll();
+    window.addEventListener(REVEAL_CITATION_EVENT, release);
+    return () => window.removeEventListener(REVEAL_CITATION_EVENT, release);
+  }, [stopScroll]);
+  useEffect(() => {
+    if (count > previous.current) void scrollToBottom();
+    previous.current = count;
+  }, [count, scrollToBottom]);
+  return null;
+}
+
 export function MessageList({
   className,
   messages,
@@ -227,6 +248,7 @@ export function MessageList({
         )}
       </ConversationContent>
       <ConversationScrollButton />
+      <ScrollLock count={messages.length} />
     </Conversation>
   );
 }
