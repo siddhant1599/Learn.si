@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronRightIcon } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -32,6 +33,17 @@ export function Hero({ className }: { className?: string }) {
         flickerChance={0.25}
       />
       <div className="container-md relative z-10 mx-auto flex min-h-[100svh] flex-col items-center justify-center px-4 pt-20 pb-24">
+        {/* Decorative avatar above the title; the heading carries the name. */}
+        <Image
+          src={site.hero.avatarUrl}
+          alt=""
+          width={512}
+          height={512}
+          priority
+          data-hero-avatar
+          className="mb-2 size-24 drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)] select-none md:size-32"
+          draggable={false}
+        />
         <h1 className="text-center text-5xl leading-tight font-bold break-words md:text-6xl">
           {site.hero.title}
         </h1>
