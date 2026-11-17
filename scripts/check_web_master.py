@@ -29,7 +29,7 @@ from app.study.models import client_content
 from app.study.progress import course_progress, overview, summary
 from app.study.quiz import check_question, grade
 from app.uploads import extract_document
-from scripts.browser import BASE, launch
+from scripts.browser import BASE, LEAVE_STARFIELD_TIMEOUT_MS, launch
 
 FIXTURES = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "master"
 DOC = "aaaaaaaa-0000-4000-8000-000000000001"
@@ -308,12 +308,12 @@ def stems(page):
 def run(page, backend, errors):
     page.goto(BASE)
     page.get_by_role("link", name="Start learning").click()
-    expect(page).to_have_url(f"{BASE}/workspace")
+    expect(page).to_have_url(f"{BASE}/workspace", timeout=LEAVE_STARFIELD_TIMEOUT_MS)
     master = page.get_by_role("link", name="Master: Learn deeply. Build mastery.")
     page.wait_for_load_state("networkidle")  # Keyboard input during hydration can be lost.
     master.focus()
     page.keyboard.press("Enter")  # Keyboard path through the chooser.
-    expect(page).to_have_url(f"{BASE}/workspace/courses")
+    expect(page).to_have_url(f"{BASE}/workspace/courses", timeout=LEAVE_STARFIELD_TIMEOUT_MS)
     expect(page.get_by_role("heading", level=2, name="No courses yet")).to_be_visible()
 
     # Create a course from an upload; no Ask chat starts.

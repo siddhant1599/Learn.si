@@ -8,6 +8,7 @@ import pytest
 from playwright.sync_api import expect
 
 from e2e.conftest import no_overflow
+from scripts.browser import LEAVE_STARFIELD_TIMEOUT_MS
 
 LEARNING_CTA = re.compile(r"start learning|open (your )?workspace|get started", re.I)
 
@@ -25,7 +26,7 @@ def test_every_learning_cta_goes_to_the_chooser_never_to_a_mode(page, api):
     # No landing link skips the chooser into a mode.
     assert not [h for _, h in hrefs if h and re.match(r"/workspace/(chats|courses|progress)", h)], hrefs
     page.get_by_role("link", name=re.compile("Start learning")).first.click()
-    expect(page).to_have_url(re.compile(r"/workspace$"))
+    expect(page).to_have_url(re.compile(r"/workspace$"), timeout=LEAVE_STARFIELD_TIMEOUT_MS)
     expect(page.get_by_role("link", name="Master: Learn deeply. Build mastery.")).to_be_visible()
 
 
@@ -44,7 +45,7 @@ def test_header_and_mobile_menu_links_footer_has_none(page, api):
     menu = page.get_by_role("dialog")
     expect(menu).to_be_visible()
     menu.get_by_role("link", name="Docs").click()
-    expect(page).to_have_url(re.compile(r"/docs$"))
+    expect(page).to_have_url(re.compile(r"/docs$"), timeout=LEAVE_STARFIELD_TIMEOUT_MS)
     expect(page.get_by_role("heading", level=1)).to_have_text("Learn.si Docs")
     no_overflow(page, "docs mobile")
 

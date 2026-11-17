@@ -12,6 +12,12 @@ BASE = os.environ.get("E2E_BASE_URL", "http://127.0.0.1:3001").rstrip("/")
 # hydration, scripted demos), so assertions there get more time. Failures still fail.
 EXPECT_TIMEOUT_MS = int(os.environ.get("E2E_EXPECT_TIMEOUT_MS", "15000" if os.environ.get("CI") else "5000"))
 
+# Leaving a page with the WebGL starfield (landing hero, mode chooser): browsers without GPU
+# acceleration (headless test browsers, CI runners) draw it in software, which delays the
+# next client navigation by seconds (measured 2-3 s locally; 0.05 s with a GPU). Navigation
+# waits after those pages use this longer limit; a real failure still fails.
+LEAVE_STARFIELD_TIMEOUT_MS = 30_000
+
 try:  # Applies to every check that imports this module.
     from playwright.sync_api import expect as _sync_expect
 

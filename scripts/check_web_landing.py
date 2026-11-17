@@ -7,7 +7,7 @@ import re
 
 from playwright.sync_api import expect, sync_playwright
 
-from scripts.browser import BASE, launch
+from scripts.browser import BASE, LEAVE_STARFIELD_TIMEOUT_MS, launch
 
 
 def check_layout(page, width, height, errors):
@@ -110,7 +110,7 @@ def check_content(page):
             cta = page.get_by_role("link", name="Start learning")
             cta.focus()
             cta.press("Enter")
-            expect(page).to_have_url(BASE + "/workspace")
+            expect(page).to_have_url(BASE + "/workspace", timeout=LEAVE_STARFIELD_TIMEOUT_MS)
             page.go_back(wait_until="networkidle")
             # Demo questions are keyboard-operable buttons.
             name = page.locator("#examples").get_by_role("button", pressed=False).first.inner_text()

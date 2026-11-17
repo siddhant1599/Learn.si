@@ -5,7 +5,7 @@ uv run --with playwright python -m scripts.check_web_modes
 """
 from playwright.sync_api import expect, sync_playwright
 
-from scripts.browser import BASE, launch
+from scripts.browser import BASE, LEAVE_STARFIELD_TIMEOUT_MS, launch
 
 MASTER_ROUTES = ["/workspace/courses", "/workspace/courses/demo", "/workspace/courses/demo/lessons/intro", "/workspace/progress"]
 
@@ -21,7 +21,7 @@ def mode_button(page, name):
 def check_desktop(page, errors):
     page.goto(BASE)
     page.get_by_role("link", name="Start learning").click()
-    expect(page).to_have_url(f"{BASE}/workspace")
+    expect(page).to_have_url(f"{BASE}/workspace", timeout=LEAVE_STARFIELD_TIMEOUT_MS)
     ask = page.get_by_role("link", name="Ask: Get answers. Understand anything.")
     master = page.get_by_role("link", name="Master: Learn deeply. Build mastery.")
     expect(ask).to_be_visible()
@@ -35,24 +35,24 @@ def check_desktop(page, errors):
     page.wait_for_load_state("networkidle")
     ask.focus()
     page.keyboard.press("Enter")
-    expect(page).to_have_url(f"{BASE}/workspace/chats/new")
+    expect(page).to_have_url(f"{BASE}/workspace/chats/new", timeout=LEAVE_STARFIELD_TIMEOUT_MS)
     expect(page.get_by_role("textbox", name="Message")).to_be_visible()
     expect(mode_button(page, "Ask")).to_have_attribute("aria-pressed", "true")
     expect(page.get_by_role("link", name="New chat")).to_be_visible()
     # Sidebar switch to Master and back.
     mode_button(page, "Master").click()
-    expect(page).to_have_url(f"{BASE}/workspace/courses")
+    expect(page).to_have_url(f"{BASE}/workspace/courses", timeout=LEAVE_STARFIELD_TIMEOUT_MS)
     expect(page.get_by_role("heading", level=2, name="No courses yet")).to_be_visible()
     expect(page.get_by_role("link", name="Progress")).to_be_visible()
     expect(page.get_by_role("link", name="New chat")).to_have_count(0)
     expect(page.get_by_text("Sources", exact=True)).to_have_count(0)
     page.go_back()
-    expect(page).to_have_url(f"{BASE}/workspace/chats/new")
+    expect(page).to_have_url(f"{BASE}/workspace/chats/new", timeout=LEAVE_STARFIELD_TIMEOUT_MS)
     page.go_forward()
-    expect(page).to_have_url(f"{BASE}/workspace/courses")
+    expect(page).to_have_url(f"{BASE}/workspace/courses", timeout=LEAVE_STARFIELD_TIMEOUT_MS)
     # Sidebar brand link returns to the chooser; the chooser remembers but does not redirect.
     page.get_by_role("link", name="Learn.si", exact=True).first.click()
-    expect(page).to_have_url(f"{BASE}/workspace")
+    expect(page).to_have_url(f"{BASE}/workspace", timeout=LEAVE_STARFIELD_TIMEOUT_MS)
     expect(page.get_by_text("Last used")).to_be_visible()
     # Direct loads, refresh and 200s for every Master route.
     for route in MASTER_ROUTES:
@@ -69,7 +69,7 @@ def check_desktop(page, errors):
     page.get_by_role("button", name="Toggle Sidebar").first.click()
     expect(page.get_by_role("button", name="Master mode")).to_have_attribute("aria-pressed", "true")
     page.get_by_role("button", name="Ask mode").click()
-    expect(page).to_have_url(f"{BASE}/workspace/chats/new")
+    expect(page).to_have_url(f"{BASE}/workspace/chats/new", timeout=LEAVE_STARFIELD_TIMEOUT_MS)
     assert not errors, errors
     print("Desktop: standalone chooser, keyboard entry, sidebar switch, history, deep links, rail passed")
 
@@ -87,11 +87,11 @@ def check_mobile(page, errors):
     page.goto(f"{BASE}/workspace")
     no_overflow(page, "chooser mobile")
     page.get_by_role("link", name="Master: Learn deeply. Build mastery.").click()
-    expect(page).to_have_url(f"{BASE}/workspace/courses")
+    expect(page).to_have_url(f"{BASE}/workspace/courses", timeout=LEAVE_STARFIELD_TIMEOUT_MS)
     no_overflow(page, "courses mobile")
     page.get_by_role("button", name="Toggle Sidebar").first.click()
     mode_button(page, "Ask").click()
-    expect(page).to_have_url(f"{BASE}/workspace/chats/new")
+    expect(page).to_have_url(f"{BASE}/workspace/chats/new", timeout=LEAVE_STARFIELD_TIMEOUT_MS)
     expect(page.get_by_role("dialog")).to_have_count(0)
     no_overflow(page, "chat mobile")
     assert not errors, errors
