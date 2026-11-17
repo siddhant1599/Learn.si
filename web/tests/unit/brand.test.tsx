@@ -45,13 +45,3 @@ it('hero shows a "Beta version" label under the SuperAgent line, with no link',a
  const suffix=screen.getByText(site.hero.rotatingSuffix);
  expect(suffix.compareDocumentPosition(badge)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
-
-it('hero shows the Memoji above the Study Buddy heading, as decoration',async()=>{
- const {Hero}=await import('@/components/landing/hero');
- render(<Hero/>);
- const avatar=document.querySelector('[data-hero-avatar]') as HTMLImageElement;
- expect(avatar.getAttribute('src')).toContain('sid-memoji.webp');
- expect(avatar).toHaveAttribute('alt','');
- const heading=screen.getByRole('heading',{level:1,name:site.hero.title});
- expect(avatar.compareDocumentPosition(heading)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-});

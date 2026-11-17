@@ -37,8 +37,6 @@ export const site = {
 
   hero: {
     title: "Study Buddy",
-    /** Sid's Memoji, shown above the title (source: assets/Sid_Memoji.webp). */
-    avatarUrl: "/images/sid-memoji.webp",
     /** One phrase per capability, each read in front of the fixed noun below. */
     rotatingWords: [
       "Personal Learning",
