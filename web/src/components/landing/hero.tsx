@@ -41,7 +41,7 @@ export function Hero({ className }: { className?: string }) {
           height={512}
           priority
           data-hero-avatar
-          className="mb-2 size-24 drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)] select-none md:size-32"
+          className="mb-1 size-36 drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] select-none md:size-52"
           draggable={false}
         />
         <h1 className="text-center text-5xl leading-tight font-bold break-words md:text-6xl">
