@@ -65,7 +65,7 @@ export function LessonStage({ onPass }: { onPass?: (firstTry: boolean) => void }
             <div className="flex items-center justify-between gap-3 border-b border-zinc-800 p-4">
               <div className="flex items-center gap-2">
                 <span className="size-3 rounded-full bg-green-500" />
-                <span className="text-sm text-zinc-400">Study Buddy Tutor · Master mode</span>
+                <span className="text-sm text-zinc-400">Learn.si Tutor · Master mode</span>
               </div>
               <span className="hidden text-xs text-zinc-500 sm:inline">{demoLesson.label}</span>
             </div>

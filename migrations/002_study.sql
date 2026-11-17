@@ -1,4 +1,4 @@
--- Master mode (Study Buddy): courses, lessons, quizzes and progress.
+-- Master mode (Learn.si): courses, lessons, quizzes and progress.
 -- Additive and idempotent; run after 001_initial.sql with the same owner account.
 CREATE SCHEMA IF NOT EXISTS study;
 -- Hardening where the role may change privileges. Managed hosts (e.g. Prisma Postgres)

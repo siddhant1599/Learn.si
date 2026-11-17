@@ -22,7 +22,7 @@ Rendered navigation exposes grouped sidebar entries, a current section, heading
 anchors and an on-page contents list, search, language/theme controls, and links
 to source. These are observations of rendered HTML, not proof of all interaction
 behavior. Avoid copying upstream product claims (sandbox, tools, multi-user auth,
-learned memory): Study Buddy does not implement those capabilities.
+learned memory): Learn.si does not implement those capabilities.
 
 ### Source-verified implementation
 
@@ -39,7 +39,7 @@ revision. The website's extraction and public main branch can differ. No upstrea
 code or prose is copied into the feature; original content and existing project
 components are used, so no new third-party code licensing obligation is added.
 
-### Study Buddy approach
+### Learn.si approach
 
 Use typed repository content in web/src/content/docs.ts (title, stable slug,
 section IDs, paragraphs, code examples and links). A shared static Next.js
@@ -49,7 +49,7 @@ Tradeoff: structured content is less flexible for prose authors than Markdown;
 it keeps headings, navigation and search destinations deterministic and testable.
 If the docs grow substantially, revisit MDX plus a build-time search index.
 
-Groups: Start here (overview, workspace); Using Study Buddy (evidence/privacy,
+Groups: Start here (overview, workspace); Using Learn.si (evidence/privacy,
 deletion); Developers (local setup, architecture, API/SSE, evaluation, operations).
 Client search indexes only these authored sections, with literal term matching,
 keyboard focusable results and section links. It never scans uploads, environment

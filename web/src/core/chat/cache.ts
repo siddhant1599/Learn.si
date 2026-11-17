@@ -92,7 +92,7 @@ export function saveChat(storage: Storage, thread: ChatThread): boolean {
 }
 export function restoreSettings(value: unknown, fallback: ChatSettings): ChatSettings {
   if (!object(value)) return fallback;
-  // Settings saved before the Study Buddy rename stored the depth under `mode`.
+  // Settings saved by early builds stored the depth under `mode`.
   const depth = value.depth ?? value.mode;
   return {depth: ['flash','thinking','pro','ultra'].includes(depth) ? depth : fallback.depth,
     model: typeof value.model === 'string' && value.model.length > 0 && value.model.length <= 200 ? value.model : fallback.model};

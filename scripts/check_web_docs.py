@@ -78,7 +78,7 @@ def check_landing(page):
         docs = scope.get_by_role("link", name="Docs", exact=True).filter(visible=True)
         expect(docs).to_have_attribute("href", "/docs")
         docs.click()
-        expect(page.locator("h1")).to_have_text("Study Buddy Docs")
+        expect(page.locator("h1")).to_have_text("Learn.si Docs")
         expect(page.get_by_role("dialog")).not_to_be_visible()
         expect(page.get_by_role("link", name="Workspace", exact=True)).to_have_attribute("href", "/workspace")
     print("Landing: desktop/mobile Docs link and preserved examples passed")

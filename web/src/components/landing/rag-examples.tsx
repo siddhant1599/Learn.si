@@ -210,7 +210,7 @@ export function RagExamples() {
               <div className="border-b border-zinc-800 p-4">
                 <div className="flex items-center gap-2">
                   <span className={cn("size-3 rounded-full bg-green-500", playing && "animate-pulse motion-reduce:animate-none")} />
-                  <span className="text-sm text-zinc-400">Study Buddy Agent · Ask mode</span>
+                  <span className="text-sm text-zinc-400">Learn.si Agent · Ask mode</span>
                 </div>
               </div>
 
@@ -301,7 +301,7 @@ export function RagExamples() {
 
               {/* Decorative input, as in the sample. */}
               <div className="border-t border-zinc-800 p-4">
-                <div className="rounded-xl bg-zinc-800 px-4 py-3 text-sm text-zinc-500">Ask Study Buddy about your documents…</div>
+                <div className="rounded-xl bg-zinc-800 px-4 py-3 text-sm text-zinc-500">Ask Learn.si about your documents…</div>
               </div>
             </div>
           </div>

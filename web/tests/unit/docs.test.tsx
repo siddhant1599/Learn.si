@@ -7,7 +7,7 @@ vi.mock('next/navigation',()=>({usePathname:()=>'/docs/api'}));
 vi.mock('next/link',()=>({default:({children,...props}:any)=><a {...props}>{children}</a>}));
 it('every published route has useful content and unique stable anchors',()=>{
  expect(new Set(docs.map(d=>d.slug)).size).toBe(docs.length);
- expect(findDoc('')!.title).toBe('Study Buddy Docs');
+ expect(findDoc('')!.title).toBe('Learn.si Docs');
  expect(JSON.stringify(docs)).not.toContain('Document Lab');
  for(const page of docs){
   expect(findDoc(page.slug)).toBe(page);

@@ -51,7 +51,7 @@ def check_desktop(page, errors):
     page.go_forward()
     expect(page).to_have_url(f"{BASE}/workspace/courses")
     # Sidebar brand link returns to the chooser; the chooser remembers but does not redirect.
-    page.get_by_role("link", name="Study Buddy", exact=True).first.click()
+    page.get_by_role("link", name="Learn.si", exact=True).first.click()
     expect(page).to_have_url(f"{BASE}/workspace")
     expect(page.get_by_text("Last used")).to_be_visible()
     # Direct loads, refresh and 200s for every Master route.

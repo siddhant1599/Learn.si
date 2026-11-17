@@ -26,7 +26,9 @@ export const MODES: readonly ModeDefinition[] = [
 ];
 
 /** Only used to highlight the last choice on the chooser; never to skip it. */
-export const LAST_MODE_KEY = "study-buddy.last-mode";
+export const LAST_MODE_KEY = "learn-si.last-mode";
+/** Key used before the Learn.si rename; still read so the highlight survives. */
+export const LEGACY_LAST_MODE_KEY = "study-buddy.last-mode";
 
 export function modeFromPathname(
   pathname: string | null | undefined,
@@ -47,7 +49,7 @@ export function modeHome(mode: WorkspaceMode): string {
 
 export function readLastMode(storage: Storage): WorkspaceMode | null {
   try {
-    const value = storage.getItem(LAST_MODE_KEY);
+    const value = storage.getItem(LAST_MODE_KEY) ?? storage.getItem(LEGACY_LAST_MODE_KEY);
     return value === "ask" || value === "master" ? value : null;
   } catch {
     return null;

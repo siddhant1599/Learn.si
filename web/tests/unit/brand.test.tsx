@@ -4,9 +4,9 @@ import {site} from '@/config/site';
 import {Header} from '@/components/landing/header';
 vi.mock('next/link',()=>({default:({children,href,...props}:any)=><a href={href} {...props}>{children}</a>}));
 
-it('brand is Study Buddy with a single workspace entry point',()=>{
- expect(site.name).toBe('Study Buddy');
- expect(site.shortName).toBe('SB');
+it('brand is Learn.si with a single workspace entry point',()=>{
+ expect(site.name).toBe('Learn.si');
+ expect(site.shortName).toBe('LS');
  expect(site.hero.ctaHref).toBe('/workspace');
  expect(site.repositoryUrl).toBe('https://github.com/code-bot-sid/Document-Lab');
  expect(site.header.links.map(l=>l.label).sort()).toEqual(['Docs','Workspace']);
@@ -23,7 +23,7 @@ it('landing copy names both modes without numbering and links to neither directl
 
 it('landing header shows the brand and the frontend-sample GitHub button, with no mode links',()=>{
  render(<Header/>);
- expect(screen.getAllByText('Study Buddy').length).toBeGreaterThan(0);
+ expect(screen.getAllByText('Learn.si').length).toBeGreaterThan(0);
  const star=screen.getByRole('link',{name:'Star on GitHub'});
  expect(star).toHaveAttribute('href',site.repositoryUrl);
  expect(star).toHaveAttribute('target','_blank');

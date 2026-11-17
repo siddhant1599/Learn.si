@@ -1,4 +1,4 @@
-# Study Buddy epic verification
+# Learn.si epic verification
 
 Epic #18 brings the existing Ask workspace and the document-grounded Master learning flow together. Tickets #19–#32 implement the core behavior. Ticket #34 completes the landing presentation.
 

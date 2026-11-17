@@ -8,7 +8,7 @@ import {
   ShapesIcon,
 } from "lucide-react";
 
-/** Brand and capability copy for the Study Buddy frontend. */
+/** Brand and capability copy for the Learn.si frontend. */
 
 export type ChatSuggestion = {
   label: string;
@@ -17,9 +17,9 @@ export type ChatSuggestion = {
 };
 
 export const site = {
-  name: "Study Buddy",
+  name: "Learn.si",
   /** Shown when the sidebar is collapsed to its icon rail. */
-  shortName: "SB",
+  shortName: "LS",
   description:
     "Learn from your documents: ask questions with evidence, or master them lesson by lesson.",
   /** Source repository; all learning CTAs still lead to the mode chooser. */
@@ -36,7 +36,7 @@ export const site = {
   },
 
   hero: {
-    title: "Study Buddy",
+    title: "Learn.si",
     /** One phrase per capability, each read in front of the fixed noun below. */
     rotatingWords: [
       "Personal Learning",

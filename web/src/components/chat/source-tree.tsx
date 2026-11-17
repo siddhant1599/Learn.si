@@ -77,7 +77,7 @@ export function chatCitations(messages: AssistantMessage[]) {
 }
 
 /** Fired before a reveal so the chat releases its stick-to-bottom lock (see MessageList). */
-export const REVEAL_CITATION_EVENT = "study-buddy:reveal-citation";
+export const REVEAL_CITATION_EVENT = "learn-si:reveal-citation";
 
 /** Scroll the chat to a citation under the answer that made it, open it and flash it. */
 export function revealCitation(anchorId: string) {

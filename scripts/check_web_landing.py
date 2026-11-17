@@ -34,9 +34,9 @@ def check_ask_demo(page):
     panel = page.locator("#examples")
     # The demo only advances while its stage is on screen; on phones the section's top
     # edge can be visible while the stage is still below the fold.
-    panel.get_by_text("Study Buddy Agent").scroll_into_view_if_needed()
+    panel.get_by_text("Learn.si Agent").scroll_into_view_if_needed()
     panel.get_by_role("button", name="Connect two ideas").click()
-    panel.get_by_text("Study Buddy Agent").scroll_into_view_if_needed()
+    panel.get_by_text("Learn.si Agent").scroll_into_view_if_needed()
     expect(panel.get_by_role("button", name="Connect two ideas")).to_have_attribute("aria-pressed", "true")
     expect(panel.get_by_text("Why do my Pods disappear when a node fails?")).to_be_visible()
     expect(panel.get_by_text(re.compile("Routed: Multi-question research"))).to_be_visible(timeout=5000)

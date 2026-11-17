@@ -21,7 +21,7 @@ it('courses page renders an accessible empty state and sets the title',async()=>
  expect(await screen.findByRole('heading',{level:2,name:'No courses yet'})).toBeVisible();
  expect(screen.getByRole('heading',{level:1,name:'Courses'})).toBeVisible();
  expect(screen.getByRole('button',{name:'Add a document'})).toBeVisible();
- expect(document.title).toBe('Courses - Study Buddy');
+ expect(document.title).toBe('Courses - Learn.si');
 });
 
 it('course and lesson pages link back up the hierarchy',async()=>{

@@ -1,8 +1,18 @@
 import type { CourseStatus, CourseSummary } from "./types";
 
 /** Only IDs, titles, statuses and counts are cached; never lesson text or provider details. */
-export const COURSES_KEY = "study-buddy.courses";
+export const COURSES_KEY = "learn-si.courses";
+/** Key used before the Learn.si rename; read once and moved to COURSES_KEY. */
+export const LEGACY_COURSES_KEY = "study-buddy.courses";
 const MAX_CACHED = 50;
+
+/** Move a value saved under the pre-rename key to the new key, once. */
+function migrateKey(storage: Storage, from: string, to: string) {
+  const old = storage.getItem(from);
+  if (old === null) return;
+  if (storage.getItem(to) === null) storage.setItem(to, old);
+  storage.removeItem(from);
+}
 const STATUSES = new Set<CourseStatus>(["generating", "ready", "failed"]);
 const COUNTS = ["estimated_minutes", "module_count", "lesson_count", "completed_lessons"] as const;
 
@@ -29,6 +39,7 @@ export function sanitizeCourse(value: unknown): CourseSummary | null {
 
 export function readCourses(storage: Storage): CourseSummary[] {
   try {
+    migrateKey(storage, LEGACY_COURSES_KEY, COURSES_KEY);
     const parsed: unknown = JSON.parse(storage.getItem(COURSES_KEY) || "[]");
     if (!Array.isArray(parsed)) return [];
     return parsed.map(sanitizeCourse).filter((c): c is CourseSummary => c !== null).slice(0, MAX_CACHED);

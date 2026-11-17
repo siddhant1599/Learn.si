@@ -1,6 +1,6 @@
-# Study Buddy
+# Learn.si
 
-Study Buddy is a learning workspace for your own documents. **Ask mode** answers
+Learn.si is a learning workspace for your own documents. **Ask mode** answers
 questions with evidence from up to five selected sources. **Master mode** turns
 one document into a course: modules of short lessons (explanation, Insight
 callouts, a diagram, a Your turn exercise and a Socratic tutor), a three-question

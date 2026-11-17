@@ -45,7 +45,7 @@ def test_header_and_mobile_menu_links_footer_has_none(page, api):
     expect(menu).to_be_visible()
     menu.get_by_role("link", name="Docs").click()
     expect(page).to_have_url(re.compile(r"/docs$"))
-    expect(page.get_by_role("heading", level=1)).to_have_text("Study Buddy Docs")
+    expect(page.get_by_role("heading", level=1)).to_have_text("Learn.si Docs")
     no_overflow(page, "docs mobile")
 
 

@@ -21,7 +21,7 @@ it('offers both modes with the approved copy and destinations, without numbering
 it('is a standalone page: starfield, brand link only, no Docs link, no sidebar controls',()=>{
  render(<ModeChooser/>);
  expect(screen.getByTestId('galaxy')).toBeInTheDocument();
- expect(screen.getByRole('link',{name:'Study Buddy'})).toHaveAttribute('href','/');
+ expect(screen.getByRole('link',{name:'Learn.si'})).toHaveAttribute('href','/');
  expect(screen.queryByRole('link',{name:'Docs'})).not.toBeInTheDocument();
  expect(screen.getAllByRole('link')).toHaveLength(3);
  expect(screen.queryByRole('button',{name:/Toggle Sidebar/})).not.toBeInTheDocument();

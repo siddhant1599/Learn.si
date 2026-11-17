@@ -1,7 +1,7 @@
 [project]
 name = "agentic-rag-clone"
 version = "0.1.0"
-description = "Study Buddy: learn from your documents with grounded answers, lessons and quizzes"
+description = "Learn.si: learn from your documents with grounded answers, lessons and quizzes"
 requires-python = ">=3.11,<3.15"
 dependencies = [
   "fastapi>=0.115,<1",

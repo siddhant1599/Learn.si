@@ -22,7 +22,7 @@ it('Ask routes show Ask navigation and press the Ask switch',()=>{
  expect(screen.getByRole('link',{name:'New chat'})).toHaveAttribute('href','/workspace/chats/new');
  expect(screen.getByRole('link',{name:'Chats'})).toHaveAttribute('href','/workspace/chats');
  expect(screen.queryByRole('link',{name:'Courses'})).not.toBeInTheDocument();
- expect(screen.getByRole('link',{name:'Study Buddy'})).toHaveAttribute('href','/workspace');
+ expect(screen.getByRole('link',{name:'Learn.si'})).toHaveAttribute('href','/workspace');
 });
 
 it('Master routes show Master navigation and hide Ask-only panels',()=>{
