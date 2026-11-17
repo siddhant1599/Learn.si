@@ -49,10 +49,13 @@ it('invalid settings fall back field by field',()=>{
  expect(restoreSettings(null,fallback)).toEqual(fallback);
  expect(restoreSettings({depth:'flash',model:42},fallback)).toEqual({...fallback,depth:'flash'});
 });
-it('private web content is sanitized before a per-chat write',()=>{
+it('a web answer and its source link survive a write and a reload',()=>{
  const t=thread();
- t.messages=[{id:'m',role:'assistant',text:'secret https://example.org',reasoning:'',steps:[],status:'complete',webRequested:true,persistedAnswer:'Document only'}];
+ t.messages=[{id:'m',role:'assistant',text:'From the web: finding https://example.org',reasoning:'',steps:[],status:'complete',webRequested:true,
+  citations:[{source_type:'web',citation:2,title:'Public',url:'https://example.org',retrieved_at:'today'}],persistedAnswer:'Document only'}];
  saveChat(localStorage,t);
- expect(localStorage.getItem(CHAT_PREFIX+'a')).not.toContain('secret');
- expect(readChats(localStorage).threads[0].messages[0].text).toBe('Document only');
+ const restored=readChats(localStorage).threads[0].messages[0];
+ expect(restored.text).toBe('From the web: finding https://example.org');
+ expect(restored.role==='assistant'&&restored.citations).toEqual([{source_type:'web',citation:2,title:'Public',url:'https://example.org',retrieved_at:'today'}]);
+ expect(localStorage.getItem(CHAT_PREFIX+'a')).not.toContain('Document only');
 });

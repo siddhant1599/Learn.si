@@ -20,11 +20,10 @@ it('successful stream persists answer and backend session',async()=>{const h=awa
 it('follow-up uses immutable thread selection',async()=>{const t=saved();t.messages[0].status='complete';localStorage.setItem('document-lab.threads',JSON.stringify([t]));const h=await ready();act(()=>h.result.current.setSelectedIds(['other']));act(()=>h.result.current.send({threadId:'t',text:'Followup',files:[]}));await waitFor(()=>expect(mocks.stream).toHaveBeenCalled());expect(mocks.stream.mock.calls[0][0]).toMatchObject({documentIds:['doc'],serverThreadId:'backend'})});
 it('stream error preserves partial output and marks failed turn',async()=>{mocks.stream.mockImplementation(async function*(){yield {type:'text',delta:'Partial'};throw new Error('Disconnected')});const h=await ready();act(()=>h.result.current.setSelectedIds(['doc']));act(()=>h.result.current.send({threadId:'new',text:'Q',files:[]}));await waitFor(()=>expect(h.result.current.threads[0].messages[1]).toMatchObject({text:'Partial',status:'error',error:'Disconnected'}));expect(h.result.current.isStreaming('new')).toBe(false)});
 
-it('keeps web response live while persisting only the safe answer',async()=>{
+it('saves the web answer and its source links, as shown',async()=>{
  mocks.stream.mockImplementation(async function*(){
    yield {type:'step',step:{id:'web',kind:'search',label:'Web research',status:'complete'}};
-   yield {type:'text',delta:'External excerpt https://example.org/sentinel'};
-   yield {type:'persistence',text:'Document answer. Web source links not retained.',citations:[]};
+   yield {type:'text',delta:'From the web: finding https://example.org/sentinel'};
    yield {type:'sources',citations:[{source_type:'web',citation:2,url:'https://example.org/sentinel',title:'Web',retrieved_at:'today'}],warnings:[]};
  });
  const h=await ready();
@@ -32,13 +31,12 @@ it('keeps web response live while persisting only the safe answer',async()=>{
  act(()=>h.result.current.send({threadId:'new',text:'Q',files:[]}));
  await waitFor(()=>expect(h.result.current.threads[0].messages[1]).toMatchObject({status:'complete'}));
  expect(h.result.current.threads[0].messages[1].text).toContain('https://example.org/sentinel');
- const saved=(localStorage.getItem(CHAT_PREFIX+'new') ?? '');
- expect(saved).not.toContain('sentinel');
- expect(saved).not.toContain('External excerpt');
- expect(saved).toContain('Document answer');
+ const saved=JSON.parse(localStorage.getItem(CHAT_PREFIX+'new') ?? '{}').thread;
+ expect(saved.messages[1].text).toBe('From the web: finding https://example.org/sentinel');
+ expect(saved.messages[1].citations[0]).toMatchObject({source_type:'web',url:'https://example.org/sentinel',title:'Web'});
 });
 
-it('never persists an interrupted automatic web draft',async()=>{
+it('an interrupted web draft is kept as shown, marked failed',async()=>{
  let interrupt!:()=>void;
  const paused=new Promise<void>(resolve=>{interrupt=resolve});
  mocks.stream.mockImplementation(async function*(){
@@ -51,10 +49,9 @@ it('never persists an interrupted automatic web draft',async()=>{
  act(()=>h.result.current.setSelectedIds(['doc']));
  act(()=>h.result.current.send({threadId:'new',text:'Q',files:[]}));
  await waitFor(()=>expect(h.result.current.threads[0].messages[1].text).toContain('Transient external secret'));
- expect(localStorage.getItem(CHAT_PREFIX+'new') ?? '').not.toContain('Transient external secret');
  act(()=>interrupt());
  await waitFor(()=>expect(h.result.current.threads[0].messages[1]).toMatchObject({status:'error'}));
- expect(localStorage.getItem(CHAT_PREFIX+'new') ?? '').not.toContain('Transient external secret');
+ await waitFor(()=>expect(JSON.parse(localStorage.getItem(CHAT_PREFIX+'new') ?? '{"thread":{"messages":[{},{}]}}').thread.messages[1]).toMatchObject({status:'error',text:'Transient external secret'}));
 });
 
 it('deletes server chat and prevents stale cache restoration',async()=>{

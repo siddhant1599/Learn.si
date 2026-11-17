@@ -53,6 +53,7 @@ export type AssistantMessage = {
   role: "assistant";
   reasoning: string;
   webRequested?: boolean;
+  /** Legacy: stripped copies saved by older builds; ignored and dropped on the next save. */
   persistedAnswer?: string;
   persistedCitations?: Citation[];
   citations?: Citation[];
@@ -83,7 +84,6 @@ export type ChatSettings = {
 
 /** One increment of an assistant turn. A backend maps its stream onto these. */
 export type ChatEvent =
-  | { type: "persistence"; text: string; citations: Citation[] }
   | { type: "session"; serverThreadId: string }
   | { type: "sources"; citations: Citation[]; warnings: string[] }
   | { type: "title"; title: string }

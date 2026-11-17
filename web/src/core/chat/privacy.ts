@@ -1,9 +1,5 @@
 import type { ChatThread, Citation } from "./types";
 
-export const WEB_NOT_RETAINED = "From the web: web response and source links not retained. Search again to verify.";
-export function stripUrls(text: string) {
-  return text.replace(/(?:https?:\/\/|www\.)[^\s<>\]"']+/gi, "[link not retained]");
-}
 export function safeWebUrl(value: string): boolean {
   try {
     const u = new URL(value);
@@ -11,33 +7,34 @@ export function safeWebUrl(value: string): boolean {
       && !/[\s\\]/.test(value);
   } catch { return false; }
 }
-function documentCitations(citations: Citation[] = []): Citation[] {
-  return citations.filter(c => c.source_type !== "web").map(c =>
-    Object.fromEntries(Object.entries(c).filter(([k]) => !["url", "text", "excerpt"].includes(k))
-      .map(([k, v]) => [k, typeof v === "string" ? stripUrls(v) : v])) as Citation);
+
+/** Raw source payloads are never part of a saved citation, for documents or the web. */
+const RAW_SOURCE_FIELDS = ["text", "excerpt"];
+function savedCitations(citations?: Citation[]): Citation[] | undefined {
+  return citations?.map(c =>
+    Object.fromEntries(Object.entries(c).filter(([k]) => !RAW_SOURCE_FIELDS.includes(k))) as Citation);
 }
-/** Build a separate persistence object; never mutate the current live response. */
+
+/**
+ * Build the browser-storage copy of a chat; never mutate the live thread. Web answers,
+ * their "From the web" section and source links are kept, so a reload shows the same
+ * answer. Activity details stay transient: only each step's identity and lifecycle are kept.
+ */
 export function persistedThread(thread: ChatThread): ChatThread {
   return {
     ...thread,
-    title: stripUrls(thread.title),
     messages: thread.messages.map(message => {
-      if (message.role === "user") return { ...message, text: stripUrls(message.text) };
-      const { persistedAnswer, persistedCitations, ...original } = message;
-      // Activity details are transient. Retain only safe identity/lifecycle fields;
-      // never spread unknown event payloads into browser history.
-      const rest = {...original, steps: original.steps.map(s => s.progressVersion === 1 ? {
-        id:s.id, kind:s.kind, label:stripUrls(s.label), status:s.status,
-        progressVersion:1 as const, attempt:s.attempt, sequence:s.sequence, parent:s.parent,
-      } : s)};
-      if (message.webRequested) return {
+      if (message.role === "user") return message;
+      // persistedAnswer / persistedCitations: older builds' stripped copies, no longer used.
+      const { persistedAnswer: _answer, persistedCitations: _citations, ...rest } = message;
+      return {
         ...rest,
-        text: stripUrls(persistedAnswer ?? WEB_NOT_RETAINED),
-        citations: documentCitations(persistedCitations),
-        reasoning: "", warnings: [], error: message.error ? "Web response was interrupted." : undefined,
-        steps: rest.steps.map(s => ({ ...s, label: stripUrls(s.label), results: undefined })),
+        citations: savedCitations(message.citations),
+        steps: message.steps.map(s => s.progressVersion === 1 ? {
+          id: s.id, kind: s.kind, label: s.label, status: s.status,
+          progressVersion: 1 as const, attempt: s.attempt, sequence: s.sequence, parent: s.parent,
+        } : s),
       };
-      return { ...rest, text: stripUrls(message.text), citations: documentCitations(message.citations) };
     }),
   };
 }

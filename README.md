@@ -582,20 +582,13 @@ retaining document evidence. Citation-ID validation does not establish factual
 entailment. More precise query/claim-quality evaluation requires reviewed live
 cases; automated mock tests validate routing and contracts, not semantic quality.
 
-Web results are request-local and never indexed in Pinecone. To enforce the
-non-persistence boundary, the saved answer retains only the separately generated
-document answer and a notice that the web response and links were not retained.
-Web excerpts, generated web answer text and web citations are excluded from SQL
-and browser storage. URL strings are also removed from saved question/answer
-text and document citation metadata. The live response still includes typed web
-source cards. A refresh therefore loses the web section and its links; explicitly
-search again to verify external information. Interrupted web drafts are excluded
-from browser persistence and failed server generations are never saved.
-
-For automatic web-fallback turns, the final SSE result includes `persisted_answer` and
-`persisted_citations` alongside the live answer/citations. The frontend keeps
-those safe representations separate and uses them only for local persistence.
-Legacy clients should not persist live web responses.
+Web results are request-local and never indexed in Pinecone. Web research is saved
+like document research: the full answer, including its **From the web** section and
+links, and the web citations (title, URL, retrieval and publication dates) are stored
+in SQL and browser storage, so a refreshed chat shows the same answer and follow-ups
+can rely on it. Raw source payloads (retrieved page or chunk text and excerpts) are
+not part of a saved citation for either kind of source. Failed server generations
+are never saved.
 
 Validation:
 ```sh

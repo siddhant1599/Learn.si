@@ -19,7 +19,7 @@ from app.agents.budget import BudgetedProvider, BudgetExceeded, CallBudget, curr
 from app.config import settings
 from app.models import Query
 from app.pinecone import PineconeVectors
-from app.privacy import safe_turn
+from app.privacy import stored_turn
 from app.providers import ProviderError, Providers
 from app.storage import Conflict, NotFound, Storage, recent_context
 from app.study.jobs import CourseJobs, LessonJobs
@@ -706,11 +706,11 @@ async def query(body: Query, request: Request, store=Depends(storage)):
                         message = "Request call budget exhausted; retry with a narrower question."
                     yield event("error", {"message": message, "usage": final.get("usage", {})})
                     return
-                saved_question, saved_answer, saved_citations = safe_turn(
+                # Web answers and their links are saved like document answers.
+                saved_question, saved_answer, saved_citations = stored_turn(
                     body.user_query,
                     final["answer"],
                     final["citations"],
-                    final.get("document_answer"),
                 )
                 await store.save_turn(
                     thread_id, version, saved_question, saved_answer, saved_citations
@@ -724,14 +724,6 @@ async def query(body: Query, request: Request, store=Depends(storage)):
                         "warnings": list(dict.fromkeys(final.get("warnings", []))),
                         "usage": final.get("usage", {}),
                         "plan_size": final.get("plan_size", 0),
-                        **(
-                            {
-                                "persisted_answer": saved_answer,
-                                "persisted_citations": saved_citations,
-                            }
-                            if final.get("web_requested")
-                            else {}
-                        ),
                     },
                 )
         except TimeoutError:

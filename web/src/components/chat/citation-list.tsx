@@ -32,7 +32,6 @@ export function CitationList({ citations }: { citations: Citation[] }) {
                   <span>Unavailable web link</span>
                 )}
                 {c.published_date && <p>Published: {c.published_date}</p>}
-                <p>Web links are not retained after reload.</p>
               </div>
             </>
           ) : (

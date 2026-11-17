@@ -1,6 +1,7 @@
 """Headless Chrome web-research contracts with mocked APIs; no provider usage."""
 
 import json
+import re
 from pathlib import Path
 
 from playwright.sync_api import expect, sync_playwright
@@ -52,8 +53,6 @@ def main():
             "retrieved_at": "2026-11-04",
             "published_date": "2026-10-01",
         }
-        safe = "## From your documents\n\nDocument finding [1].\n\nFrom the web: web response and source links not retained. Search again to verify."
-
         def query(route):
             body = route.request.post_data_json
             requests.append(body)
@@ -65,8 +64,6 @@ def main():
                 "citations": [document, web] if is_web else [document],
                 "warnings": ["Web evidence partial for wq1."] if is_web else [],
             }
-            if is_web:
-                result.update(persisted_answer=safe, persisted_citations=[document])
             route.fulfill(
                 content_type="text/event-stream",
                 body=frame("session", {"thread_id": "22222222-2222-4222-8222-222222222222"})
@@ -101,28 +98,26 @@ def main():
             "Automatic fallback displays without client controls; final text replaces draft"
         )
         page.wait_for_function(
-            "Object.keys(localStorage).filter(k => k.startsWith('document-lab.chat.v2.')).some(k => localStorage.getItem(k)?.includes('links not retained'))"
+            "Object.keys(localStorage).filter(k => k.startsWith('document-lab.chat.v2.')).some(k => localStorage.getItem(k)?.includes('External live finding'))"
         )
         saved = page.evaluate(
             "JSON.stringify(Object.keys(localStorage).filter(k => k.startsWith('document-lab.chat.v2.')).map(k => localStorage.getItem(k)))"
         )
-        assert URL not in saved and "External live finding" not in saved
-        checks.append("Browser persistence excludes web URLs and generated web text")
+        assert URL in saved and "External live finding" in saved
+        checks.append("Browser persistence keeps the web answer and its source link")
         page.get_by_role("textbox", name="Message", exact=True).fill("Document-only follow-up")
         page.get_by_role("button", name="Send", exact=True).click()
         expect(page.get_by_text("Document-only follow-up [1].", exact=True)).to_be_visible()
         assert not requests[1].get("web_requested")
         checks.append("Document-sufficient follow-up displays without web content")
         page.reload(wait_until="networkidle")
-        expect(page.get_by_role("link", name="Public fixture · example.org")).to_have_count(0)
-        expect(page.get_by_text("External live finding [2].", exact=True)).to_have_count(0)
-        expect(
-            page.get_by_text(
-                "From the web: web response and source links not retained. Search again to verify.",
-                exact=True,
-            )
-        ).to_be_visible()
-        checks.append("Restored conversation explicitly marks unavailable web response")
+        # The web section, its finding and its source link survive a reload.
+        expect(page.get_by_role("heading", name="From the web", exact=True)).to_be_visible()
+        expect(page.get_by_text("External live finding [2].", exact=True)).to_be_visible()
+        expect(page.get_by_role("link", name="Public fixture · example.org")).to_have_attribute("href", URL)
+        expect(page.get_by_text("Published: 2026-10-01", exact=True)).to_be_visible()
+        expect(page.get_by_text(re.compile("not retained"))).to_have_count(0)
+        checks.append("Restored conversation shows the web answer and its source link")
         page.set_viewport_size({"width": 390, "height": 900})
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         checks.append("Mixed response fits mobile viewport")

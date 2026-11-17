@@ -11,7 +11,7 @@ from app.agents.web import WebResearchAgent
 from app.api import app, storage
 from app.config import settings
 from app.models import Query
-from app.privacy import WEB_NOT_RETAINED, safe_turn
+from app.privacy import stored_turn
 from app.providers import ProviderError
 from app.web_search import TavilySearch, bounded_search, safe_url
 from app.workflow import Workflow
@@ -288,22 +288,23 @@ async def test_web_reserves_synthesis_budget(budget):
     assert "budget" in " ".join(result["warnings"])
 
 
-def test_persistence_never_retains_web_text_or_urls():
+def test_persistence_retains_web_answer_and_links_but_not_raw_excerpts():
     citations = [
-        {"source_type": "document", "citation": 1, "document_title": "Manual"},
-        {"source_type": "web", "citation": 2, "url": URL, "text": EXCERPT},
+        {"source_type": "document", "citation": 1, "document_title": "Manual", "text": "chunk"},
+        {"source_type": "web", "citation": 2, "title": "Public", "url": URL, "retrieved_at": "now", "text": EXCERPT},
     ]
     before = json.dumps(citations)
-    q, a, c = safe_turn("Question " + URL, "Web text " + EXCERPT + URL, citations, "Doc [1] " + URL)
-    assert URL not in json.dumps([q, a, c])
-    assert EXCERPT not in a
-    assert WEB_NOT_RETAINED in a
-    assert len(c) == 1
+    answer = "## From your documents\n\nDoc [1]\n\n## From the web\n\nWeb finding [2] " + URL
+    q, a, c = stored_turn("Question " + URL, answer, citations)
+    assert q == "Question " + URL and a == answer  # Saved verbatim, links included.
+    assert [x["citation"] for x in c] == [1, 2]
+    assert c[1] == {"source_type": "web", "citation": 2, "title": "Public", "url": URL, "retrieved_at": "now"}
+    assert EXCERPT not in json.dumps(c) and "chunk" not in json.dumps(c)  # Raw payloads stay out.
     assert json.dumps(citations) == before
 
 
 @pytest.mark.parametrize("fail", [False, True])
-def test_api_live_payload_and_safe_persistence(monkeypatch, fail):
+def test_api_saves_the_web_answer_and_links(monkeypatch, fail):
     monkeypatch.setenv("DATABASE_URL", "")
     settings.cache_clear()
 
@@ -333,11 +334,12 @@ def test_api_live_payload_and_safe_persistence(monkeypatch, fail):
                 assert not store.saved
             else:
                 assert URL in result.text
-                assert "persisted_answer" in result.text
+                assert "persisted_answer" not in result.text  # One answer: saved = shown.
                 assert len(store.saved) == 1
-                assert URL not in json.dumps(store.saved, default=str)
-                assert EXCERPT not in json.dumps(store.saved, default=str)
-                assert WEB_NOT_RETAINED in store.saved[0][3]
+                saved = json.dumps(store.saved, default=str)
+                assert URL in saved  # The web source link is retained.
+                assert "From the web" in store.saved[0][3]
+                assert EXCERPT not in saved  # Raw web excerpts are not.
     finally:
         app.dependency_overrides.clear()
         settings.cache_clear()

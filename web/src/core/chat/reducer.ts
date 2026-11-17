@@ -34,8 +34,6 @@ export function applyChatEvent(
   }
   return updateAssistantMessage(thread, messageId, (message) => {
     switch (event.type) {
-      case "persistence":
-        return { ...message, webRequested: true, persistedAnswer: event.text, persistedCitations: event.citations };
       case "sources":
         return {
           ...message,
