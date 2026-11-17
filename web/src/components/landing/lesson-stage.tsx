@@ -26,6 +26,8 @@ import {
 import { usePrefersReducedMotion } from "@/core/dom/render-activity";
 import { cn } from "@/lib/utils";
 
+import { Section } from "./section";
+
 const INITIAL_COMPLETED = 3; // Module one mastered when the visitor arrives.
 
 /**
@@ -45,11 +47,14 @@ export function LessonStage({ onPass }: { onPass?: (firstTry: boolean) => void }
   };
 
   return (
-    <section id="lesson" aria-labelledby="lesson-title" className="w-full bg-white/[0.02] py-16">
-      <div className="mx-auto w-full max-w-6xl px-4">
-        <h2 id="lesson-title" className="mb-8 text-center font-serif text-2xl text-white sm:text-3xl">
-          Open the next lesson
-        </h2>
+    // Same heading format as the Ask demo's "Understand what you read" section.
+    <Section
+      id="lesson"
+      className="bg-white/[0.02]"
+      title="Remember what you learn"
+      subtitle="Master mode turns a document into lessons, quizzes and progress."
+    >
+      <div className="mx-auto mt-6 w-full max-w-6xl">
         <div className="flex flex-col gap-8 md:flex-row md:items-start">
           <ProgressTree completed={completed} quizFirstTry={quizFirstTry} reduced={reduced} />
           <div
@@ -97,7 +102,7 @@ export function LessonStage({ onPass }: { onPass?: (firstTry: boolean) => void }
           </div>
         </div>
       </div>
-    </section>
+    </Section>
   );
 }
 

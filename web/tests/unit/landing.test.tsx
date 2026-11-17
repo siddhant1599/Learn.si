@@ -18,7 +18,9 @@ it('timeline uses the product step labels and completes the answer step after st
 });
 it('shows the section heading and no comparison label',()=>{
  render(<RagExamples/>);
- expect(screen.getByRole('heading',{name:'Understand what you read. Remember what you learn.'})).toBeInTheDocument();
+ expect(screen.getByRole('heading',{name:'Understand what you read'})).toBeInTheDocument();
+ expect(screen.getByText('Ask mode answers with evidence.')).toBeInTheDocument();
+ expect(screen.queryByText(/Master mode turns a document/)).not.toBeInTheDocument();
  expect(screen.queryByText(/Design B|for comparison/)).not.toBeInTheDocument();
 });
 
@@ -97,4 +99,12 @@ it('pausing during the hold keeps the finished run until play',()=>{
  expect(screen.getByRole('button',{name:demoRuns[0]!.label})).toHaveAttribute('aria-pressed','true');
  fireEvent.click(screen.getByRole('button',{name:'Play demo'}));
  expect(screen.getByRole('button',{name:demoRuns[1]!.label})).toHaveAttribute('aria-pressed','true');
+});
+it('advances by elapsed time even when timer ticks arrive late',()=>{
+ render(<RagExamples/>);
+ act(()=>vi.advanceTimersByTime(400)); // auto-play starts (~100 ms played)
+ // Two ticks that each arrive ~300 ms late: counting ticks would add only 100 ms,
+ // wall-clock time adds ~700 ms, enough to pass routing (650 ms).
+ for(let i=0;i<2;i++)act(()=>{vi.setSystemTime(Date.now()+300);vi.advanceTimersToNextTimer();});
+ expect(screen.getByText(/Routed: Direct document search/)).toBeInTheDocument();
 });

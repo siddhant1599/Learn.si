@@ -51,7 +51,8 @@ def test_header_and_mobile_menu_links_footer_has_none(page, api):
 
 def test_removed_sections_are_not_on_the_landing(page, api):
     page.goto("/")
-    expect(page.get_by_role("heading", name="Understand what you read. Remember what you learn.")).to_be_visible()
+    expect(page.get_by_role("heading", name="Understand what you read", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Remember what you learn", exact=True)).to_be_visible()
     for removed in ("#how-it-works", "#privacy", "#closing-title"):
         expect(page.locator(removed)).to_have_count(0)
     for heading in ("Make your documents part of your day", "Know where your information goes",
@@ -138,7 +139,10 @@ def test_lesson_follows_the_examples_and_passing_updates_the_tree(page, api):
     expect(page.get_by_text(re.compile(r"From a page to a path|Design B|for comparison"))).to_have_count(0)
     lesson = page.locator("#lesson")
     lesson.scroll_into_view_if_needed()
-    expect(lesson.get_by_role("heading", name="Open the next lesson")).to_be_visible()
+    expect(lesson.get_by_role("heading", name="Remember what you learn", level=2)).to_be_visible()
+    expect(lesson.get_by_text("Master mode turns a document into lessons, quizzes and progress.")).to_be_visible()
+    expect(page.locator("#examples").get_by_text("Ask mode answers with evidence.")).to_be_visible()
+    expect(page.get_by_text("Open the next lesson")).to_have_count(0)
     expect(lesson.get_by_role("heading", name="Your sky, filling in")).to_be_visible()
     lesson.get_by_role("button", name=re.compile("Take the quiz")).click()
     for qid, right in (("a1", "b"), ("a2", "b"), ("a3", "a")):

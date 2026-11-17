@@ -10,6 +10,8 @@ const lessonStates=()=>[...document.querySelectorAll('[data-lesson-state]')].map
 it('shows the lesson and progress content, with no comparison label',()=>{
  render(<LessonStage/>);
  expect(screen.queryByText(/Design B|for comparison/)).not.toBeInTheDocument();
+ expect(screen.getByRole('heading',{level:2,name:'Remember what you learn'})).toBeInTheDocument();
+ expect(screen.getByText('Master mode turns a document into lessons, quizzes and progress.')).toBeInTheDocument();
  expect(screen.getAllByText(/Lesson 4 · Pods/).length).toBeGreaterThan(0);
  expect(screen.getByText(demoLesson.objective)).toBeInTheDocument();
  expect(screen.getByText(demoLesson.insight.text)).toBeInTheDocument();

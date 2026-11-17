@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 import { Section } from "./section";
 
 const TICK_MS = 50;
+/** Largest jump one tick may make, so a stalled timer resumes without skipping steps. */
+const MAX_STEP_MS = 1000;
 /** How long a finished run stays on screen before the next question starts. */
 export const STAGE_HOLD_MS = 2500;
 
@@ -56,7 +58,16 @@ export function RagExamples() {
 
   useEffect(() => {
     if (!playing || !visible || done || reduced) return;
-    const timer = setInterval(() => setElapsed((value) => Math.min(duration, value + TICK_MS)), TICK_MS);
+    // Advance by wall-clock time, not by tick count: on a busy page late ticks would
+    // otherwise slow the whole run down. A long stall (e.g. a background tab) is capped
+    // so the run never skips a step.
+    let last = Date.now();
+    const timer = setInterval(() => {
+      const now = Date.now();
+      const delta = Math.min(now - last, MAX_STEP_MS);
+      last = now;
+      setElapsed((value) => Math.min(duration, value + delta));
+    }, TICK_MS);
     return () => clearInterval(timer);
   }, [playing, visible, done, duration, reduced]);
 
@@ -108,14 +119,8 @@ export function RagExamples() {
     <Section
       id="examples"
       className="bg-white/[0.02]"
-      title="Understand what you read. Remember what you learn."
-      subtitle={
-        <>
-          {/* One sentence per line. */}
-          <span className="block">Ask mode answers with evidence.</span>
-          <span className="mt-1 block">Master mode turns a document into lessons, quizzes and progress.</span>
-        </>
-      }
+      title="Understand what you read"
+      subtitle="Ask mode answers with evidence."
     >
       <div className="mt-6">
         <div className="mb-8 flex flex-wrap justify-center gap-2" role="group" aria-label="Demo questions">
