@@ -18,6 +18,7 @@ import {
   type ClipboardSafeStreamdownProps,
 } from "@/components/ai-elements/streamdown";
 import {
+  rehypeCitationMarkers,
   rehypeStreamingListItems,
   streamdownPluginsWithoutRawHtml,
   streamdownSmoothStreamingAnimation,
@@ -51,6 +52,7 @@ export function Markdown({
       [
         ...(streamdownPluginsWithoutRawHtml.rehypePlugins ?? []),
         ...(isLoading ? [rehypeStreamingListItems] : []),
+        rehypeCitationMarkers,
       ] as ClipboardSafeStreamdownProps["rehypePlugins"],
     [isLoading],
   );
@@ -61,7 +63,7 @@ export function Markdown({
   return (
     <ClipboardSafeStreamdown
       {...streamdownPluginsWithoutRawHtml}
-      className="my-3"
+      className="my-3 [&_[data-citation-marker]]:ml-0.5 [&_[data-citation-marker]]:rounded [&_[data-citation-marker]]:bg-blue-500/15 [&_[data-citation-marker]]:px-1 [&_[data-citation-marker]]:text-sm [&_[data-citation-marker]]:text-blue-700 dark:[&_[data-citation-marker]]:text-blue-300"
       rehypePlugins={rehypePlugins}
       parseIncompleteMarkdown={isLoading}
       animated={streamdownSmoothStreamingAnimation}
@@ -88,9 +90,12 @@ const UserRow = memo(function UserRow({ message }: { message: UserMessage }) {
           ))}
         </div>
       )}
-      <MessageContent className="w-fit whitespace-pre-wrap">
+      <div
+        className="ml-auto w-fit max-w-[90%] rounded-2xl rounded-tr-sm bg-blue-600 px-5 py-3 text-base whitespace-pre-wrap text-white animate-in fade-in slide-in-from-bottom-2 duration-300 motion-reduce:animate-none"
+        data-user-bubble
+      >
         {message.text}
-      </MessageContent>
+      </div>
       <MessageToolbar
         className={cn(
           "absolute right-0 -bottom-9 left-0 justify-end",
@@ -111,6 +116,42 @@ function statusNote(status: AssistantMessage["status"]) {
   return null;
 }
 
+/** The demo's closing card: how well the answer is grounded, from the evidence check. */
+export function verdictOf(message: AssistantMessage): "grounded" | "partial" | null {
+  if (message.status !== "complete" || !message.text) return null;
+  const coverage = message.steps.find((step) => step.id === "assess")?.results ?? [];
+  if (coverage.includes("Partial evidence") || coverage.includes("Missing evidence")) return "partial";
+  const documents = message.citations?.filter((c) => c.source_type !== "web").length ?? 0;
+  return documents > 0 ? "grounded" : null;
+}
+
+function VerdictCard({ message }: { message: AssistantMessage }) {
+  const verdict = verdictOf(message);
+  if (!verdict) return null;
+  const citations = message.citations ?? [];
+  const documents = citations.filter((c) => c.source_type !== "web").length;
+  const web = citations.length - documents;
+  const sources = [
+    documents ? `${documents} document ${documents === 1 ? "citation" : "citations"}` : "",
+    web ? `${web} web ${web === 1 ? "source" : "sources"}` : "",
+  ].filter(Boolean).join(" and ");
+  return (
+    <div
+      data-verdict={verdict}
+      className={cn(
+        "mt-4 rounded-xl border p-4 text-base font-medium animate-in fade-in zoom-in-95 duration-300 motion-reduce:animate-none",
+        verdict === "grounded"
+          ? "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-500"
+          : "border-amber-400/40 bg-amber-400/10 text-amber-700 dark:text-amber-300",
+      )}
+    >
+      {verdict === "grounded"
+        ? `✅ Grounded in ${sources}`
+        : `⚠️ Partial evidence: the selected documents do not cover everything${sources ? ` · ${sources}` : ""}`}
+    </div>
+  );
+}
+
 function AssistantRow({ message }: { message: AssistantMessage }) {
   const isLoading = message.status === "streaming";
   const isEmpty =
@@ -124,6 +165,9 @@ function AssistantRow({ message }: { message: AssistantMessage }) {
     >
       {message.steps.length > 0 && <MessageSteps steps={message.steps} />}
       <MessageContent className="w-full">
+        {message.text && message.steps.length > 0 && !message.steps.some((s) => s.id === "answer") && (
+          <hr className="mt-1 border-zinc-200 dark:border-zinc-700" />
+        )}
         {message.reasoning && (
           <MessageReasoning
             isLoading={isLoading && !message.text}
@@ -139,6 +183,7 @@ function AssistantRow({ message }: { message: AssistantMessage }) {
         {message.citations && message.citations.length > 0 && (
           <CitationList citations={message.citations} />
         )}
+        <VerdictCard message={message} />
         {message.warnings?.map((w) => (
           <p key={w} className="text-muted-foreground mt-2 text-sm">
             {w}

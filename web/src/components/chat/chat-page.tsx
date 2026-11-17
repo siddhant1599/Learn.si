@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Composer } from "./composer";
 import { FlipDisplay } from "./flip-display";
 import { MessageList } from "./message-list";
+import { SourceTree } from "./source-tree";
 import { TodoList } from "./todo-list";
 import { Welcome } from "./welcome";
 import { WorkspaceSidebarTrigger } from "./workspace-sidebar-trigger";
@@ -26,7 +27,7 @@ export function ChatPage() {
   // Not useParams: it ignores the history.replaceState call in handleSubmit.
   const routeThreadId = usePathname().split("/").pop() ?? NEW_THREAD_ID;
   const {
-    ready, deletions,
+    ready, deletions, documents,
     webAvailable,
     threads,
     selectedIds,
@@ -75,6 +76,76 @@ export function ChatPage() {
     );
   }
 
+  const composerArea = (
+    <>
+      {thread && thread.todos.length > 0 && !isWelcomeMode && (
+        <TodoList className="bg-background/5" todos={thread.todos} />
+      )}
+      {missingSource && <p role="alert" className="p-3 text-sm">A source was deleted. Saved answers may still contain its information. <Link className="underline" href="/workspace/chats/new">Start a new chat with available sources.</Link></p>}
+      <Composer
+        className={cn(
+          "bg-background/5 w-full",
+          isWelcomeMode && "-translate-y-2 sm:-translate-y-4",
+        )}
+        disabled={
+          !ready || missingSource || !(thread?.documentIds?.length || selectedIds.length)
+        }
+        isStreaming={streaming}
+        isWelcomeMode={isWelcomeMode}
+        settings={settings}
+        webAvailable={webAvailable}
+        extraHeader={isWelcomeMode && <Welcome depth={settings.depth} />}
+        onSettingsChange={setSettings}
+        onStop={() => stop(routeThreadId)}
+        onSubmit={handleSubmit}
+      />
+    </>
+  );
+
+  if (!isWelcomeMode && thread) {
+    // The landing demo's stage with real data: the chat's documents on the left, lighting
+    // up as the latest answer searches, checks and cites them; the agent chat on the right.
+    const latest = [...thread.messages].reverse().find((m) => m.role === "assistant");
+    const deletedIds = deletions.filter((d) => d.kind === "document").map((d) => d.id);
+    const sources = (thread.documentIds ?? []).map(
+      (id) => documents.find((doc) => doc.id === id) ?? { id, title: "Unavailable source" },
+    );
+    return (
+      <PromptInputProvider>
+        <div className="relative flex size-full min-h-0 flex-col">
+          <ChatHeader isWelcomeMode={false} threadId={routeThreadId} title={title} />
+          <div className="flex min-h-0 grow gap-6 px-2 pt-14 pb-3 sm:px-4 lg:gap-8 lg:px-6">
+            <SourceTree
+              className="hidden w-64 shrink-0 overflow-y-auto pt-3 lg:flex xl:w-72"
+              documents={sources}
+              message={latest?.role === "assistant" ? latest : undefined}
+              deletedIds={deletedIds}
+            />
+            <section
+              aria-label="Conversation"
+              className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50/60 dark:border-zinc-800 dark:bg-zinc-900/50"
+            >
+              <div className="flex shrink-0 items-center gap-2 border-b border-zinc-200 p-4 dark:border-zinc-800">
+                <span
+                  aria-hidden="true"
+                  className={cn("size-3 rounded-full bg-green-500", streaming && "animate-pulse motion-reduce:animate-none")}
+                />
+                <span className="text-sm text-muted-foreground">{site.name} Agent · Ask mode</span>
+              </div>
+              <div className="flex min-h-0 flex-1">
+                <MessageList className="size-full" messages={thread.messages} />
+              </div>
+              {/* pb-8: the composer's disclaimer hangs below it and must stay inside the panel. */}
+              <div className="relative z-30 shrink-0 border-t border-zinc-200 px-3 pt-3 pb-8 dark:border-zinc-800">
+                {composerArea}
+              </div>
+            </section>
+          </div>
+        </div>
+      </PromptInputProvider>
+    );
+  }
+
   return (
     <PromptInputProvider>
       <div className="relative flex size-full min-h-0 flex-col justify-between">
@@ -108,27 +179,7 @@ export function ChatPage() {
                   : "max-w-(--container-width-md)",
               )}
             >
-              {thread && thread.todos.length > 0 && !isWelcomeMode && (
-                <TodoList className="bg-background/5" todos={thread.todos} />
-              )}
-              {missingSource && <p role="alert" className="p-3 text-sm">A source was deleted. Saved answers may still contain its information. <Link className="underline" href="/workspace/chats/new">Start a new chat with available sources.</Link></p>}
-              <Composer
-                className={cn(
-                  "bg-background/5 w-full",
-                  isWelcomeMode && "-translate-y-2 sm:-translate-y-4",
-                )}
-                disabled={
-                  !ready || missingSource || !(thread?.documentIds?.length || selectedIds.length)
-                }
-                isStreaming={streaming}
-                isWelcomeMode={isWelcomeMode}
-                settings={settings}
-                webAvailable={webAvailable}
-                extraHeader={isWelcomeMode && <Welcome depth={settings.depth} />}
-                onSettingsChange={setSettings}
-                onStop={() => stop(routeThreadId)}
-                onSubmit={handleSubmit}
-              />
+              {composerArea}
             </div>
           </div>
         </section>

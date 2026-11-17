@@ -267,3 +267,32 @@ export const streamdownPluginsWithoutRawHtml = {
 // Plugins for reasoning/thinking content — derived from streamdownPlugins but without rehypeRaw,
 // to prevent LLM-hallucinated HTML tags (e.g. <simd>) from being rendered as DOM elements.
 export const reasoningPlugins = streamdownPluginsWithoutRawHtml;
+
+/**
+ * Wraps citation markers such as "[2]" in `<span data-citation-marker>` so answers can show
+ * them as small blue chips, like the landing demo. Runs after sanitization (appended to the
+ * chain), adds only that data attribute, and skips code so "[0]" in code stays literal.
+ */
+export const rehypeCitationMarkers: RehypePlugin = () => (tree: Root) => {
+  visit(tree, "text", (node, index, parent) => {
+    if (!parent || index === undefined) return;
+    if (parent.type === "element" && ["code", "pre", "a"].includes((parent as Element).tagName)) return;
+    const value = (node as { value: string }).value;
+    if (!/\[\d{1,3}\]/.test(value)) return;
+    const parts = value.split(/(\[\d{1,3}\])/);
+    const replacement: Nodes[] = parts
+      .filter((part) => part !== "")
+      .map((part) =>
+        /^\[\d{1,3}\]$/.test(part)
+          ? ({
+              type: "element",
+              tagName: "span",
+              properties: { dataCitationMarker: "" },
+              children: [{ type: "text", value: part }],
+            } as Element)
+          : ({ type: "text", value: part } as Nodes),
+      );
+    (parent.children as Nodes[]).splice(index, 1, ...replacement);
+    return index + replacement.length;
+  });
+};
