@@ -33,5 +33,14 @@ def test_existing_browser_check(check, tmp_path):
     result = subprocess.run(
         [sys.executable, "-m", f"scripts.{check}"], env=env, capture_output=True, text=True, timeout=600,
     )
-    output = (result.stdout + result.stderr)[-4000:]
+    output = _failure_excerpt(result.stdout + result.stderr)
     assert result.returncode == 0, f"{check} failed:\n{output}"
+
+
+def _failure_excerpt(text: str, limit: int = 4000) -> str:
+    """Keep the error, not just the tail: Playwright's accessibility-tree dumps
+    ("- heading ...", "- paragraph: ...") can be longer than the limit and push the
+    traceback and the failing assertion out of the report."""
+    lines = [line for line in text.splitlines() if not line.lstrip().startswith(("- ", "-\t"))]
+    excerpt = "\n".join(lines)
+    return excerpt[-limit:]
