@@ -59,6 +59,7 @@ export function readLastMode(storage: Storage): WorkspaceMode | null {
 export function writeLastMode(storage: Storage, mode: WorkspaceMode) {
   try {
     storage.setItem(LAST_MODE_KEY, mode);
+    storage.removeItem(LEGACY_LAST_MODE_KEY);
   } catch {
     /* Private windows or blocked storage: the chooser simply has no highlight. */
   }
