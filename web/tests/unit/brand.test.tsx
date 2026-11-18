@@ -8,7 +8,7 @@ it('brand is Learn.si with a single workspace entry point',()=>{
  expect(site.name).toBe('Learn.si');
  expect(site.shortName).toBe('LS');
  expect(site.hero.ctaHref).toBe('/workspace');
- expect(site.repositoryUrl).toBe('https://github.com/code-bot-sid/Document-Lab');
+ expect(site.repositoryUrl).toBe('https://github.com/siddhant1599');
  expect(site.header.links.map(l=>l.label).sort()).toEqual(['Docs','Workspace']);
  expect(JSON.stringify(site)).not.toContain('Document Lab');
 });

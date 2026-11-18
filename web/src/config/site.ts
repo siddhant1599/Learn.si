@@ -23,7 +23,7 @@ export const site = {
   description:
     "Learn from your documents: ask questions with evidence, or master them lesson by lesson.",
   /** Source repository; all learning CTAs still lead to the mode chooser. */
-  repositoryUrl: "https://github.com/code-bot-sid/Document-Lab",
+  repositoryUrl: "https://github.com/siddhant1599",
   /** The SVG silhouette the landing hero's flickering grid is masked to. */
   logoMaskUrl: "/images/landing-logo-mask.svg",
 
