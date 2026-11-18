@@ -27,13 +27,15 @@ import { usePrefersReducedMotion } from "@/core/dom/render-activity";
 import { cn } from "@/lib/utils";
 
 import { Section } from "./section";
+import { TutorDemo } from "./tutor-demo";
 
 const INITIAL_COMPLETED = 3; // Module one mastered when the visitor arrives.
 
 /**
  * "Lesson 4 · Pods" and "Your sky, filling in": the playable next lesson and its
  * progress, styled like frontend-sample's Agent Skills stage (a course tree beside a
- * tutor chat). Graded in the browser; passing the quiz calls onPass.
+ * tutor chat), with the lesson tutor scripted under the progress tree. Graded in the
+ * browser; passing the quiz calls onPass.
  */
 export function LessonStage({ onPass }: { onPass?: (firstTry: boolean) => void }) {
   const reduced = usePrefersReducedMotion();
@@ -56,7 +58,12 @@ export function LessonStage({ onPass }: { onPass?: (firstTry: boolean) => void }
     >
       <div className="mx-auto mt-6 w-full max-w-6xl">
         <div className="flex flex-col gap-8 md:flex-row md:items-start">
-          <ProgressTree completed={completed} quizFirstTry={quizFirstTry} reduced={reduced} />
+          {/* Left column: progress, then the tutor filling the space down to the lesson card's end. */}
+          <div className="flex flex-col gap-6 md:w-[42%] md:self-stretch">
+            <ProgressTree completed={completed} quizFirstTry={quizFirstTry} reduced={reduced} />
+            {/* Size containment: the tutor never makes the row taller; it takes what is left. */}
+            <TutorDemo className="h-[22rem] md:h-auto md:flex-1 md:[contain:size]" />
+          </div>
           <div
             data-lesson-card
             data-side={side}
@@ -538,7 +545,7 @@ function ProgressTree({ completed, quizFirstTry, reduced }: { completed: number;
   const stateOf = (index: number): LessonState => (index < shown ? "mastered" : index === shown ? "next" : "locked");
 
   return (
-    <section aria-labelledby={`${sliderId}-title`} data-progress-panel data-completed={shown} className="flex flex-col md:w-[42%]">
+    <section aria-labelledby={`${sliderId}-title`} data-progress-panel data-completed={shown} className="flex flex-col">
       <div className="mb-1 font-mono text-sm text-zinc-500">/courses/containers-handbook/</div>
       <p className="text-xs tracking-widest text-zinc-500 uppercase">Progress · example week</p>
       <h3 id={`${sliderId}-title`} className="mt-2 text-2xl font-medium text-white">

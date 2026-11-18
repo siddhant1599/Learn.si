@@ -339,3 +339,81 @@ export function answerCharsAt(run: DemoRun, elapsed: number): number {
 export function runDurationMs(run: DemoRun): number {
   return run.answerAt + run.answer.length * ANSWER_CHAR_MS + 400;
 }
+
+/**
+ * The lesson tutor, scripted for Lesson 4 · Pods (no model calls). Like the real tutor
+ * it guides first, then gives the answer when asked; answers stay inside the lesson.
+ */
+export type DemoTutorTurn = {
+  /** Typed into the box, or picked from a suggestion chip. */
+  question: string;
+  via: "typed" | "chip";
+  answer: string;
+  source: string;
+};
+
+export const demoTutor: { chips: string[]; turns: DemoTutorTurn[] } = {
+  chips: ["Explain this differently", "Why is this true?", "Just tell me the answer"],
+  turns: [
+    {
+      question: "Why does a Pod die with its node?",
+      via: "typed",
+      answer:
+        "Think about where the scheduler puts a Pod. It places the whole Pod on one node. So when that node goes down, where are its containers running?",
+      source: "The scheduler places the whole Pod on one node.",
+    },
+    {
+      question: "Just tell me the answer",
+      via: "chip",
+      answer:
+        "A Pod runs on exactly one node and never moves. If the node dies, the Pod dies with it, so keep containers stateless and mount a volume for data that must persist.",
+      source: "Keep containers stateless; mount volumes for data.",
+    },
+  ],
+};
+
+/** Timings for one tutor turn, in ms from the turn's start. */
+export const TUTOR_TIMING = { typePerChar: 45, chipPress: 700, think: 900, streamPerChar: 22, hold: 1400 };
+
+export function tutorTurnDuration(turn: DemoTutorTurn) {
+  const ask = turn.via === "typed" ? turn.question.length * TUTOR_TIMING.typePerChar : TUTOR_TIMING.chipPress;
+  return ask + TUTOR_TIMING.think + turn.answer.length * TUTOR_TIMING.streamPerChar + TUTOR_TIMING.hold;
+}
+
+export type TutorFrame = {
+  /** Turns whose question has been sent. */
+  sent: number;
+  /** Text in the input box (typing) or the chip being pressed. */
+  draft: string;
+  chip: string | null;
+  thinking: boolean;
+  /** Characters of the current answer shown. */
+  chars: number;
+  /** Turns fully answered. */
+  answered: number;
+};
+
+/** What the tutor card shows `elapsed` ms into the script. */
+export function tutorFrameAt(elapsed: number): TutorFrame {
+  let start = 0;
+  for (const [index, turn] of demoTutor.turns.entries()) {
+    const t = elapsed - start;
+    const ask = turn.via === "typed" ? turn.question.length * TUTOR_TIMING.typePerChar : TUTOR_TIMING.chipPress;
+    const streamStart = ask + TUTOR_TIMING.think;
+    const streamEnd = streamStart + turn.answer.length * TUTOR_TIMING.streamPerChar;
+    if (t < ask) {
+      return turn.via === "typed"
+        ? { sent: index, draft: turn.question.slice(0, Math.floor(t / TUTOR_TIMING.typePerChar)), chip: null, thinking: false, chars: 0, answered: index }
+        : { sent: index, draft: "", chip: turn.question, thinking: false, chars: 0, answered: index };
+    }
+    if (t < streamStart) return { sent: index + 1, draft: "", chip: null, thinking: true, chars: 0, answered: index };
+    if (t < streamEnd) {
+      return { sent: index + 1, draft: "", chip: null, thinking: false, chars: Math.floor((t - streamStart) / TUTOR_TIMING.streamPerChar), answered: index };
+    }
+    start += tutorTurnDuration(turn);
+  }
+  const all = demoTutor.turns.length;
+  return { sent: all, draft: "", chip: null, thinking: false, chars: 0, answered: all };
+}
+
+export const tutorScriptDuration = demoTutor.turns.reduce((total, turn) => total + tutorTurnDuration(turn), 0);
