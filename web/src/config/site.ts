@@ -41,6 +41,7 @@ export const site = {
     rotatingWords: [
       "Personal Learning",
       "Document Research",
+      "Visual Reasoning",
       "Lesson Planning",
       "Quiz Coaching",
     ],
