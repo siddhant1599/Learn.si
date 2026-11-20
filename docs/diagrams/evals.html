@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evaluation pipeline</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #fdfaf3;
+      --color-ink:     #0a0a0a;
+      --color-muted:   #666666;
+      --color-accent:  #cd4000;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Pipeline · Learn.si</p>
+    <h1>Evaluation pipeline</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 548" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="evals-title evals-desc">
+        <title id="evals-title">Evaluation pipeline</title>
+        <desc id="evals-desc">Pipeline showing a private golden dataset validated against its source, scored by retrieval, end-to-end and adversarial evaluators into sanitized reports that are compared across runs, with independent review gating release splits.</desc>
+        <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#666666"/></marker><marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cd4000"/></marker><marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0671d9"/></marker><marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#666666" stroke-width="1.2"/></marker></defs>
+        <rect width="100%" height="100%" fill="#fdfaf3"/>
+        <path d="M 200,224 H 248" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 408,208 H 432 Q 440,208 440,200 V 104 Q 440,96 448,96 H 472" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 408,240 H 472" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 672,96 H 696 Q 704,96 704,104 V 200 Q 704,208 712,208 H 736" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 672,224 H 736" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 672,352 H 704 Q 712,352 712,344 V 248 Q 712,240 720,240 H 736" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 828,256 V 320" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 72,264 V 352" fill="none" stroke="#666666" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <path d="M 168,352 V 264" fill="none" stroke="#666666" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <rect x="80" y="302" width="48" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="104" y="311" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">PACKET</text>
+        <rect x="176" y="302" width="92" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="222" y="311" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">APPROVED SPLIT</text>
+        <rect x="40" y="184" width="160" height="80" rx="6" fill="#fdfaf3"/>
+        <rect x="40" y="184" width="160" height="80" rx="6" fill="rgba(102,102,102,0.1)" stroke="#717171" stroke-width="1"/>
+        <rect x="48" y="192" width="48" height="12" rx="2" fill="none" stroke="rgba(113,113,113,0.4)" stroke-width="0.8"/>
+        <text x="72" y="201" fill="#717171" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">PRIVATE</text>
+        <text x="120" y="224" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Golden set</text>
+        <text x="120" y="239" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">99 draft cases</text>
+        <text x="120" y="254" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">62-page handbook PDF</text>
+        <rect x="248" y="192" width="160" height="64" rx="6" fill="#fdfaf3"/>
+        <rect x="248" y="192" width="160" height="64" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="256" y="200" width="52" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="282" y="209" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">VALIDATE</text>
+        <text x="328" y="231.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Source validator</text>
+        <text x="328" y="246.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">spans · hashes · index</text>
+        <rect x="472" y="64" width="200" height="64" rx="6" fill="#fdfaf3"/>
+        <rect x="472" y="64" width="200" height="64" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="480" y="72" width="60" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="510" y="81" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">RETRIEVAL</text>
+        <text x="572" y="103.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Retrieval eval</text>
+        <text x="572" y="118.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">hit@1/3/5 · MRR · coverage</text>
+        <rect x="472" y="184" width="200" height="80" rx="6" fill="#fdfaf3"/>
+        <rect x="472" y="184" width="200" height="80" rx="6" fill="rgba(205,64,0,0.08)" stroke="#cd4000" stroke-width="1"/>
+        <rect x="480" y="192" width="28" height="12" rx="2" fill="none" stroke="rgba(205,64,0,0.5)" stroke-width="0.8"/>
+        <text x="494" y="201" fill="#cd4000" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">E2E</text>
+        <text x="572" y="224" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">End-to-end eval</text>
+        <text x="572" y="239" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">live /query over SSE</text>
+        <text x="572" y="254" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">citations · budgets · cleanup</text>
+        <rect x="472" y="320" width="200" height="64" rx="6" fill="#fdfaf3"/>
+        <rect x="472" y="320" width="200" height="64" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="480" y="328" width="44" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="502" y="337" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">SAFETY</text>
+        <text x="572" y="359.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Adversarial suite</text>
+        <text x="572" y="374.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">4 injected-instruction cases</text>
+        <rect x="736" y="192" width="184" height="64" rx="6" fill="#fdfaf3"/>
+        <rect x="736" y="192" width="184" height="64" rx="6" fill="rgba(10,10,10,0.05)" stroke="#666666" stroke-width="1"/>
+        <rect x="744" y="200" width="44" height="12" rx="2" fill="none" stroke="rgba(102,102,102,0.5)" stroke-width="0.8"/>
+        <text x="766" y="209" fill="#666666" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">REPORT</text>
+        <text x="828" y="231.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Sanitized reports</text>
+        <text x="828" y="246.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">aggregates only</text>
+        <rect x="736" y="320" width="184" height="64" rx="6" fill="#fdfaf3"/>
+        <rect x="736" y="320" width="184" height="64" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="744" y="328" width="32" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="760" y="337" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">DIFF</text>
+        <text x="828" y="359.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Compare runs</text>
+        <text x="828" y="374.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">same data · same budgets</text>
+        <rect x="40" y="352" width="160" height="64" rx="6" fill="#fdfaf3"/>
+        <rect x="40" y="352" width="160" height="64" rx="6" fill="rgba(10,10,10,0.02)" stroke="rgba(10,10,10,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+        <rect x="48" y="360" width="40" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.2)" stroke-width="0.8"/>
+        <text x="68" y="369" fill="#717171" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">HUMAN</text>
+        <text x="120" y="391.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Independent review</text>
+        <text x="120" y="406.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">pending · 0 held-out</text>
+        <text x="248" y="444" fill="#666666" font-size="14" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="start">CI: golden-offline runs on every push and PR with fixtures and no secrets;</text>
+        <text x="248" y="462" fill="#666666" font-size="14" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="start">golden-live is manual, self-hosted and capped at 6 chat · 13 embed · 2 web per case</text>
+        <line x1="40" y1="492" x2="920" y2="492" stroke="rgba(10,10,10,0.1)" stroke-width="0.8"/>
+        <text x="40" y="508" fill="#666666" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGEND</text>
+        <rect x="40" y="519" width="14" height="10" rx="2" fill="rgba(102,102,102,0.1)" stroke="#717171" stroke-width="1"/>
+        <text x="60" y="527" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Private data</text>
+        <rect x="148" y="519" width="14" height="10" rx="2" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <text x="168" y="527" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Evaluator</text>
+        <rect x="244" y="519" width="14" height="10" rx="2" fill="rgba(205,64,0,0.08)" stroke="#cd4000" stroke-width="1"/>
+        <text x="264" y="527" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Headline evaluator</text>
+        <rect x="384" y="519" width="14" height="10" rx="2" fill="rgba(10,10,10,0.05)" stroke="#666666" stroke-width="1"/>
+        <text x="404" y="527" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Report</text>
+        <rect x="464" y="519" width="14" height="10" rx="2" fill="rgba(10,10,10,0.02)" stroke="rgba(10,10,10,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="484" y="527" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Pending gate</text>
+        <line x1="572" y1="524" x2="600" y2="524" stroke="#666666" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <text x="608" y="527" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Review loop</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

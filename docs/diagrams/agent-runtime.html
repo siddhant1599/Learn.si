@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How every graph node runs</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #fdfaf3;
+      --color-ink:     #0a0a0a;
+      --color-muted:   #666666;
+      --color-accent:  #cd4000;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Layer stack · Learn.si</p>
+    <h1>How every graph node runs</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 472" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="agent-runtime-title agent-runtime-desc">
+        <title id="agent-runtime-title">How every graph node runs</title>
+        <desc id="agent-runtime-desc">Layer stack showing each LangGraph node wrapped by progress tracking and a guard for deadlines and failures, calling providers through a request-wide call budget.</desc>
+        <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#666666"/></marker><marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cd4000"/></marker><marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0671d9"/></marker><marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#666666" stroke-width="1.2"/></marker></defs>
+        <rect width="100%" height="100%" fill="#fdfaf3"/>
+        <rect x="120" y="64" width="760" height="64" fill="#ffffff"/>
+        <text x="140" y="93" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">L1</text>
+        <text x="140" y="107" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">WRAP</text>
+        <text x="232" y="101" fill="#0a0a0a" font-size="14" font-weight="600" font-family="'Geist', system-ui, sans-serif">TrackedAgent</text>
+        <text x="860" y="100" fill="#666666" font-size="9.5" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end">SSE progress v1 · step · status · attempt</text>
+        <rect x="120" y="128" width="760" height="64" fill="rgba(10,10,10,0.03)"/>
+        <text x="140" y="157" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">L2</text>
+        <text x="140" y="171" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">GUARD</text>
+        <text x="232" y="165" fill="#0a0a0a" font-size="14" font-weight="600" font-family="'Geist', system-ui, sans-serif">GuardedAgent</text>
+        <text x="860" y="164" fill="#666666" font-size="9.5" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end">220 s request deadline · failure → error_handler</text>
+        <line x1="120" y1="128" x2="880" y2="128" stroke="rgba(10,10,10,0.12)" stroke-width="1"/>
+        <rect x="120" y="192" width="760" height="64" fill="rgba(205,64,0,0.08)"/>
+        <text x="140" y="221" fill="#cd4000" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">L3</text>
+        <text x="140" y="235" fill="#cd4000" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">NODE</text>
+        <text x="232" y="229" fill="#0a0a0a" font-size="14" font-weight="600" font-family="'Geist', system-ui, sans-serif">Agent node</text>
+        <text x="860" y="228" fill="#666666" font-size="9.5" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end">returns a typed state patch · never mutates input</text>
+        <line x1="120" y1="192" x2="880" y2="192" stroke="rgba(10,10,10,0.12)" stroke-width="1"/>
+        <rect x="120" y="256" width="760" height="64" fill="rgba(10,10,10,0.03)"/>
+        <text x="140" y="285" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">L4</text>
+        <text x="140" y="299" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">BUDGET</text>
+        <text x="232" y="293" fill="#0a0a0a" font-size="14" font-weight="600" font-family="'Geist', system-ui, sans-serif">BudgetedProvider</text>
+        <text x="860" y="292" fill="#666666" font-size="9.5" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end">per request: 6 chat · 13 embedding · 2 web calls</text>
+        <line x1="120" y1="256" x2="880" y2="256" stroke="rgba(10,10,10,0.12)" stroke-width="1"/>
+        <rect x="120" y="320" width="760" height="64" fill="#ffffff"/>
+        <text x="140" y="349" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">L5</text>
+        <text x="140" y="363" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">I/O</text>
+        <text x="232" y="357" fill="#0a0a0a" font-size="14" font-weight="600" font-family="'Geist', system-ui, sans-serif">OpenRouter · Tavily</text>
+        <text x="860" y="356" fill="#666666" font-size="9.5" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end">httpx clients · streamed token deltas</text>
+        <line x1="120" y1="320" x2="880" y2="320" stroke="rgba(10,10,10,0.12)" stroke-width="1"/>
+        <rect x="120.5" y="192.5" width="759" height="63" fill="none" stroke="#cd4000" stroke-width="1"/>
+        <rect x="120" y="64" width="760" height="320" fill="none" stroke="#0a0a0a" stroke-width="1"/>
+        <line x1="84" y1="72" x2="84" y2="376" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="72" y="232" fill="#666666" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em" text-anchor="end">CALL</text>
+        <text x="120" y="420" fill="#666666" font-size="14" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="start">error_handler retries transient provider failures (408, 429, 500, 502–504, network) in triage,</text>
+        <text x="120" y="438" fill="#666666" font-size="14" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="start">plan, retrieve, assess or refine: at most 2 per request, 0.25 s then 0.5 s backoff.</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

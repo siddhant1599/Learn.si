@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master mode agents</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #fdfaf3;
+      --color-ink:     #0a0a0a;
+      --color-muted:   #666666;
+      --color-accent:  #cd4000;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Flowchart · Learn.si</p>
+    <h1>Master mode agents</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="master-mode-title master-mode-desc">
+        <title id="master-mode-title">Master mode agents</title>
+        <desc id="master-mode-desc">Flowchart of Master mode: a course planner turns one document into lessons, a lesson writer and quiz writer generate cited content, a tutor and reviewer support the learner, and passing two of three quiz questions unlocks the next lesson.</desc>
+        <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#666666"/></marker><marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cd4000"/></marker><marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0671d9"/></marker><marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#666666" stroke-width="1.2"/></marker></defs>
+        <rect width="100%" height="100%" fill="#fdfaf3"/>
+        <path d="M 152,176 H 200" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 368,176 H 416" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 592,176 H 640" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 784,176 H 816" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 864,136 V 96 Q 864,88 856,88 H 512 Q 504,88 504,96 V 136" fill="none" stroke="#cd4000" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <path d="M 864,216 V 248 Q 864,256 856,256 H 720 Q 712,256 712,248 V 216" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 448,216 V 296" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 560,216 V 296" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="646" y="70" width="76" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="684" y="79" fill="#cd4000" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">UNLOCK NEXT</text>
+        <rect x="764" y="238" width="48" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="788" y="247" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">RETAKE</text>
+        <rect x="348" y="250" width="92" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="394" y="259" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">LESSON CONTEXT</text>
+        <rect x="568" y="250" width="64" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="600" y="259" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YOUR TURN</text>
+        <rect x="40" y="136" width="112" height="80" rx="6" fill="#fdfaf3"/>
+        <rect x="40" y="136" width="112" height="80" rx="6" fill="rgba(102,102,102,0.1)" stroke="#717171" stroke-width="1"/>
+        <rect x="48" y="144" width="44" height="12" rx="2" fill="none" stroke="rgba(113,113,113,0.4)" stroke-width="0.8"/>
+        <text x="70" y="153" fill="#717171" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">SOURCE</text>
+        <text x="96" y="183.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Document</text>
+        <text x="96" y="198.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">one per course</text>
+        <rect x="200" y="136" width="168" height="80" rx="6" fill="#fdfaf3"/>
+        <rect x="200" y="136" width="168" height="80" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="208" y="144" width="32" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="224" y="153" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">PLAN</text>
+        <text x="284" y="176" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Course planner</text>
+        <text x="284" y="191" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">windows → lessons</text>
+        <text x="284" y="206" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">≤ 32 calls · 300 s</text>
+        <rect x="416" y="136" width="176" height="80" rx="6" fill="#fdfaf3"/>
+        <rect x="416" y="136" width="176" height="80" rx="6" fill="rgba(205,64,0,0.08)" stroke="#cd4000" stroke-width="1"/>
+        <rect x="424" y="144" width="40" height="12" rx="2" fill="none" stroke="rgba(205,64,0,0.5)" stroke-width="0.8"/>
+        <text x="444" y="153" fill="#cd4000" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">WRITE</text>
+        <text x="504" y="176" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Lesson writer</text>
+        <text x="504" y="191" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">cited · ≤ 650 words</text>
+        <text x="504" y="206" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">≤ 2 calls · 180 s</text>
+        <rect x="640" y="136" width="144" height="80" rx="6" fill="#fdfaf3"/>
+        <rect x="640" y="136" width="144" height="80" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="648" y="144" width="32" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="664" y="153" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">QUIZ</text>
+        <text x="712" y="176" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Quiz writer</text>
+        <text x="712" y="191" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">3 Qs · no repeats</text>
+        <text x="712" y="206" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">≤ 3 calls · 90 s</text>
+        <polygon points="864,136 912,176 864,216 816,176" fill="#fdfaf3"/>
+        <polygon points="864,136 912,176 864,216 816,176" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <text x="864" y="176" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Pass?</text>
+        <text x="864" y="190" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">2 of 3</text>
+        <rect x="336" y="296" width="176" height="80" rx="6" fill="#fdfaf3"/>
+        <rect x="336" y="296" width="176" height="80" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="344" y="304" width="40" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="364" y="313" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">TUTOR</text>
+        <text x="424" y="336" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Socratic tutor</text>
+        <text x="424" y="351" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">Ask graph · lesson scope</text>
+        <text x="424" y="366" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">hint first · no web</text>
+        <rect x="544" y="296" width="176" height="80" rx="6" fill="#fdfaf3"/>
+        <rect x="544" y="296" width="176" height="80" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="552" y="304" width="44" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="574" y="313" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">REVIEW</text>
+        <text x="632" y="336" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Your-turn reviewer</text>
+        <text x="632" y="351" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">verdict + feedback</text>
+        <text x="632" y="366" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">reference stays hidden</text>
+        <text x="40" y="320" fill="#666666" font-size="14" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="start">document evidence only:</text>
+        <text x="40" y="338" fill="#666666" font-size="14" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="start">Master mode never</text>
+        <text x="40" y="356" fill="#666666" font-size="14" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="start">searches the web</text>
+        <text x="920" y="320" fill="#666666" font-size="14" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="end">progress and mastery</text>
+        <text x="920" y="338" fill="#666666" font-size="14" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="end">are derived on read</text>
+        <line x1="40" y1="416" x2="920" y2="416" stroke="rgba(10,10,10,0.1)" stroke-width="0.8"/>
+        <text x="40" y="432" fill="#666666" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGEND</text>
+        <rect x="40" y="443" width="14" height="10" rx="2" fill="rgba(102,102,102,0.1)" stroke="#717171" stroke-width="1"/>
+        <text x="60" y="451" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Source</text>
+        <rect x="120" y="443" width="14" height="10" rx="2" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <text x="140" y="451" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Agent</text>
+        <rect x="196" y="443" width="14" height="10" rx="2" fill="rgba(205,64,0,0.08)" stroke="#cd4000" stroke-width="1"/>
+        <text x="216" y="451" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Lesson writer (focal)</text>
+        <polygon points="359,442 366,448 359,454 352,448" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <text x="372" y="451" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Server-side grading</text>
+        <line x1="496" y1="448" x2="524" y2="448" stroke="#cd4000" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <text x="532" y="451" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Unlock path</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

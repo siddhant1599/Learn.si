@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Learn.si data model</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #fdfaf3;
+      --color-ink:     #0a0a0a;
+      --color-muted:   #666666;
+      --color-accent:  #cd4000;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">ER / data model · Learn.si</p>
+    <h1>Learn.si data model</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 432" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="data-model-title data-model-desc">
+        <title id="data-model-title">Learn.si data model</title>
+        <desc id="data-model-desc">Entity diagram of the rag schema (documents, sections, chunks, conversations, messages) and the study schema (courses, lessons, quiz attempts) with their cardinalities.</desc>
+        <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#666666"/></marker><marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cd4000"/></marker><marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0671d9"/></marker><marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#666666" stroke-width="1.2"/></marker></defs>
+        <rect width="100%" height="100%" fill="#fdfaf3"/>
+        <line x1="228" y1="100" x2="284" y2="100" stroke="#666666" stroke-width="1.2"/>
+        <line x1="452" y1="100" x2="508" y2="100" stroke="#666666" stroke-width="1.2"/>
+        <line x1="676" y1="100" x2="732" y2="100" stroke="#666666" stroke-width="1.2"/>
+        <line x1="452" y1="300" x2="508" y2="300" stroke="#666666" stroke-width="1.2"/>
+        <line x1="676" y1="300" x2="732" y2="300" stroke="#666666" stroke-width="1.2"/>
+        <line x1="144" y1="152" x2="144" y2="248" stroke="#666666" stroke-width="1.2"/>
+        <line x1="368" y1="152" x2="368" y2="248" stroke="#666666" stroke-width="1.2"/>
+        <text x="238" y="94" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">N</text>
+        <text x="274" y="94" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.06em">M</text>
+        <text x="462" y="94" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">1</text>
+        <text x="498" y="94" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.06em">N</text>
+        <text x="686" y="94" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">1</text>
+        <text x="722" y="94" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.06em">N</text>
+        <text x="462" y="294" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">1</text>
+        <text x="498" y="294" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.06em">N</text>
+        <text x="686" y="294" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">1</text>
+        <text x="722" y="294" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.06em">N</text>
+        <text x="152" y="168" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">1</text>
+        <text x="152" y="240" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">N</text>
+        <text x="376" y="168" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">1</text>
+        <text x="376" y="240" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">0..1</text>
+        <rect x="60" y="48" width="168" height="104" rx="6" fill="#fdfaf3"/>
+        <rect x="60" y="48" width="168" height="104" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="68" y="58" width="28" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="82" y="67" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">RAG</text>
+        <text x="104" y="69" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif">Conversation</text>
+        <line x1="60" y1="80" x2="228" y2="80" stroke="rgba(10,10,10,0.12)" stroke-width="1"/>
+        <text x="72" y="98" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace"># id</text>
+        <text x="72" y="112" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">document_ids uuid[]</text>
+        <text x="72" y="126" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">version · updated_at</text>
+        <text x="72" y="140" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">↔ lesson tutor chat</text>
+        <rect x="284" y="48" width="168" height="104" rx="6" fill="#fdfaf3"/>
+        <rect x="284" y="48" width="168" height="104" rx="6" fill="rgba(205,64,0,0.08)" stroke="#cd4000" stroke-width="1"/>
+        <rect x="292" y="58" width="28" height="12" rx="2" fill="none" stroke="rgba(205,64,0,0.5)" stroke-width="0.8"/>
+        <text x="306" y="67" fill="#cd4000" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">RAG</text>
+        <text x="328" y="69" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif">Document</text>
+        <line x1="284" y1="80" x2="452" y2="80" stroke="rgba(10,10,10,0.12)" stroke-width="1"/>
+        <text x="296" y="98" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace"># id</text>
+        <text x="296" y="112" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">title · edition</text>
+        <text x="296" y="126" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">embedding_signature</text>
+        <text x="296" y="140" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">vector_generation</text>
+        <rect x="508" y="48" width="168" height="104" rx="6" fill="#fdfaf3"/>
+        <rect x="508" y="48" width="168" height="104" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="516" y="58" width="28" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="530" y="67" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">RAG</text>
+        <text x="552" y="69" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif">Section</text>
+        <line x1="508" y1="80" x2="676" y2="80" stroke="rgba(10,10,10,0.12)" stroke-width="1"/>
+        <text x="520" y="98" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace"># (document_id, id)</text>
+        <text x="520" y="112" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">number · title · kind</text>
+        <text x="520" y="126" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">→ parent_id</text>
+        <text x="520" y="140" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">↔ cross-references</text>
+        <rect x="732" y="48" width="168" height="104" rx="6" fill="#fdfaf3"/>
+        <rect x="732" y="48" width="168" height="104" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="740" y="58" width="28" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="754" y="67" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">RAG</text>
+        <text x="776" y="69" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif">Chunk</text>
+        <line x1="732" y1="80" x2="900" y2="80" stroke="rgba(10,10,10,0.12)" stroke-width="1"/>
+        <text x="744" y="98" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace"># id · → section</text>
+        <text x="744" y="112" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">text · page</text>
+        <text x="744" y="126" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">embedding vector(768)</text>
+        <text x="744" y="140" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">Pinecone id = chunk id</text>
+        <rect x="60" y="248" width="168" height="104" rx="6" fill="#fdfaf3"/>
+        <rect x="60" y="248" width="168" height="104" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="68" y="258" width="28" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="82" y="267" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">RAG</text>
+        <text x="104" y="269" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif">Message</text>
+        <line x1="60" y1="280" x2="228" y2="280" stroke="rgba(10,10,10,0.12)" stroke-width="1"/>
+        <text x="72" y="298" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace"># id · → conversation</text>
+        <text x="72" y="312" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">role · content</text>
+        <text x="72" y="326" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">citations · steps</text>
+        <text x="72" y="340" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">warnings</text>
+        <rect x="284" y="248" width="168" height="104" rx="6" fill="#fdfaf3"/>
+        <rect x="284" y="248" width="168" height="104" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="292" y="258" width="40" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="312" y="267" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">STUDY</text>
+        <text x="340" y="269" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif">Course</text>
+        <line x1="284" y1="280" x2="452" y2="280" stroke="rgba(10,10,10,0.12)" stroke-width="1"/>
+        <text x="296" y="298" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace"># id</text>
+        <text x="296" y="312" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">→ document_id unique</text>
+        <text x="296" y="326" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">modules · generation</text>
+        <text x="296" y="340" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">failure_code</text>
+        <rect x="508" y="248" width="168" height="104" rx="6" fill="#fdfaf3"/>
+        <rect x="508" y="248" width="168" height="104" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="516" y="258" width="40" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="536" y="267" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">STUDY</text>
+        <text x="564" y="269" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif">Lesson</text>
+        <line x1="508" y1="280" x2="676" y2="280" stroke="rgba(10,10,10,0.12)" stroke-width="1"/>
+        <text x="520" y="298" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace"># id · → module</text>
+        <text x="520" y="312" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">content jsonb · status</text>
+        <text x="520" y="326" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">source_section_ids</text>
+        <text x="520" y="340" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">progress · study time</text>
+        <rect x="732" y="248" width="168" height="104" rx="6" fill="#fdfaf3"/>
+        <rect x="732" y="248" width="168" height="104" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="740" y="258" width="40" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="760" y="267" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">STUDY</text>
+        <text x="788" y="269" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif">Quiz attempt</text>
+        <line x1="732" y1="280" x2="900" y2="280" stroke="rgba(10,10,10,0.12)" stroke-width="1"/>
+        <text x="744" y="298" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace"># id · → lesson_id</text>
+        <text x="744" y="312" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">questions, key hidden</text>
+        <text x="744" y="326" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">answers · passed</text>
+        <text x="744" y="340" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace">submitted_at</text>
+        <line x1="40" y1="376" x2="920" y2="376" stroke="rgba(10,10,10,0.1)" stroke-width="0.8"/>
+        <text x="40" y="392" fill="#666666" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGEND</text>
+        <rect x="40" y="403" width="14" height="10" rx="2" fill="rgba(205,64,0,0.08)" stroke="#cd4000" stroke-width="1"/>
+        <text x="60" y="411" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Aggregate root: deleting a document cascades</text>
+        <rect x="308" y="403" width="14" height="10" rx="2" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <text x="328" y="411" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Entity</text>
+        <text x="388" y="411" fill="#666666" font-size="8.5" font-family="'Geist Mono', ui-monospace, monospace"># key  ·  → foreign key  ·  1 / N / 0..1 cardinality</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Indexing and hybrid retrieval</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #fdfaf3;
+      --color-ink:     #0a0a0a;
+      --color-muted:   #666666;
+      --color-accent:  #cd4000;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Data flow · Learn.si</p>
+    <h1>Indexing and hybrid retrieval</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="retrieval-title retrieval-desc">
+        <title id="retrieval-title">Indexing and hybrid retrieval</title>
+        <desc id="retrieval-desc">Data flow showing uploads extracted, chunked and embedded into PostgreSQL and Pinecone, and each sub-question searched with exact references, vector search or full-text fallback, then expanded before evidence assessment.</desc>
+        <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#666666"/></marker><marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cd4000"/></marker><marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0671d9"/></marker><marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#666666" stroke-width="1.2"/></marker></defs>
+        <rect width="100%" height="100%" fill="#fdfaf3"/>
+        <rect x="24" y="40" width="528" height="112" rx="8" fill="rgba(10,10,10,0.02)" stroke="rgba(10,10,10,0.1)" stroke-width="0.8"/>
+        <rect x="36" y="44" width="48" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="60" y="53" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">INDEX</text>
+        <rect x="200" y="168" width="496" height="112" rx="8" fill="rgba(10,10,10,0.02)" stroke="rgba(10,10,10,0.1)" stroke-width="0.8"/>
+        <rect x="212" y="172" width="40" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="232" y="181" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">DATA</text>
+        <rect x="24" y="296" width="880" height="112" rx="8" fill="rgba(10,10,10,0.02)" stroke="rgba(10,10,10,0.1)" stroke-width="0.8"/>
+        <rect x="36" y="300" width="172" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="122" y="309" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">SEARCH · PER SUB-QUESTION</text>
+        <path d="M 200,104 H 296" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 336,136 V 200" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 512,136 V 200" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 168,360 H 216" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 316,328 V 264" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 416,344 H 440 Q 448,344 448,336 V 240 Q 448,232 456,232 H 480" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 416,376 H 480" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M 648,360 H 704" fill="none" stroke="#666666" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="216" y="86" width="64" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="248" y="95" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">IN MEMORY</text>
+        <rect x="276" y="162" width="52" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="302" y="171" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ONE TXN</text>
+        <rect x="520" y="162" width="48" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="544" y="171" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">UPSERT</text>
+        <rect x="276" y="290" width="32" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="292" y="299" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">SQL</text>
+        <rect x="456" y="282" width="32" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="472" y="291" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">KNN</text>
+        <rect x="428" y="358" width="40" height="12" rx="2" fill="#fdfaf3"/>
+        <text x="448" y="367" fill="#717171" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">TOP 8</text>
+        <rect x="40" y="72" width="160" height="64" rx="6" fill="#fdfaf3"/>
+        <rect x="40" y="72" width="160" height="64" rx="6" fill="rgba(102,102,102,0.1)" stroke="#717171" stroke-width="1"/>
+        <rect x="48" y="80" width="44" height="12" rx="2" fill="none" stroke="rgba(113,113,113,0.4)" stroke-width="0.8"/>
+        <text x="70" y="89" fill="#717171" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">UPLOAD</text>
+        <text x="120" y="111.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Upload</text>
+        <text x="120" y="126.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">PDF · TXT · MD ≤ 10 MB</text>
+        <rect x="296" y="72" width="240" height="64" rx="6" fill="#fdfaf3"/>
+        <rect x="296" y="72" width="240" height="64" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="304" y="80" width="44" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="326" y="89" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">INGEST</text>
+        <text x="416" y="111.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Extract · chunk · embed</text>
+        <text x="416" y="126.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">2,400-char chunks · 768-d</text>
+        <rect x="216" y="200" width="200" height="64" rx="6" fill="#fdfaf3"/>
+        <rect x="216" y="200" width="200" height="64" rx="6" fill="rgba(10,10,10,0.05)" stroke="#666666" stroke-width="1"/>
+        <rect x="224" y="208" width="28" height="12" rx="2" fill="none" stroke="rgba(102,102,102,0.5)" stroke-width="0.8"/>
+        <text x="238" y="217" fill="#666666" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">SQL</text>
+        <text x="316" y="239.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">PostgreSQL</text>
+        <text x="316" y="254.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">sections · chunks · tsvector</text>
+        <rect x="480" y="200" width="200" height="64" rx="6" fill="#fdfaf3"/>
+        <rect x="480" y="200" width="200" height="64" rx="6" fill="rgba(10,10,10,0.05)" stroke="#666666" stroke-width="1"/>
+        <rect x="488" y="208" width="48" height="12" rx="2" fill="none" stroke="rgba(102,102,102,0.5)" stroke-width="0.8"/>
+        <text x="512" y="217" fill="#666666" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">VECTORS</text>
+        <text x="580" y="239.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Pinecone</text>
+        <text x="580" y="254.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">vectors · active generation</text>
+        <rect x="40" y="328" width="128" height="64" rx="6" fill="#fdfaf3"/>
+        <rect x="40" y="328" width="128" height="64" rx="6" fill="rgba(102,102,102,0.1)" stroke="#717171" stroke-width="1"/>
+        <rect x="48" y="336" width="40" height="12" rx="2" fill="none" stroke="rgba(113,113,113,0.4)" stroke-width="0.8"/>
+        <text x="68" y="345" fill="#717171" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">QUERY</text>
+        <text x="104" y="367.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Sub-question</text>
+        <text x="104" y="382.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">from the plan</text>
+        <rect x="216" y="328" width="200" height="64" rx="6" fill="#fdfaf3"/>
+        <rect x="216" y="328" width="200" height="64" rx="6" fill="rgba(205,64,0,0.08)" stroke="#cd4000" stroke-width="1"/>
+        <rect x="224" y="336" width="44" height="12" rx="2" fill="none" stroke="rgba(205,64,0,0.5)" stroke-width="0.8"/>
+        <text x="246" y="345" fill="#cd4000" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">SEARCH</text>
+        <text x="316" y="367.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Hybrid search</text>
+        <text x="316" y="382.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">§ refs · kNN · FTS fallback</text>
+        <rect x="480" y="328" width="168" height="64" rx="6" fill="#fdfaf3"/>
+        <rect x="480" y="328" width="168" height="64" rx="6" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <rect x="488" y="336" width="40" height="12" rx="2" fill="none" stroke="rgba(10,10,10,0.4)" stroke-width="0.8"/>
+        <text x="508" y="345" fill="#0a0a0a" font-size="7" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">GRAPH</text>
+        <text x="564" y="367.5" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Expand top 3</text>
+        <text x="564" y="382.5" fill="#666666" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">parent · child · cross-ref</text>
+        <rect x="704" y="340" width="144" height="40" rx="20" fill="#fdfaf3"/>
+        <rect x="704" y="340" width="144" height="40" rx="20" fill="rgba(102,102,102,0.1)" stroke="#717171" stroke-width="1"/>
+        <text x="776" y="364" fill="#0a0a0a" font-size="12" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">≤ 12 hits</text>
+        <text x="920" y="76" fill="#666666" font-size="14" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="end">scoped to the selected documents</text>
+        <text x="920" y="94" fill="#666666" font-size="14" font-style="italic" font-family="'Instrument Serif', 'Noto Serif', serif" text-anchor="end">and their active vector generation</text>
+        <line x1="40" y1="440" x2="920" y2="440" stroke="rgba(10,10,10,0.1)" stroke-width="0.8"/>
+        <text x="40" y="456" fill="#666666" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.18em">LEGEND</text>
+        <rect x="40" y="467" width="14" height="10" rx="2" fill="rgba(205,64,0,0.08)" stroke="#cd4000" stroke-width="1"/>
+        <text x="60" y="475" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Search step</text>
+        <rect x="144" y="467" width="14" height="10" rx="2" fill="#ffffff" stroke="#0a0a0a" stroke-width="1"/>
+        <text x="164" y="475" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Processing</text>
+        <rect x="244" y="467" width="14" height="10" rx="2" fill="rgba(10,10,10,0.05)" stroke="#666666" stroke-width="1"/>
+        <text x="264" y="475" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Store</text>
+        <rect x="320" y="467" width="14" height="10" rx="2" fill="rgba(102,102,102,0.1)" stroke="#717171" stroke-width="1"/>
+        <text x="340" y="475" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Input</text>
+        <rect x="396" y="467" width="20" height="10" rx="5" fill="rgba(102,102,102,0.1)" stroke="#717171" stroke-width="1"/>
+        <text x="422" y="475" fill="#666666" font-size="8.5" font-family="'Geist', system-ui, sans-serif">Output to Assess</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>
